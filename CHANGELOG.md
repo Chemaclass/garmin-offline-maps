@@ -7,6 +7,12 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [0.2.0] - 2026-08-02
+
+First release with a Settings page, and the first that ran on a watch.
+
 ### Added
 
 - **Choose your city from the phone.** The app now has a Settings page in
@@ -82,5 +88,6 @@ simulator.
 - **Preview renderer**: render a pack to PNG and see what the watch will draw
   before spending time flashing it.
 
-[Unreleased]: https://github.com/Chemaclass/garmin-offline-maps/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/Chemaclass/garmin-offline-maps/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.2.0
 [0.1.0]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.1.0
