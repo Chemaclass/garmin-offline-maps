@@ -1,0 +1,118 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  packer:
+    name: Map packer
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Pillow (preview renderer)
+        run: python -m pip install --upgrade pip pillow
+
+      - name: Unit + integration tests
+        working-directory: tools/mappack
+        run: python -m unittest discover -s tests -t . -v
+
+      - name: Rebuild the demo pack and check it is committed unchanged
+        run: |
+          make demo
+          git diff --exit-code -- mapdata/active source/generated/MapIndex.mc
+
+      - name: Render preview images
+        working-directory: tools/mappack
+        run: |
+          for z in 12 14 15 16 17; do
+            python -m mappack.preview --zoom "$z" --out "preview-z$z.png"
+          done
+          python -m mappack.preview --zoom 15 --heading 40 --out preview-heading-up.png
+          python -m mappack.preview --zoom 15 --day --size 390 --out preview-venu3s-day.png
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: map-previews
+          path: tools/mappack/preview-*.png
+
+  app:
+    name: Connect IQ build
+    runs-on: ubuntu-latest
+    # Building needs the Connect IQ SDK, and Garmin only serves it to a logged-in
+    # account. Add these repository secrets to turn this job on:
+    #   GARMIN_USERNAME, GARMIN_PASSWORD
+    # and this repository variable, from running
+    #   connect-iq-sdk-manager agreement review
+    # once on your own machine and copying the hash it prints:
+    #   CIQ_AGREEMENT_HASH
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Are SDK credentials configured?
+        id: creds
+        env:
+          HAVE_USER: ${{ secrets.GARMIN_USERNAME != '' }}
+        run: echo "ready=$HAVE_USER" >> "$GITHUB_OUTPUT"
+
+      - name: Skip notice
+        if: steps.creds.outputs.ready != 'true'
+        run: |
+          echo "::notice::Skipping the Connect IQ build - no GARMIN_USERNAME secret."
+          echo "::notice::The packer job above still covers the map format end to end."
+
+      - uses: actions/setup-java@v4
+        if: steps.creds.outputs.ready == 'true'
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Install the Connect IQ SDK manager
+        if: steps.creds.outputs.ready == 'true'
+        run: |
+          curl -sSf https://raw.githubusercontent.com/lindell/connect-iq-sdk-manager-cli/master/install.sh | sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Accept the SDK agreement and download the SDK
+        if: steps.creds.outputs.ready == 'true'
+        env:
+          GARMIN_USERNAME: ${{ secrets.GARMIN_USERNAME }}
+          GARMIN_PASSWORD: ${{ secrets.GARMIN_PASSWORD }}
+          AGREEMENT_HASH: ${{ vars.CIQ_AGREEMENT_HASH }}
+          SDK_VERSION: ${{ vars.CIQ_SDK_VERSION || '>=7.4.0' }}
+        run: |
+          connect-iq-sdk-manager agreement accept --agreement-hash="$AGREEMENT_HASH"
+          connect-iq-sdk-manager login
+          connect-iq-sdk-manager sdk set "$SDK_VERSION"
+          connect-iq-sdk-manager device download --manifest=manifest.xml
+          echo "$(connect-iq-sdk-manager sdk current-path --bin)" >> "$GITHUB_PATH"
+
+      - name: Generate a throwaway signing key
+        if: steps.creds.outputs.ready == 'true'
+        run: make key
+
+      - name: Compile for every product in the manifest
+        if: steps.creds.outputs.ready == 'true'
+        run: |
+          for device in venu3 venu3s; do
+            echo "::group::$device"
+            make build DEVICE="$device"
+            echo "::endgroup::"
+          done
+
+      - name: Build the store bundle
+        if: steps.creds.outputs.ready == 'true'
+        run: make package
+
+      - uses: actions/upload-artifact@v4
+        if: steps.creds.outputs.ready == 'true'
+        with:
+          name: connect-iq-build
+          path: bin/*

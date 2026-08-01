@@ -1,0 +1,6 @@
+project.manifest = manifest.xml
+
+# source/generated holds MapIndex.mc, which tools/mappack rewrites on every
+# `make pack`. mapdata/active holds the packed tiles as jsonData resources.
+base.sourcePath = source
+base.resourcePath = resources;mapdata/active

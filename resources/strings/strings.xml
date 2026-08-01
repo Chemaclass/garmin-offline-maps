@@ -1,0 +1,13 @@
+<resources>
+    <string id="AppName">Offline Maps</string>
+
+    <string id="NoDataHere">No map data here</string>
+
+    <string id="MenuTitle">Map</string>
+    <string id="MenuHeadingUp">Heading up</string>
+    <string id="MenuHeadingUpSub">Rotate the map as you turn</string>
+    <string id="MenuNight">Dark theme</string>
+    <string id="MenuNightSub">Easier on an AMOLED battery</string>
+    <string id="MenuStats">Show stats</string>
+    <string id="MenuAbout">About this pack</string>
+</resources>
