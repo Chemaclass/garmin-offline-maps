@@ -89,6 +89,10 @@ class PackOptions:
     include_buildings: bool = False
     resource_budget: int = 200
     name: str = "map"
+    #: Block size to aim for. Compiled-in packs use the default; a downloadable
+    #: pack passes something much smaller, because every block has to base64
+    #: under Application.Storage's 8 KB per-value ceiling. See citypack.py.
+    block_target_bytes: int = 0
 
 
 @dataclass
@@ -325,7 +329,8 @@ def block_size(tiles: Dict[Tuple[int, int], bytes]) -> int:
 SOFT_BLOCK_TARGET = 24000
 
 
-def choose_block_log2(encoded: Dict[Tuple[int, int], bytes], budget: int) -> int:
+def choose_block_log2(encoded: Dict[Tuple[int, int], bytes], budget: int,
+                      soft_target: int = 0) -> int:
     """Pick tiles-per-block so we fit the resource budget without huge loads.
 
     A block is one jsonData resource and one load into RAM, so we want them
@@ -351,7 +356,8 @@ def choose_block_log2(encoded: Dict[Tuple[int, int], bytes], budget: int) -> int
         # largest grouping here used to guarantee a u16 offset overflow on
         # dense data -- a crash instead of a warning.
         return 0
-    roomy = [f for f in feasible if f[2] <= SOFT_BLOCK_TARGET]
+    target = soft_target if soft_target > 0 else SOFT_BLOCK_TARGET
+    roomy = [f for f in feasible if f[2] <= target]
     if roomy:
         return max(roomy, key=lambda f: f[0])[0]
     return min(feasible, key=lambda f: f[0])[0]
@@ -385,7 +391,7 @@ def pack(ways, options: PackOptions) -> PackResult:
 
         encoded = {key: encode_tile(feats) for key, feats in tiles.items()}
         budget = max(4, int(options.resource_budget * weights[zoom] / weight_sum))
-        log2 = choose_block_log2(encoded, budget)
+        log2 = choose_block_log2(encoded, budget, options.block_target_bytes)
         block_log2[zoom] = log2
 
         grouped: Dict[Tuple[int, int], Dict[Tuple[int, int], bytes]] = {}
