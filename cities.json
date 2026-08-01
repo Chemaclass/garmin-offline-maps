@@ -1,0 +1,25 @@
+{
+  "_comment": [
+    "One entry per Connect IQ store listing. The map is compiled into the app,",
+    "so a listing covers exactly one region -- see docs/PUBLISHING.md.",
+    "",
+    "app_id is the listing's identity in the store and MUST NOT change once the",
+    "app is published: a new id is a new listing with no users and no ratings.",
+    "Generate one with: python3 -c 'import uuid; print(uuid.uuid4().hex)'",
+    "",
+    "bbox is west,south,east,north. Keep the pack inside the budgets in",
+    "docs/PACKER.md -- tools/build-city.sh fails the build if the packer warns."
+  ],
+  "cities": {
+    "berlin": {
+      "app_name": "Offline Maps: Berlin",
+      "pack_name": "Berlin",
+      "app_id": "ffc1e2d055e342408fba8916d21ac79d",
+      "bbox": "13.30,52.47,13.48,52.56",
+      "zooms": "12,14,16",
+      "simplify": "2.0",
+      "extra": "--max-points-per-tile 700 --cache berlin.osm",
+      "note": "Inside the Ringbahn. Dense: needs the tighter point budget to keep the renderer from truncating before it covers the screen."
+    }
+  }
+}

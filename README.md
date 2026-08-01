@@ -93,6 +93,10 @@ cd tools/mappack && python3 -m mappack.preview --zoom 16 --out preview.png
 make serve    # http://127.0.0.1:8765 — pan, zoom, themes, render stats
 ```
 
+Because the map is compiled in, one app covers one region — so releases are
+per-city: `make city CITY=berlin`. The registry and the upload steps are in
+**[docs/PUBLISHING.md](docs/PUBLISHING.md)**.
+
 ## Controls
 
 | Action | Gesture |

@@ -46,7 +46,7 @@ ZOOMS       ?= 12,14,16
 SIMPLIFY    ?= 1.0
 EXTRA       ?=
 
-.PHONY: help doctor key pack demo build sim serve package test lint clean distclean
+.PHONY: help doctor key pack demo build sim serve city package test lint clean distclean
 
 help:
 	@sed -n 's/^## //p' $(MAKEFILE_LIST)
@@ -59,6 +59,7 @@ help:
 	@echo "  make sim         launch the simulator and side-load the app"
 	@echo "  make serve       drive the map in a browser (no SDK needed)"
 	@echo "  make package     build the .iq bundle for the Connect IQ store"
+	@echo "  make city        build one city's store bundle (CITY=berlin)"
 	@echo "  make test        run the packer test suite"
 	@echo "  make doctor      report which toolchain pieces are missing"
 	@echo "  make clean       remove build output"
@@ -150,6 +151,16 @@ sim: build
 	done
 	@echo ">> side-loading $(PRG) as $(DEVICE) -- Ctrl-C detaches, sim keeps running"
 	$(MONKEYDO) $(PRG) $(DEVICE)
+
+# --- store listings --------------------------------------------------------
+# The map is compiled in, so one listing covers one region. cities.json holds
+# each city's own app id and name; see docs/PUBLISHING.md.
+#
+#   make city             # list the configured cities
+#   make city CITY=berlin # -> bin/offline-maps-berlin.iq
+
+city:
+	@tools/build-city.sh $(if $(CITY),$(CITY),--list)
 
 package: $(KEY)
 	@mkdir -p $(BIN)
