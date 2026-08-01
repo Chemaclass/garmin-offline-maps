@@ -40,16 +40,13 @@ Overpass or .osm.pbf   →   classify by tag             →   MapIndex.mc  (gen
                                                             MapRenderer (into a BufferedBitmap)
 ```
 
-**Why it looks like this.** Four measured limits leave no other option: 768 KB of
-app RAM, ~128 KB of key-value storage, no filesystem API at all, and under
-1 KB/s over BLE. Sources and the rest in [docs/DEVICES.md](docs/DEVICES.md).
-
-Then one performance reality: every `drawLine` is an interpreted call, and a
-full redraw has to stay well under a second to feel like a map rather than a
-slideshow. So the map renders **once** into an off-screen `BufferedBitmap` when
-the view changes, and each frame after that just blits it — while your finger is
-down, the same buffer is blitted at an offset, and the re-render happens when you
-let go.
+**Why it looks like this.** Four measured limits leave no other option — 768 KB
+of app RAM, ~128 KB of key-value storage, no filesystem API, under 1 KB/s over
+BLE — plus one performance reality: every `drawLine` is an interpreted call, so
+the map renders **once** into an off-screen buffer per view change and every
+frame after that is a blit. The limits with their sources are in
+[docs/DEVICES.md](docs/DEVICES.md); what the renderer does with them is in
+[docs/RENDERING.md](docs/RENDERING.md).
 
 **Three moving parts:** `tools/mappack/` (Python, tested), `source/` (Monkey C,
 needs the SDK), and a byte format that [three implementations](docs/FORMAT.md)
@@ -107,40 +104,21 @@ make build
 ```
 
 That queries [Overpass](https://overpass-api.de/) for just the features the
-renderer draws, tiles them, and writes both the map resources
-(`mapdata/active/`) and the generated index (`source/generated/MapIndex.mc`).
+renderer draws, tiles them, and writes the map resources and the generated
+index. Use a [Geofabrik](https://download.geofabrik.de/) extract via
+`make pack INPUT=…` for anything bigger than a city.
 
-For anything bigger than a city, download a regional extract from
-[Geofabrik](https://download.geofabrik.de/) instead of hammering Overpass:
+The packer prints a size report; read it rather than skim it, because an
+over-budget pack produces an app that will not install. How much area fits, the
+ceilings, and the tuning knobs in the order to reach for them:
+**[docs/PACKER.md](docs/PACKER.md#budgets)**.
+
+See it before you flash it — either a still, or interactively in a browser:
 
 ```bash
-make pack INPUT=~/Downloads/madrid-latest.osm.pbf NAME="Madrid"   # needs: pip install osmium
+cd tools/mappack && python3 -m mappack.preview --zoom 16 --out preview.png
+make serve      # http://127.0.0.1:8765 — pan, zoom, themes, render stats
 ```
-
-Preview it before you flash it:
-
-```bash
-cd tools/mappack
-python3 -m mappack.preview --zoom 16 --out preview.png
-```
-
-### How much area fits
-
-The packer prints a size report. Rough numbers at the default settings
-(zooms 12/14/16, roads + water + green, no buildings):
-
-| Area covered | In-app size | jsonData resources |
-|---|---|---|
-| 10 × 10 km (a town) | ~0.4 MB | ~20 |
-| 30 × 30 km (a city + surroundings) | ~3 MB | ~70 |
-| 60 × 60 km (a metro region) | ~11 MB | ~200 |
-
-Two ceilings to respect, both of which the packer warns about: the Connect IQ
-store rejects `.iq` bundles over **15 MB**, and Connect IQ runs out of resource
-ids somewhere around **255** per type.
-
-If a pack comes out too big, the knobs — and the order to reach for them — are
-in [docs/PACKER.md](docs/PACKER.md#budgets). Shrinking the bbox beats all of them.
 
 ## Controls
 
@@ -161,26 +139,14 @@ render times, and the pack's attribution.
 make test
 ```
 
-67 tests, split by what they are testing rather than by what they import:
+67 tests, none of which need the SDK. The interesting group is `contract/`: the
+watch code cannot be unit tested without a Garmin toolchain, so two Python
+modules stand in for it — `decode.py` mirrors `source/TileReader.mc` line for
+line, and `preview.py` re-implements `source/MapRenderer.mc` closely enough to
+render real PNGs from the real generated artefacts.
 
-```
-tools/mappack/tests/
-├── unit/          one file per mappack module: varint, geom, classify, osmread
-├── integration/   pipeline stages: pack, emit, preview
-└── contract/      agreements with the Monkey C: tile format, palette/layer ids
-```
-
-The `contract/` group is the interesting one. The watch code cannot be unit
-tested without the SDK, so two Python modules stand in for it: `decode.py` is a
-line-by-line mirror of `source/TileReader.mc`, and `preview.py` re-implements
-`source/MapRenderer.mc` — same projection, same draw order, palette scraped live
-out of `source/Palette.mc` — rendering real PNGs from the real generated
-artefacts. If the preview looks right, the watch maths is right.
-Details in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md#testing).
-
-CI runs the whole suite on every push and uploads the preview renders as build
-artefacts. It also compiles the app for both products, once you add Garmin SDK
-credentials as repository secrets (see `.github/workflows/ci.yml`).
+Layout, what belongs where, and how CI runs it:
+**[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md#testing)**.
 
 ## Contributing
 
@@ -193,13 +159,13 @@ complains and it will name the missing piece.
 
 ## Adding more devices
 
-Add the product id to `manifest.xml`, then check
-[docs/DEVICES.md](docs/DEVICES.md#adding-another-device) for that model's
-watch-app memory — it decides whether the off-screen buffer fits. The renderer
-falls back to drawing straight to the screen when it does not, so a tight device
-degrades rather than crashes.
+Add the product id to `manifest.xml` and build it explicitly. Whether the
+off-screen buffer fits in that model's watch-app memory is what decides
+viability — the renderer degrades to drawing straight to the screen rather than
+crashing when it does not. Memory figures, API levels and the procedure:
+**[docs/DEVICES.md](docs/DEVICES.md#adding-another-device)**.
 
-Good next candidates, all round and touch-capable with the same API level:
+Good next candidates, all round and touch-capable at the same API level:
 `vivoactive5`, `venu2`, `venu2s`, `venu2plus`, `fr165`, `fr265`, `fr965`.
 
 ## Licence and attribution

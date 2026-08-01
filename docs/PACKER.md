@@ -105,8 +105,31 @@ difference between an app that installs and one that does not.
 | Block bytes | `SOFT_BLOCK_TARGET` 24 KB | `MAX_BLOCK_BYTES` 60 KB | — |
 | Features per layer | — | `MAX_FEATURES_PER_LAYER` 255 (`u8` count) | — |
 
-Rough area-to-size numbers at the defaults are in the
-[README](../README.md#how-much-area-fits).
+### How much area fits
+
+Rough numbers at the defaults (zooms 12/14/16, roads + water + green, no
+buildings). Estimates, except the measured row:
+
+| Area | In-app size | jsonData ids |
+|---|---|---|
+| 10 × 10 km, a town | ~0.4 MB | ~20 |
+| 30 × 30 km, a city and surroundings | ~3 MB | ~70 |
+| 60 × 60 km, a metro region | ~11 MB | ~200 |
+| **13 × 10 km, central Berlin** *(measured)* | **3.21 MB** | **187** |
+
+The measured row is the one to trust, and it says **density beats area**. Berlin
+inside the Ringbahn is a fraction of the 30 × 30 km row's area and still costs
+more ids than it predicts, because the resource budget is spent on tiles that
+have something in them, not on ground covered. A dense city and an equal area of
+farmland are not comparable packs.
+
+At `SIMPLIFY=2.0 --max-points-per-tile 700` that same Berlin box drops to 2.73 MB
+and 106 ids. Which is the other lesson: the knobs above move real numbers.
+
+Note that fitting the budgets is necessary, not sufficient. The renderer's own
+per-pass segment caps decide how much of a pack is actually *drawn* on screen —
+see [RENDERING.md](RENDERING.md) — and a pack can sit comfortably inside every
+budget here and still truncate at render time.
 
 Knobs, in the order to reach for them:
 
