@@ -1,8 +1,11 @@
 <?xml version="1.0"?>
 <!--
   Adding a device? Put its product id here, run `make pack` again if the new
-  screen is much bigger, and check docs/DEVICES.md first -- watch-app memory
+  screen is much bigger, and check docs/DEVICES.md first. Watch-app memory
   differs a lot between models and the map buffer is the first thing to break.
+  Keep double hyphens out of this comment: they are illegal inside an XML
+  comment, and the SDK manager CLI that CI uses parses this file strictly even
+  though monkeyc does not.
 -->
 <iq:manifest xmlns:iq="http://www.garmin.com/xml/connectiq" version="3">
     <iq:application
