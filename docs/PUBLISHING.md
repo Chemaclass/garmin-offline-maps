@@ -1,5 +1,15 @@
 # Publishing to the Connect IQ store
 
+## The published listing
+
+Beta, first published 2026-08-02:
+**https://apps.garmin.com/apps/296a0177-3634-4515-9da2-7336d5dce3c3**
+
+Garmin's listing UUID is `296a0177-3634-4515-9da2-7336d5dce3c3`, which is not
+either app id tracked in this repo. Whatever id sits inside the uploaded `.iq`
+is the one every future upload must keep, so record it in `cities.json` before
+the next release: a changed id publishes a second listing rather than an update.
+
 ## One listing per city, and why
 
 The map is **compiled into the app**. That is not a shortcut. The platform
