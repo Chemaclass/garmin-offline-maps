@@ -97,10 +97,17 @@ any diff against what is committed.
 `cli.py:report` prints these and warns. They are not advisory — they are the
 difference between an app that installs and one that does not.
 
+One of them is not a per-device number. **The store's 15 MB limit applies to the
+whole `.iq`, and the map is compiled into every product in `manifest.xml`** — so
+the pack is paid for once per device supported. At 24 products the usable budget
+is about 600 KB of packed data, not 15 MB. `tools/build-city.sh` fails the build
+rather than letting you find out at upload; the fix is a smaller pack or a
+shorter product list for that listing.
+
 | Budget | Default | Ceiling | Warns at |
 |---|---|---|---|
 | jsonData resources | `--resource-budget 200` | ~255 (Connect IQ) | 250 |
-| In-app size (base64) | — | 15 MB (store rejects `.iq` above) | 12 MB |
+| In-app size (base64) | — | 15 MB ÷ products (store rejects `.iq` above 15 MB) | 12 MB |
 | Points per tile | `--max-points-per-tile 1100` | — | >25% dropped |
 | Block bytes | `SOFT_BLOCK_TARGET` 24 KB | `MAX_BLOCK_BYTES` 60 KB | — |
 | Features per layer | — | `MAX_FEATURES_PER_LAYER` 255 (`u8` count) | — |

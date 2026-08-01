@@ -51,11 +51,24 @@ Venu 3 mounts over MTP, not mass storage, so macOS Finder will not show it.
 
 ## Build expectations
 
-The app compiles clean for both products under SDK 9.2.0 and runs in the
+The app compiles clean for all 24 products under SDK 9.2.0 and runs in the
 simulator. It has never run on hardware.
 
-The ~38 `Cannot determine if container access is using container type` warnings
-are expected: they are what the untyped-`var` convention costs, not defects.
+**Zero warnings is the expected state**, on every device. It did not used to be:
+`Cannot determine if container access is using container type` fired 36 times
+until the subscripted values were annotated, and the launcher icon warned on 20
+of the 24 products until `monkey.jungle` grew per-size icon folders. A warning
+now means something changed, so read it rather than assuming it is background
+noise.
+
+`make build DEVICE=<id>` builds one device. To sweep all of them, read the list
+out of the manifest the way CI does:
+
+```bash
+for d in $(grep -o 'iq:product id="[^"]*"' manifest.xml | cut -d'"' -f2); do
+    make build DEVICE="$d" || echo "FAILED: $d"
+done
+```
 Errors are not expected — if one appears, fix it on its merits and report it; do
 not restructure working logic, and do not reach for `-l 0` to silence the type
 checker. See the annotation note in docs/DEVELOPMENT.md § Conventions.

@@ -116,5 +116,18 @@ make -C "$ROOT" package
 
 OUT="$ROOT/bin/offline-maps-$CITY.iq"
 mv "$ROOT/bin/offline-maps.iq" "$OUT"
-say "wrote $(basename "$OUT")  ($(du -h "$OUT" | cut -f1))"
+
+# The store rejects a .iq over 15 MB, and that ceiling is for the whole bundle:
+# the map is compiled into every product, so the same pack is paid for once per
+# <iq:product> in manifest.xml. Two products cost little; twenty-four turn a
+# comfortable pack into a rejected upload. Catch it here rather than at upload.
+IQ_BYTES=$(wc -c < "$OUT" | tr -d ' ')
+LIMIT=$((15 * 1024 * 1024))
+PRODUCTS=$(grep -c 'iq:product id=' "$ROOT/manifest.xml")
+if [ "$IQ_BYTES" -gt "$LIMIT" ]; then
+    die "$(basename "$OUT") is $((IQ_BYTES / 1024 / 1024)) MB across $PRODUCTS products; the store rejects anything over 15 MB.
+     Either shrink the pack (docs/PACKER.md#budgets) or cut the product list in
+     manifest.xml for this listing -- the budget is 15 MB / number of products."
+fi
+say "wrote $(basename "$OUT")  ($(du -h "$OUT" | cut -f1), $PRODUCTS products)"
 say "upload it at https://apps-developer.garmin.com"

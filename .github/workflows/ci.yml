@@ -101,7 +101,12 @@ jobs:
       - name: Compile for every product in the manifest
         if: steps.creds.outputs.ready == 'true'
         run: |
-          for device in venu3 venu3s; do
+          # Read the list from the manifest rather than repeating it here --
+          # the two drifted apart once already, and the SDK manager step above
+          # downloads device definitions straight from the same file.
+          devices=$(grep -o 'iq:product id="[^"]*"' manifest.xml | cut -d'"' -f2)
+          echo "Building for: $devices"
+          for device in $devices; do
             echo "::group::$device"
             make build DEVICE="$device"
             echo "::endgroup::"

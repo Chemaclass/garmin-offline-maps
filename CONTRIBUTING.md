@@ -180,7 +180,7 @@ Two rules that matter more for agents than for humans:
 
 Honest state, also recorded in [CHANGELOG.md](CHANGELOG.md): the packer, the
 byte format and the rendering maths are covered by tests and by a Python
-re-implementation of the renderer. The watch app compiles for both products
+re-implementation of the renderer. The watch app compiles for all 24 products
 under Connect IQ SDK 9.2.0 and runs in the simulator.
 
 It has **never run on a real watch.** Memory headroom and frame timing are the

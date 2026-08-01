@@ -8,8 +8,8 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 No release has been cut yet — everything below is what exists today. The app
-compiles for the Venu 3 and Venu 3S and runs in the simulator, but has **not**
-run on hardware, so nothing here is verified on-watch.
+compiles for all 24 supported products and runs in the simulator, but has
+**not** run on hardware, so nothing here is verified on-watch.
 
 ### Fixed
 
@@ -21,9 +21,16 @@ run on hardware, so nothing here is verified on-watch.
 
 ### Added
 
+- **22 more watches.** The app now covers 24 products across the Venu, Venu Sq,
+  vívoactive and Forerunner families — Venu 2/2S/2 Plus/3/3S/4/X1, Venu Sq 2,
+  vívoactive 5/6 and Forerunner 165/170/265/570/70/955/965/970. `minApiLevel`
+  drops to 4.0.0, which is what the renderer actually needs. Support is gated on
+  a touchscreen (panning is drag-only) and API 4.0, not on GPS; the models this
+  leaves out and why are in
+  [docs/DEVICES.md](docs/DEVICES.md#what-that-leaves-out).
 - **The About screen names the source repository**, under the map attribution,
   so anyone holding the watch can find where the app comes from.
-- **Offline vector map for the Venu 3 and Venu 3S.** Pan by dragging, zoom with
+- **Offline vector map for Garmin watches.** Pan by dragging, zoom with
   the on-screen buttons, anywhere in the packed region — no phone, no network,
   no subscription.
 - **Follow me.** Recentres on every GPS fix; one tap on the crosshair to

@@ -111,17 +111,79 @@ stroked segment by segment.
   out slow on hardware, lower `--max-points-per-tile` when packing before
   touching the renderer.
 
+## Supported devices
+
+Twenty-four products, all of which compile. Venu 3 and 3S remain the design
+target — the numbers above are theirs — and everything else is the same code at
+a different screen size.
+
+| Family | Products |
+|---|---|
+| Venu | `venu2` `venu2plus` `venu2s` `venu3` `venu3s` `venu441mm` `venu445mm` `venux1` |
+| Venu Sq | `venusq2` `venusq2m` |
+| vívoactive | `vivoactive5` `vivoactive6` |
+| Forerunner | `fr165` `fr165m` `fr170` `fr170m` `fr265` `fr265s` `fr57042mm` `fr57047mm` `fr70` `fr955` `fr965` `fr970` |
+
+Screens run from 320 × 360 (Venu Sq 2) to 454 × 454, plus the 448 × 486
+rectangle of the Venu X1. All have 786,432 B of watch-app memory — the same
+budget the app was written against — so the tile cache and the off-screen buffer
+need no per-device tuning.
+
+### Two gates, and neither is GPS
+
+The map works with no position fix at all; you pan it by hand and GPS only feeds
+*follow me*. What actually decides support:
+
+1. **A touchscreen.** Panning is drag-only. Zoom survives on `KEY_UP`/`KEY_DOWN`,
+   but a watch you cannot pan is not a map, and a key-based pan scheme does not
+   exist yet.
+2. **API level ≥ 4.0.0**, which is `Graphics.createBufferedBitmap`. That is the
+   real floor and it is what `manifest.xml` now declares. It used to say 4.2.1,
+   for a `Dc.drawBitmap2` + `AffineTransform` path the renderer no longer has.
+
+### What that leaves out
+
+- **No touchscreen** — `fr55`, `fr230`, `fr235`, `fr245`, `fr245m`, `fr255`,
+  `fr255m`, `fr255s`, `fr255sm`, `fr645`, `fr645m`, `fr735xt`, `fr745`,
+  `fr920xt`, `fr935`, `fr945`, `fr945lte`. Nothing else disqualifies most of
+  these; they are waiting on key-based panning.
+- **API 3.x** — `venu` (Venu 1), `venud`, `venusqm` (Venu Sq Music),
+  `vivoactive3m`, `vivoactive3mlte`, `vivoactive4`, `vivoactive4s`, `d2air`.
+  All touch, all with **1 MB** of watch-app memory — more than the Venu 3 has.
+  Only `createBufferedBitmap` stands in the way, and `MapView.createBuffer`
+  already degrades to direct drawing when the buffer is unavailable. Guarding
+  it with `Graphics has :createBufferedBitmap` and dropping `minApiLevel` to
+  3.3.0 would bring back Venu 1, Venu Sq Music and vívoactive 4 / 4S, at the
+  cost of a flickering pan on those models.
+- **Too little memory whatever else is true** — `venusq` (Venu Sq, 128 KB),
+  `vivoactive3`, `vivoactive3d`, `vivoactive_hr` (128 KB), `vivoactive`,
+  `fr630` (64 KB). `TileStore`'s cache budget alone is 90 KB.
+- **Lily** — Garmin ships no Connect IQ watch-app support for it; there is no
+  Lily device definition in the SDK at all.
+
+Outside the families this app targets, another ~30 touch devices clear both
+gates today — the fēnix 7/8, epix, Edge, Descent, Approach S70 and MARQ lines.
+They are omitted only because nobody has asked; the code has nothing model
+specific in it.
+
 ## Adding another device
 
-1. Add `<iq:product id="..."/>` to `manifest.xml`.
-2. Look up its watch-app memory on
-   [the compatible devices list](https://developer.garmin.com/connect-iq/compatible-devices/)
-   and its device-reference page. Below ~500 KB, expect the off-screen buffer to
-   be tight — the renderer already falls back to drawing straight to the screen,
-   which flickers while panning but does not crash.
-3. If the device is not touch-capable, zoom still works on `KEY_UP`/`KEY_DOWN`,
-   but panning needs a key-based scheme that does not exist yet.
-4. Build it: `make build DEVICE=<id>`.
+1. Check it against the two gates above. The device definition is the source of
+   truth, not the marketing page — the compatible-devices table lists vívoactive
+   3 and 4 as non-touch, and the SDK says otherwise:
 
-Likely-easy candidates, same API family, round and touch:
-`vivoactive5`, `venu2`, `venu2s`, `venu2plus`, `fr165`, `fr265`, `fr965`.
+   ```bash
+   connect-iq-sdk-manager device download --download-all
+   # ~/.Garmin/ConnectIQ/Devices/<id>/compiler.json  -> appTypes[].memoryLimit,
+   #     resolution, deviceGroup (API level), launcherIcon
+   # ~/.Garmin/ConnectIQ/Devices/<id>/simulator.json -> display.isTouch
+   ```
+
+2. Add `<iq:product id="..."/>` to `manifest.xml`. CI reads its build list from
+   that file, so there is nothing to update in the workflow.
+3. If its `launcherIcon` size is not one of the folders `monkey.jungle` already
+   wires up, add one — otherwise the build warns and the icon is scaled.
+4. Build it: `make build DEVICE=<id>`.
+5. Only if the screen is much larger than 454 × 454: a bigger viewport shows
+   more tiles at once, raising peak `TileStore` residency. Preview at the new
+   size first (`python3 -m mappack.preview --size <px> --zoom 16 --out p.png`).

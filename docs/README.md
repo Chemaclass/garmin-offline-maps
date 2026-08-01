@@ -54,5 +54,5 @@ means "go edit the other side", not "fix this code".
 
 The packer, the format and the rendering maths are covered by the test suite and
 by a Python re-implementation of the renderer. The Monkey C compiles for the
-Venu 3 and Venu 3S under Connect IQ SDK 9.2.0 and runs in the simulator. It has
+24 products under Connect IQ SDK 9.2.0 and runs in the simulator. It has
 **never run on hardware** — memory headroom and frame timing are unmeasured.

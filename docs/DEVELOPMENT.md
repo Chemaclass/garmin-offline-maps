@@ -44,7 +44,8 @@ Use `temurin@21`, not `temurin` — the unversioned cask is now JDK 26. Only
 download does not carry them, and Garmin gates them behind an account. Open
 `SdkManager.app`, sign in, download an SDK **and accept the licence agreement**
 — an unaccepted agreement is what silently leaves the Devices list empty — then
-tick Venu 3 and Venu 3S. They land in:
+tick the products in `manifest.xml` (or just Venu 3 and Venu 3S to start; the
+build only needs the device you pass to `DEVICE=`). They land in:
 
 ```
 ~/Library/Application Support/Garmin/ConnectIQ/Devices/

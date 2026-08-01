@@ -1,8 +1,9 @@
 # Offline Maps for Garmin
 
 A pannable, zoomable map for Garmin watches that ship no cartography of their
-own — starting with the **Venu 3** and **Venu 3S**. No phone, no network, no
-subscription: the map is compiled into the app.
+own — 24 of them, across the **Venu**, **Venu Sq**, **vívoactive** and
+**Forerunner** families. No phone, no network, no subscription: the map is
+compiled into the app.
 
 <p align="center">
   <img src="docs/img/preview-z14.png" width="220" alt="City overview">
@@ -96,7 +97,7 @@ guidelines put the licensing burden on you.
 
 No release cut yet; [CHANGELOG.md](CHANGELOG.md) lists what exists today. The
 packer, format and rendering maths are covered by tests. The Monkey C compiles
-for both products and runs in the simulator, but has **never run on a real
+for all 24 products and runs in the simulator, but has **never run on a real
 watch** — see [docs/README.md](docs/README.md#status) for what that leaves
 unverified.
 

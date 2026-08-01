@@ -60,13 +60,29 @@ make city CITY=berlin     # -> bin/offline-maps-berlin.iq
 
 `tools/build-city.sh` swaps that city's id and name into the tracked
 `manifest.xml` and `resources/strings/strings.xml`, packs the region, builds
-both products, then puts everything back — including the demo pack, so the repo
+every product, then puts everything back — including the demo pack, so the repo
 never keeps another city's identity and CI's `make demo` check stays green. The
 restore runs on failure and on interrupt, not just on success.
 
 It fails the build if the packer warns. An over-budget pack does not install, or
 installs with the detail gutted, and neither is something to find out after
 upload. Knobs, in order, are in [PACKER.md](PACKER.md#budgets).
+
+### The pack is paid for once per product
+
+The store rejects a `.iq` over 15 MB, and the map is compiled into **every**
+product in `manifest.xml`. With 24 products the usable pack is roughly 600 KB,
+not 15 MB, and a region that fitted comfortably when this app shipped for two
+watches will not fit now. `build-city.sh` fails rather than let you discover it
+at upload.
+
+Two ways out, and the second is usually the right one for a dense city:
+
+- Shrink the pack — `SIMPLIFY`, `--max-points-per-tile`, fewer zooms
+  ([PACKER.md](PACKER.md#budgets)).
+- **Cut the product list for that listing.** Nothing requires every listing to
+  cover every watch. A city listing built for one screen family is a smaller
+  `.iq` and a sharper pack, and a second listing can cover the rest.
 
 ## Uploading
 
