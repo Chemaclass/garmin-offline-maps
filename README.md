@@ -66,7 +66,7 @@ make build    # compiles with the bundled demo map
 make sim      # opens the simulator and side-loads it
 ```
 
-`make build` produces `bin/offline-maps-venu3.prg`. To put it on the watch, plug
+`make build` produces `bin/offline-maps.prg`. To put it on the watch, plug
 in over USB, copy that file into `GARMIN/APPS/`, and eject — it then appears in
 the activity/app list.
 

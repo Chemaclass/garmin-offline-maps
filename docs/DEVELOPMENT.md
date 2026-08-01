@@ -77,8 +77,9 @@ make build SDK_BIN=~/path/to/connectiq-sdk-mac-X.Y.Z/bin
 ```bash
 make doctor                 # what is missing, before anything else
 make key                    # one-off signing key, gitignored
-make build DEVICE=venu3     # -> bin/offline-maps-venu3.prg
+make build DEVICE=venu3     # -> bin/offline-maps.prg
 make build DEVICE=venu3s    # every product in manifest.xml, not just the default
+                            # (same output path, so the last build wins)
 make sim                    # simulator + side-load
 make package                # -> bin/offline-maps.iq for the store
 ```

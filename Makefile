@@ -30,7 +30,7 @@ SIM_PORT    ?= 1234          # the simulator's side-load socket
 
 KEY         ?= developer_key
 BIN         := bin
-PRG         := $(BIN)/offline-maps-$(DEVICE).prg
+PRG         := $(BIN)/offline-maps.prg
 IQ          := $(BIN)/offline-maps.iq
 
 PYTHON      ?= python3
