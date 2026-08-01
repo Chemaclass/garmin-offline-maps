@@ -7,9 +7,13 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-No release has been cut yet — everything below is what exists today. The app
-compiles for all 24 supported products and runs in the simulator, but has
-**not** run on hardware, so nothing here is verified on-watch.
+Nothing yet.
+
+## [0.1.0] - 2026-08-02
+
+First cut. The app compiles for all 24 supported products and runs in the
+simulator, but has **not** run on hardware, so nothing here is verified
+on-watch.
 
 ### Fixed
 
@@ -54,4 +58,5 @@ compiles for all 24 supported products and runs in the simulator, but has
 - **Preview renderer** — render a pack to PNG and see what the watch will draw
   before spending time flashing it.
 
-[Unreleased]: https://github.com/Chemaclass/garmin-offline-maps
+[Unreleased]: https://github.com/Chemaclass/garmin-offline-maps/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.1.0
