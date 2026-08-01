@@ -20,22 +20,37 @@ pip install osmium    # enables make pack INPUT=*.osm.pbf
 
 ## Setting up the toolchain
 
-Three separate things must exist, and they fail with similar-looking errors:
+Run `make doctor` at any point — it names which piece is missing instead of
+letting `monkeyc` guess. Four things must exist, and they fail with
+similar-looking errors:
 
 | Missing | Symptom |
 |---|---|
 | SDK binaries | `make: monkeyc: No such file or directory` |
 | Java runtime | `Unable to locate a Java Runtime` |
-| Device definitions | `monkeyc` runs, then errors on `-d venu3` |
+| Device definitions | `ERROR: Invalid device id specified: 'venu3'.` |
+| Signing key | `make build` stops before compiling; fix with `make key` |
 
 ```bash
-brew install --cask connectiq              # monkeyc, monkeydo -- no Garmin login
-brew install --cask temurin                # JDK 21, matching CI
+brew install --cask connectiq              # monkeyc, monkeydo, simulator -- no Garmin login
+brew install --cask temurin@21             # JDK 21, matching CI
 brew install --cask connectiq-sdk-manager  # device definitions -- free Garmin account
 ```
 
-Device definitions are the part that needs an account; the SDK download does not
-carry them. The headless route CI uses works locally too:
+Use `temurin@21`, not `temurin` — the unversioned cask is now JDK 26. Only
+`temurin@21` needs `sudo` (it is a `.pkg`); the other two are not.
+
+**Device definitions are the one step that cannot be scripted for you.** The SDK
+download does not carry them, and Garmin gates them behind an account. Open
+`SdkManager.app`, sign in, download an SDK **and accept the licence agreement**
+— an unaccepted agreement is what silently leaves the Devices list empty — then
+tick Venu 3 and Venu 3S. They land in:
+
+```
+~/Library/Application Support/Garmin/ConnectIQ/Devices/
+```
+
+The headless route CI uses works locally too, and still needs your credentials:
 
 ```bash
 curl -sSf https://raw.githubusercontent.com/lindell/connect-iq-sdk-manager-cli/master/install.sh | sh
@@ -43,15 +58,24 @@ connect-iq-sdk-manager login
 connect-iq-sdk-manager device download --manifest=manifest.xml
 ```
 
-The Makefile does not require anything on `PATH`:
+### Where the Makefile looks
+
+Nothing needs to be on `PATH`. The Makefile autodetects the Homebrew SDK, so
+plain `make build` works once the four pieces above exist.
+
+Do **not** follow the old advice of `SDK_BIN="$(brew --prefix)/bin"`. The cask
+links `monkeyc` and `monkeydo` there but *not* `connectiq`, the simulator
+launcher, so that path builds fine and then breaks `make sim` with
+`connectiq: command not found`. Override only for an SDK outside Homebrew:
 
 ```bash
-make build SDK_BIN="$(brew --prefix)/bin"
+make build SDK_BIN=~/path/to/connectiq-sdk-mac-X.Y.Z/bin
 ```
 
 ## Build and run
 
 ```bash
+make doctor                 # what is missing, before anything else
 make key                    # one-off signing key, gitignored
 make build DEVICE=venu3     # -> bin/offline-maps-venu3.prg
 make build DEVICE=venu3s    # every product in manifest.xml, not just the default
@@ -59,7 +83,14 @@ make sim                    # simulator + side-load
 make package                # -> bin/offline-maps.iq for the store
 ```
 
-On the watch: plug in over USB, copy the `.prg` into `GARMIN/APPS/`, eject.
+`make sim` waits for the simulator to open its side-load socket (TCP 1234)
+rather than sleeping a fixed interval, and reuses an already-running simulator.
+Leave it open between builds; `Ctrl-C` detaches `monkeydo` without closing it.
+
+On the watch: plug in over USB, copy the `.prg` into `GARMIN/APPS/`, eject. The
+Venu 3 has music storage, so macOS mounts it over **MTP**, not mass storage —
+Finder will not show it. Use [OpenMTP](https://openmtp.ganeshrvel.com/) or
+Android File Transfer.
 
 **`developer_key` is the app's identity in the Connect IQ store.** The store pins
 a published app to the key that signed its first upload; a new key means a new

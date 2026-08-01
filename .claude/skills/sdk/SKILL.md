@@ -12,21 +12,27 @@ Read it — do not improvise an install.
 ## 1. Diagnose before installing
 
 ```bash
-which monkeyc monkeydo connectiq
-java -version 2>&1 | head -2
-ls ~/Library/Application\ Support/Garmin/ConnectIQ/Devices/ 2>/dev/null
+make doctor
 ```
 
-Three separate things must exist and they fail with similar-looking errors:
-missing SDK binaries give `make: monkeyc: No such file or directory`; missing
-Java gives `Unable to locate a Java Runtime`; missing device definitions let
-`monkeyc` start and then fail on `-d venu3`.
+That is the whole diagnosis step; it checks each piece separately and prints the
+fix. Four things must exist and they fail with similar-looking errors: missing
+SDK binaries give `make: monkeyc: No such file or directory`; missing Java gives
+`Unable to locate a Java Runtime`; missing device definitions give
+`ERROR: Invalid device id specified: 'venu3'.`; a missing `developer_key` stops
+`make build` before it compiles.
 
 ## 2. Ask before installing
 
 These are multi-hundred-MB downloads, and device definitions need the user's own
 free Garmin account — only they can enter those credentials. Do not try to route
-around the login.
+around the login. `temurin@21` is a `.pkg` and needs `sudo`, so the user must run
+that one themselves; the other casks you can install.
+
+Device definitions also require accepting the SDK licence agreement in
+`SdkManager.app`. An unaccepted agreement leaves the Devices list empty while
+looking like a completed login — if `make doctor` still says `MISSING` after the
+user reports success, that is the usual cause.
 
 ## 3. Build and run
 
@@ -34,10 +40,14 @@ around the login.
 make build DEVICE=venu3     # and venu3s -- every product in manifest.xml
 make sim                    # simulator + side-load
 make package                # .iq for the store
-make build SDK_BIN=...      # if you would rather not touch PATH
 ```
 
-On the watch: plug in over USB, copy the `.prg` into `GARMIN/APPS/`, eject.
+The Makefile autodetects the Homebrew SDK; `SDK_BIN=` is only for an SDK
+installed elsewhere. Never suggest `SDK_BIN="$(brew --prefix)/bin"` — the cask
+does not link `connectiq` there, so it builds but breaks `make sim`.
+
+On the watch: plug in over USB, copy the `.prg` into `GARMIN/APPS/`, eject. The
+Venu 3 mounts over MTP, not mass storage, so macOS Finder will not show it.
 
 ## Expect compile errors on the first build
 
