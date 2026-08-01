@@ -12,6 +12,10 @@ developer_key.pem
 # Claude Code -- .claude/ is shared; local overrides are not
 .claude/settings.local.json
 
+# Editors
+.idea/
+.vscode/
+
 # Python
 __pycache__/
 *.py[cod]
