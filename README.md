@@ -35,23 +35,6 @@ at the hotel.
 - Scale bar, dark and light themes, position marker with a heading wedge
 - All offline, from a pack you build for your own area
 
-## How it works
-
-OpenStreetMap data is quantised into binary vector tiles by a Python packer,
-base64'd into Connect IQ `jsonData` resources, and compiled into the app. The
-watch decodes tiles straight into draw calls, once, into an off-screen bitmap;
-every frame after that is a blit. There is no runtime data path — no network, no
-filesystem, no companion app.
-
-That shape is forced by four measured limits: 768 KB of app RAM, ~128 KB of
-key-value storage, no filesystem API, and under 1 KB/s over BLE.
-
-Three moving parts: `tools/mappack/` (Python, tested), `source/` (Monkey C,
-needs the SDK), and a byte format that three implementations must agree on.
-
-**[docs/](docs/README.md)** has the rest — architecture, rendering, packer,
-format, devices, development.
-
 ## Quick start
 
 Needs the [Connect IQ SDK](https://developer.garmin.com/connect-iq/sdk/) (free
@@ -66,49 +49,28 @@ make build    # compiles with the bundled demo map
 make sim      # opens the simulator and side-loads it
 ```
 
-`make build` produces `bin/offline-maps.prg`. To put it on the watch, plug
-in over USB, copy that file into `GARMIN/APPS/`, and eject — it then appears in
-the activity/app list.
-
-## A map of your own area
+Then swap the demo for where you actually are — west,south,east,north:
 
 ```bash
-# west,south,east,north — central Madrid
 make pack BBOX=-3.75,40.38,-3.65,40.45 NAME="Madrid"
 make build
 ```
 
-That queries [Overpass](https://overpass-api.de/) for just the features the
-renderer draws. For anything bigger than a city use a
-[Geofabrik](https://download.geofabrik.de/) extract via `make pack INPUT=…`.
+The packer prints a size report. Read it: an over-budget pack produces an app
+that will not install, and **[docs/PACKER.md](docs/PACKER.md#budgets)** has the
+ceilings and the tuning knobs in the order to reach for them.
 
-The packer prints a size report — read it, because an over-budget pack produces
-an app that will not install. Ceilings, how much area fits, and the tuning knobs
-in the order to reach for them: **[docs/PACKER.md](docs/PACKER.md#budgets)**.
+## How it works
 
-Look at a pack before you flash it:
+There is no runtime data path — no network, no filesystem, no companion app.
+That shape is forced by four measured limits: 768 KB of app RAM, ~128 KB of
+key-value storage, no filesystem API, and under 1 KB/s over BLE.
 
-```bash
-cd tools/mappack && python3 -m mappack.preview --zoom 16 --out preview.png
-make serve    # http://127.0.0.1:8765 — pan, zoom, themes, render stats
-```
+Three moving parts: `tools/mappack/` (Python, tested), `source/` (Monkey C,
+needs the SDK), and a byte format that three implementations must agree on.
 
-Because the map is compiled in, one app covers one region — so releases are
-per-city: `make city CITY=berlin`. The registry and the upload steps are in
-**[docs/PUBLISHING.md](docs/PUBLISHING.md)**.
-
-## Controls
-
-| Action | Gesture |
-|---|---|
-| Pan | drag |
-| Zoom in / out | tap the **+** / **−** buttons on the right |
-| Centre on me | tap the crosshair on the left, or press **Enter** |
-| Menu | long-press the screen, or the **Menu** key |
-| Exit | **Back** |
-
-The menu holds heading-up, dark theme, a render-stats overlay, and the pack's
-attribution.
+**[docs/](docs/README.md)** is the index — the pipeline in 30 seconds, then
+architecture, rendering, packer, format, devices, development and publishing.
 
 ## Contributing
 
@@ -132,13 +94,11 @@ guidelines put the licensing burden on you.
 
 ## Status
 
-No release cut yet; [CHANGELOG.md](CHANGELOG.md) lists what exists today.
-
-The packer, format and rendering maths are covered by tests and by the preview
-renderer. The Monkey C compiles for both products under Connect IQ SDK 9.2.0 and
-runs in the simulator. It has **never run on a real watch**, so memory headroom
-and frame timing are unmeasured — the two things the simulator cannot tell you,
-and the two [DEVICES.md](docs/DEVICES.md) says are tight.
+No release cut yet; [CHANGELOG.md](CHANGELOG.md) lists what exists today. The
+packer, format and rendering maths are covered by tests. The Monkey C compiles
+for both products and runs in the simulator, but has **never run on a real
+watch** — see [docs/README.md](docs/README.md#status) for what that leaves
+unverified.
 
 ## Roadmap
 
