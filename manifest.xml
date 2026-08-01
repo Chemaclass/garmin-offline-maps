@@ -55,6 +55,9 @@
         <iq:permissions>
             <iq:uses-permission id="Positioning"/>
             <iq:uses-permission id="Sensor"/>
+            <!-- Only ever used to fetch a city the user picked in the phone
+                 settings. The map itself never needs the network. -->
+            <iq:uses-permission id="Communications"/>
         </iq:permissions>
 
         <!-- To add a language, create resources-<code>/strings/strings.xml and

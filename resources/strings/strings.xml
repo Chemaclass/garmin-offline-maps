@@ -19,4 +19,14 @@
     <!-- Where the app comes from, shown on the About screen. A repo slug, not
          prose: leave it alone when translating. -->
     <string id="SourceRepo">Chemaclass/garmin-offline-maps</string>
+
+    <!-- Phone-side settings, shown in Garmin Connect. -->
+    <string id="SettingCity">City</string>
+    <string id="SettingCityBuiltIn">Built-in map</string>
+    <string id="SettingBaseUrl">Catalogue URL</string>
+
+    <!-- Downloading a city. -->
+    <string id="Downloading">Downloading</string>
+    <string id="DownloadFailed">Download failed</string>
+    <string id="DownloadKeepPhone">Keep your phone nearby</string>
 </resources>

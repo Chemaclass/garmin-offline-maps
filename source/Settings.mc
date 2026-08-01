@@ -26,14 +26,14 @@ module Settings {
             if (headingUp != null) { camera.headingUp = headingUp; }
 
             var zoom = Application.Storage.getValue(KEY_ZOOM);
-            if (zoom != null && zoom >= MapIndex.MIN_ZOOM && zoom <= MapIndex.MAX_ZOOM) {
+            if (zoom != null && zoom >= Pack.minZoom() && zoom <= Pack.maxZoom()) {
                 camera.zoom = zoom;
             }
 
             // Only restore the centre if it belongs to the pack that is
             // currently compiled in -- otherwise we would start off the map.
             var pack = Application.Storage.getValue(KEY_PACK);
-            if (pack != null && pack.equals(MapIndex.PACK_NAME)) {
+            if (pack != null && pack.equals(Pack.name())) {
                 var lat = Application.Storage.getValue(KEY_LAT);
                 var lon = Application.Storage.getValue(KEY_LON);
                 if (lat != null && lon != null) {
@@ -52,7 +52,7 @@ module Settings {
             Application.Storage.setValue(KEY_ZOOM, camera.zoom);
             Application.Storage.setValue(KEY_LAT, camera.lat.toFloat());
             Application.Storage.setValue(KEY_LON, camera.lon.toFloat());
-            Application.Storage.setValue(KEY_PACK, MapIndex.PACK_NAME);
+            Application.Storage.setValue(KEY_PACK, Pack.name());
         } catch (ex) {
             // Storage full or unavailable: the map still works, we just forget
             // where we were.

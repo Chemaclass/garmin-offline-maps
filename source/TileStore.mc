@@ -59,8 +59,7 @@ class TileStore {
             }
         }
 
-        var resource = MapIndex.blockResource(zoom, blockX, blockY);
-        if (resource == null) {
+        if (!Pack.hasBlock(zoom, blockX, blockY)) {
             return null;
         }
 
@@ -71,10 +70,15 @@ class TileStore {
 
         var decoded = null;
         try {
-            var payload = Application.loadResource(resource);
-            // The packer writes each block as a one-element JSON array so the
-            // top-level value is unambiguously a JSON container. loadResource
-            // is typed as a union of every resource kind, hence the casts.
+            var payload = Pack.blockBase64(zoom, blockX, blockY);
+            if (payload == null) {
+                _misses += 1;
+                return null;
+            }
+            // A compiled-in block arrives as the one-element JSON array the
+            // packer wrote; a downloaded one is the bare base64 string that
+            // was stored. loadResource is also typed as a union of every
+            // resource kind, hence the casts.
             var encoded = (payload instanceof Lang.Array)
                 ? payload[0] as String
                 : payload as String;

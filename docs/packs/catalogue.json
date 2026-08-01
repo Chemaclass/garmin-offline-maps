@@ -1,0 +1,14 @@
+{
+ "baseUrl": "https://chemaclass.github.io/garmin-offline-maps/packs",
+ "cities": [
+  {
+   "blocks": 30,
+   "lat": 52.51221,
+   "lon": 13.36317,
+   "name": "Berlin",
+   "slug": "berlin",
+   "storedBytes": 92620
+  }
+ ],
+ "format": 1
+}

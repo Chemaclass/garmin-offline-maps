@@ -107,11 +107,13 @@ class TestLayout(unittest.TestCase):
         self.assertEqual(meta["name"], "Berlin")
         self.assertEqual(meta["dataZooms"], [14])
 
-    def test_block_file_is_a_one_element_array_like_the_resources(self):
+    def test_block_file_is_an_object_the_watch_callback_can_type(self):
+        # An object, not an array: makeWebRequest types its callback data as
+        # Dictionary or String or Null, so an array branch is unreachable.
         with open(os.path.join(self.dir, "berlin", "b0.json"), encoding="utf-8") as fh:
             payload = json.load(fh)
-        self.assertIsInstance(payload, list)
-        self.assertEqual(len(payload), 1)
+        self.assertIsInstance(payload, dict)
+        self.assertIn("b", payload)
 
 
 class TestCatalogueAndSettings(unittest.TestCase):
@@ -132,20 +134,15 @@ class TestCatalogueAndSettings(unittest.TestCase):
         self.assertEqual([c["name"] for c in payload["cities"]], ["Berlin", "Madrid"])
         self.assertEqual(payload["baseUrl"], "https://example.test")
 
-    def test_settings_xml_lists_every_city_and_a_built_in_entry(self):
+    def test_settings_xml_offers_a_text_field_not_a_baked_in_list(self):
+        # A dropdown would need an app update to add a city, which defeats the
+        # point; it would also have to be numeric, see write_settings_xml.
         path = os.path.join(self.dir, "settings.xml")
         citypack.write_settings_xml(self.entries, path, "https://example.test")
         xml = open(path, encoding="utf-8").read()
-        self.assertIn('<listEntry value="berlin">Berlin</listEntry>', xml)
-        self.assertIn('<listEntry value="madrid">Madrid</listEntry>', xml)
-        self.assertIn('<listEntry value="">', xml)
-
-    def test_settings_xml_escapes_a_name(self):
-        path = os.path.join(self.dir, "settings.xml")
-        citypack.write_settings_xml(
-            [{"slug": "x", "name": "A & B", "lat": 0, "lon": 0,
-              "blocks": 1, "storedBytes": 1}], path, "https://example.test")
-        self.assertIn("A &amp; B", open(path, encoding="utf-8").read())
+        self.assertIn("@Properties.cityId", xml)
+        self.assertIn('type="alphaNumeric"', xml)
+        self.assertNotIn("listEntry", xml)
 
     def test_properties_xml_carries_the_base_url(self):
         path = os.path.join(self.dir, "properties.xml")

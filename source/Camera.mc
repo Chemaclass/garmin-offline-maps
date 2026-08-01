@@ -20,8 +20,8 @@ class Camera {
     var night;
 
     function initialize() {
-        lat = MapIndex.CENTER_LAT;
-        lon = MapIndex.CENTER_LON;
+        lat = Pack.centerLat();
+        lon = Pack.centerLon();
         zoom = defaultZoom();
         headingUp = false;
         heading = 0.0;
@@ -33,9 +33,9 @@ class Camera {
     //! the highest zoom is the slowest to render and the least useful for
     //! getting your bearings when the app opens.
     static function defaultZoom() {
-        var mid = MapIndex.DATA_ZOOMS[MapIndex.DATA_ZOOMS.size() / 2];
-        if (mid > MapIndex.MAX_ZOOM) { mid = MapIndex.MAX_ZOOM; }
-        if (mid < MapIndex.MIN_ZOOM) { mid = MapIndex.MIN_ZOOM; }
+        var mid = Pack.dataZooms()[Pack.dataZooms().size() / 2];
+        if (mid > Pack.maxZoom()) { mid = Pack.maxZoom(); }
+        if (mid < Pack.minZoom()) { mid = Pack.minZoom(); }
         return mid;
     }
 
@@ -45,7 +45,7 @@ class Camera {
     }
 
     function zoomIn() {
-        if (zoom < MapIndex.MAX_ZOOM) {
+        if (zoom < Pack.maxZoom()) {
             zoom += 1;
             return true;
         }
@@ -53,7 +53,7 @@ class Camera {
     }
 
     function zoomOut() {
-        if (zoom > MapIndex.MIN_ZOOM) {
+        if (zoom > Pack.minZoom()) {
             zoom -= 1;
             return true;
         }
@@ -95,8 +95,8 @@ class Camera {
     //! Is this position inside the packed region? Static because the overlay
     //! asks it about the GPS fix, not about the camera.
     static function contains(someLat, someLon) {
-        return someLon >= MapIndex.WEST && someLon <= MapIndex.EAST
-            && someLat >= MapIndex.SOUTH && someLat <= MapIndex.NORTH;
+        return someLon >= Pack.west() && someLon <= Pack.east()
+            && someLat >= Pack.south() && someLat <= Pack.north();
     }
 
     //! Is the centre inside the packed region?
@@ -105,8 +105,8 @@ class Camera {
     }
 
     function jumpToPackCentre() {
-        lat = MapIndex.CENTER_LAT;
-        lon = MapIndex.CENTER_LON;
+        lat = Pack.centerLat();
+        lon = Pack.centerLon();
     }
 
     function metresPerPixel() {

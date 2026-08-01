@@ -7,6 +7,16 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Choose your city from the phone.** The app now has a Settings page in
+  Garmin Connect. Type a city and the watch downloads it, with progress on
+  screen, and keeps drawing the built-in map until it finishes. One app, any
+  published city, one active at a time. A downloaded city is an orientation
+  map, major roads, water, rail and parks, because that is what fits the
+  watch's ~128 KB of storage; street-level detail still has to be compiled in.
+  See [docs/CITIES.md](docs/CITIES.md).
+
 ### Changed
 
 - **The bundled demo pack now sits at Berlin's coordinates** rather than

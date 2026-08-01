@@ -68,9 +68,9 @@ class MapRenderer {
         var halfW = width / 2.0;
         var halfH = height / 2.0;
 
-        var dataZoom = MapIndex.dataZoomFor(camera.zoom);
+        var dataZoom = Pack.dataZoomFor(camera.zoom);
         var scale = Mercator.pow2(camera.zoom - dataZoom);
-        var log2 = MapIndex.blockLog2(dataZoom);
+        var log2 = Pack.blockLog2(dataZoom);
 
         var centreX = Mercator.lonToWorldX(camera.lon, dataZoom);
         var centreY = Mercator.latToWorldY(camera.lat, dataZoom);

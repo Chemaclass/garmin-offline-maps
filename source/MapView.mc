@@ -404,7 +404,7 @@ class MapView extends WatchUi.View {
                         Graphics.TEXT_JUSTIFY_CENTER);
             dc.setColor(colours[Palette.SLOT_DIM], Graphics.COLOR_TRANSPARENT);
             dc.drawText(_width / 2, _height / 2 + 16, Graphics.FONT_XTINY,
-                        MapIndex.PACK_NAME, Graphics.TEXT_JUSTIFY_CENTER);
+                        Pack.name(), Graphics.TEXT_JUSTIFY_CENTER);
         }
     }
 

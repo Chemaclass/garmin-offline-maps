@@ -23,7 +23,7 @@ module MapMenu {
         menu.addItem(new WatchUi.MenuItem(Rez.Strings.MenuStats, null, :stats, null));
 
         menu.addItem(new WatchUi.MenuItem(
-            Rez.Strings.MenuAbout, MapIndex.PACK_NAME, :about, null));
+            Rez.Strings.MenuAbout, Pack.name(), :about, null));
 
         return menu;
     }
@@ -85,10 +85,10 @@ class AboutView extends WatchUi.View {
         var height = dc.getHeight();
         var lines = [
             WatchUi.loadResource(Rez.Strings.AppName) as String,
-            MapIndex.PACK_NAME,
-            MapIndex.BLOCK_COUNT + " blocks, " + (MapIndex.DATA_BYTES / 1024) + " KB",
-            "zoom " + MapIndex.MIN_ZOOM + "-" + MapIndex.MAX_ZOOM,
-            MapIndex.ATTRIBUTION,
+            Pack.name(),
+            Pack.blockCount() + " blocks, " + (Pack.dataBytes() / 1024) + " KB",
+            "zoom " + Pack.minZoom() + "-" + Pack.maxZoom(),
+            Pack.attribution(),
             WatchUi.loadResource(Rez.Strings.SourceRepo) as String
         ];
 

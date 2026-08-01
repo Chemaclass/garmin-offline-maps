@@ -24,7 +24,7 @@ from typing import List, Optional
 from . import citypack, geocode, osmread
 from .pack import pack
 
-DEFAULT_BASE_URL = "https://chemaclass.github.io/garmin-offline-maps"
+DEFAULT_BASE_URL = "https://chemaclass.github.io/garmin-offline-maps/packs"
 DEFAULT_ATTRIBUTION = "(c) OpenStreetMap contributors"
 
 #: Nominatim asks for no more than one request a second.
