@@ -88,14 +88,17 @@ class AboutView extends WatchUi.View {
             MapIndex.PACK_NAME,
             MapIndex.BLOCK_COUNT + " blocks, " + (MapIndex.DATA_BYTES / 1024) + " KB",
             "zoom " + MapIndex.MIN_ZOOM + "-" + MapIndex.MAX_ZOOM,
-            MapIndex.ATTRIBUTION
+            MapIndex.ATTRIBUTION,
+            WatchUi.loadResource(Rez.Strings.SourceRepo) as String
         ];
 
-        var top = height * 0.24;
+        // Six lines instead of five, so the spacing tightens to keep the last
+        // one clear of the bottom of a round screen.
+        var top = height * 0.22;
         for (var i = 0; i < lines.size(); i += 1) {
             dc.setColor(i == 0 ? Graphics.COLOR_WHITE : Graphics.COLOR_LT_GRAY,
                         Graphics.COLOR_TRANSPARENT);
-            dc.drawText(width / 2, (top + i * (height * 0.105)).toNumber(),
+            dc.drawText(width / 2, (top + i * (height * 0.095)).toNumber(),
                         i == 0 ? Graphics.FONT_SMALL : Graphics.FONT_XTINY,
                         lines[i], Graphics.TEXT_JUSTIFY_CENTER);
         }

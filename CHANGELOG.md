@@ -21,6 +21,8 @@ run on hardware, so nothing here is verified on-watch.
 
 ### Added
 
+- **The About screen names the source repository**, under the map attribution,
+  so anyone holding the watch can find where the app comes from.
 - **Offline vector map for the Venu 3 and Venu 3S.** Pan by dragging, zoom with
   the on-screen buttons, anywhere in the packed region — no phone, no network,
   no subscription.

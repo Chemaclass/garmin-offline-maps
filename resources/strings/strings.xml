@@ -10,4 +10,8 @@
     <string id="MenuNightSub">Easier on an AMOLED battery</string>
     <string id="MenuStats">Show stats</string>
     <string id="MenuAbout">About this pack</string>
+
+    <!-- Where the app comes from, shown on the About screen. A repo slug, not
+         prose: leave it alone when translating. -->
+    <string id="SourceRepo">Chemaclass/garmin-offline-maps</string>
 </resources>
