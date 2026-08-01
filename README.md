@@ -15,6 +15,37 @@ renderer, which reproduces the on-watch drawing code pixel for pixel.</sub>
 
 ---
 
+## TL;DR
+
+**What.** A real map on a watch that Garmin ships no cartography for. Pan, zoom,
+follow your position, north-up or heading-up — with the phone at the hotel and
+the radio off.
+
+**How.** OpenStreetMap data is quantised into binary vector tiles by a Python
+packer, base64'd into Connect IQ `jsonData` resources, and **compiled into the
+app**. The watch decodes tiles straight into draw calls, once, into an off-screen
+bitmap; every frame after that is a blit. There is no runtime data path at all —
+no network, no filesystem, no companion app.
+
+```
+OpenStreetMap ──> tools/mappack ──> resources compiled into the .prg ──> the watch
+   Overpass         classify           blocks/*.json  (base64)            TileStore
+   or .osm.pbf      simplify           MapIndex.mc    (generated)         MapRenderer
+                    tile + varint                                         BufferedBitmap
+```
+
+**Why it looks like this.** Four measured limits: 768 KB of app RAM, ~128 KB of
+key-value storage, no filesystem API, and under 1 KB/s over BLE. Compiling the
+map in is the only option left. Then ~0.5 s per frame before the watchdog
+complains forces render-once-and-blit.
+
+**Three moving parts to know:** `tools/mappack/` (Python, tested),
+`source/` (Monkey C, needs the SDK), and a byte format that
+[three implementations](docs/FORMAT.md) must agree on.
+
+Deeper: **[docs/](docs/README.md)** — architecture, rendering, packer, format,
+devices, development.
+
 ## Why this exists
 
 The Venu 3 is a capable watch with no map. Garmin's own cartography is not
@@ -160,7 +191,16 @@ The binary tile format is documented in [docs/FORMAT.md](docs/FORMAT.md).
 make test
 ```
 
-65 tests covering varint and zigzag round trips, Mercator projection,
+67 tests, split by what they are testing rather than by what they import:
+
+```
+tools/mappack/tests/
+├── unit/          one file per mappack module: varint, geom, classify, osmread
+├── integration/   pipeline stages: pack, emit, preview
+└── contract/      agreements with the Monkey C: tile format, palette/layer ids
+```
+
+Between them: varint and zigzag round trips, Mercator projection,
 Douglas–Peucker, polygon and polyline clipping, tag classification, the tile and
 block codecs, the generated resources and the generated `MapIndex.mc`.
 
