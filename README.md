@@ -1,7 +1,7 @@
 # Offline Maps for Garmin
 
-A pannable, zoomable map for Garmin watches that have no built-in cartography —
-starting with the **Venu 3** and **Venu 3S**. No phone, no network, no
+A pannable, zoomable map for Garmin watches that ship no cartography of their
+own — starting with the **Venu 3** and **Venu 3S**. No phone, no network, no
 subscription: the map is compiled into the app.
 
 <p align="center">
@@ -10,114 +10,87 @@ subscription: the map is compiled into the app.
   <img src="docs/img/preview-heading-up.png" width="220" alt="Heading-up mode">
 </p>
 
-<sub>Rendered from the bundled synthetic demo pack by `tools/mappack`'s preview
-renderer, which reproduces the on-watch drawing code pixel for pixel.</sub>
+<sub>Rendered from the bundled demo pack by <code>tools/mappack</code>'s preview
+renderer, a Python re-implementation of the on-watch drawing code.</sub>
 
 ---
 
-## TL;DR
-
-**What.** A real map on a watch that Garmin ships no cartography for. Pan, zoom,
-follow your position, north-up or heading-up — with the phone at the hotel and
-the radio off.
-
-**How.** OpenStreetMap data is quantised into binary vector tiles by a Python
-packer, base64'd into Connect IQ `jsonData` resources, and **compiled into the
-app**. The watch decodes tiles straight into draw calls, once, into an off-screen
-bitmap; every frame after that is a blit. There is no runtime data path at all —
-no network, no filesystem, no companion app.
-
-```
-OpenStreetMap                tools/mappack                    the watch
-─────────────                ─────────────                    ─────────
-Overpass or .osm.pbf   →   classify by tag             →   MapIndex.mc  (generated switch)
-                           project to Web Mercator          jsonData resources (base64)
-                           simplify (Douglas–Peucker)              ↓
-                           clip into 256 px tiles           TileStore   (lazy load + LRU)
-                           delta + zigzag varints                 ↓
-                           group tiles into blocks          TileReader  (binary cursor)
-                           emit base64 JSON + index               ↓
-                                                            MapRenderer (into a BufferedBitmap)
-```
-
-**Why it looks like this.** Four measured limits leave no other option — 768 KB
-of app RAM, ~128 KB of key-value storage, no filesystem API, under 1 KB/s over
-BLE — plus one performance reality: every `drawLine` is an interpreted call, so
-the map renders **once** into an off-screen buffer per view change and every
-frame after that is a blit. The limits with their sources are in
-[docs/DEVICES.md](docs/DEVICES.md); what the renderer does with them is in
-[docs/RENDERING.md](docs/RENDERING.md).
-
-**Three moving parts:** `tools/mappack/` (Python, tested), `source/` (Monkey C,
-needs the SDK), and a byte format that [three implementations](docs/FORMAT.md)
-must agree on.
-
-Deeper: **[docs/](docs/README.md)** — architecture, rendering, packer, format,
-devices, development.
-
-## Why this exists
+## Why
 
 The Venu 3 is a capable watch with no map. Garmin's own cartography is not
-available for it (`WatchUi.MapView` is not supported on this device), and the
-Connect IQ map apps that do exist stream raster tiles, which means they need
-your phone in range, an internet connection, and usually a tile subscription.
+available for it — `WatchUi.MapView` is unsupported on this device — and the
+Connect IQ map apps that exist stream raster tiles, so they need your phone in
+range, an internet connection, and usually a subscription.
 
-This one takes the other road: **vector map data, quantised and compiled into
-the app**, drawn on the watch. Once installed it works in a tunnel, on a plane,
-abroad with the phone at the hotel — anywhere.
+This takes the other road: **vector map data, quantised and compiled into the
+app**. Once installed it works in a tunnel, on a plane, or abroad with the phone
+at the hotel.
 
-## What it does today
+## What it does
 
 - Pan by dragging, zoom with on-screen buttons, over the whole packed region
 - **Follow me** — recentres on every GPS fix; one tap to re-engage after panning
 - **North-up or heading-up** — the map turns with you, with a north arrow
 - Roads by class, water, rivers, parks and forests, railways, paths
 - Scale bar, dark and light themes, position marker with a heading wedge
-- Everything offline, from a pack you build for your own area
+- All offline, from a pack you build for your own area
+
+## How it works
+
+OpenStreetMap data is quantised into binary vector tiles by a Python packer,
+base64'd into Connect IQ `jsonData` resources, and compiled into the app. The
+watch decodes tiles straight into draw calls, once, into an off-screen bitmap;
+every frame after that is a blit. There is no runtime data path — no network, no
+filesystem, no companion app.
+
+That shape is forced by four measured limits: 768 KB of app RAM, ~128 KB of
+key-value storage, no filesystem API, and under 1 KB/s over BLE.
+
+Three moving parts: `tools/mappack/` (Python, tested), `source/` (Monkey C,
+needs the SDK), and a byte format that three implementations must agree on.
+
+**[docs/](docs/README.md)** has the rest — architecture, rendering, packer,
+format, devices, development.
 
 ## Quick start
 
-You need the [Connect IQ SDK](https://developer.garmin.com/connect-iq/sdk/)
-(free Garmin account) with `monkeyc` on your `PATH`, plus Python 3.9+.
+Needs the [Connect IQ SDK](https://developer.garmin.com/connect-iq/sdk/) (free
+Garmin account) and Python 3.9+. `make doctor` reports anything missing.
 
 ```bash
 git clone https://github.com/Chemaclass/garmin-offline-maps.git
 cd garmin-offline-maps
 
-make key                 # one-off signing key, kept out of git
-make build               # compiles with the bundled demo map
-make sim                 # opens the simulator and side-loads it
+make key      # one-off signing key, kept out of git
+make build    # compiles with the bundled demo map
+make sim      # opens the simulator and side-loads it
 ```
 
-`make build` produces `bin/offline-maps-venu3.prg`. To put it on the watch,
-plug it in over USB and copy that file into `GARMIN/APPS/` on the watch's
-storage, then eject. The app appears in the activity/app list.
+`make build` produces `bin/offline-maps-venu3.prg`. To put it on the watch, plug
+in over USB, copy that file into `GARMIN/APPS/`, and eject — it then appears in
+the activity/app list.
 
-## Building a map of your own area
-
-The bundled pack is a synthetic demo town. Replace it with somewhere real:
+## A map of your own area
 
 ```bash
-# west,south,east,north — this is central Madrid
+# west,south,east,north — central Madrid
 make pack BBOX=-3.75,40.38,-3.65,40.45 NAME="Madrid"
 make build
 ```
 
 That queries [Overpass](https://overpass-api.de/) for just the features the
-renderer draws, tiles them, and writes the map resources and the generated
-index. Use a [Geofabrik](https://download.geofabrik.de/) extract via
-`make pack INPUT=…` for anything bigger than a city.
+renderer draws. For anything bigger than a city use a
+[Geofabrik](https://download.geofabrik.de/) extract via `make pack INPUT=…`.
 
-The packer prints a size report; read it rather than skim it, because an
-over-budget pack produces an app that will not install. How much area fits, the
-ceilings, and the tuning knobs in the order to reach for them:
-**[docs/PACKER.md](docs/PACKER.md#budgets)**.
+The packer prints a size report — read it, because an over-budget pack produces
+an app that will not install. Ceilings, how much area fits, and the tuning knobs
+in the order to reach for them: **[docs/PACKER.md](docs/PACKER.md#budgets)**.
 
-See it before you flash it — either a still, or interactively in a browser:
+Look at a pack before you flash it:
 
 ```bash
 cd tools/mappack && python3 -m mappack.preview --zoom 16 --out preview.png
-make serve      # http://127.0.0.1:8765 — pan, zoom, themes, render stats
+make serve    # http://127.0.0.1:8765 — pan, zoom, themes, render stats
 ```
 
 ## Controls
@@ -130,70 +103,42 @@ make serve      # http://127.0.0.1:8765 — pan, zoom, themes, render stats
 | Menu | long-press the screen, or the **Menu** key |
 | Exit | **Back** |
 
-The menu holds heading-up, dark theme, an on-screen stats overlay for debugging
-render times, and the pack's attribution.
-
-## Tests
-
-```bash
-make test
-```
-
-67 tests, none of which need the SDK. The interesting group is `contract/`: the
-watch code cannot be unit tested without a Garmin toolchain, so two Python
-modules stand in for it — `decode.py` mirrors `source/TileReader.mc` line for
-line, and `preview.py` re-implements `source/MapRenderer.mc` closely enough to
-render real PNGs from the real generated artefacts.
-
-Layout, what belongs where, and how CI runs it:
-**[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md#testing)**.
+The menu holds heading-up, dark theme, a render-stats overlay, and the pack's
+attribution.
 
 ## Contributing
 
-Most of the interesting work — the packer, the byte format, the look of the map —
-needs nothing but `python3`, because `preview.py` reproduces the on-watch
-renderer on your desktop. Only `source/` needs a Garmin toolchain.
+Most of the interesting work — the packer, the byte format, the look of the map
+— needs nothing but `python3`; only `source/` needs a Garmin toolchain. `make
+test` runs 67 tests without the SDK.
 
-Start at [CONTRIBUTING.md](CONTRIBUTING.md); run `make doctor` if a build step
-complains and it will name the missing piece.
-
-## Adding more devices
-
-Add the product id to `manifest.xml` and build it explicitly. Whether the
-off-screen buffer fits in that model's watch-app memory is what decides
-viability — the renderer degrades to drawing straight to the screen rather than
-crashing when it does not. Memory figures, API levels and the procedure:
-**[docs/DEVICES.md](docs/DEVICES.md#adding-another-device)**.
-
-Good next candidates, all round and touch-capable at the same API level:
-`vivoactive5`, `venu2`, `venu2s`, `venu2plus`, `fr165`, `fr265`, `fr965`.
+Start at **[CONTRIBUTING.md](CONTRIBUTING.md)**. Adding a watch model is a good
+first change: see [docs/DEVICES.md](docs/DEVICES.md#adding-another-device).
 
 ## Licence and attribution
 
-The code is MIT — see [LICENSE](LICENSE).
+Code is MIT — see [LICENSE](LICENSE).
 
-Map data is **not** covered by that licence. Packs built from OpenStreetMap are
-derived works under the [ODbL](https://opendatacommons.org/licenses/odbl/), so
-anything you publish must credit "© OpenStreetMap contributors". The app carries
-that credit in its About screen, and the packer writes it into every pack's
-metadata. If you pack a different source, set `--attribution` accordingly and
-check that source's terms before publishing to the Connect IQ store — Garmin's
-review guidelines put the licensing burden on you.
+Map data is **not** covered by it. Packs built from OpenStreetMap are derived
+works under the [ODbL](https://opendatacommons.org/licenses/odbl/) and must
+credit "© OpenStreetMap contributors"; the app carries that in its About screen
+and the packer writes it into every pack. Pack a different source and you set
+`--attribution` and check that source's terms yourself — Garmin's review
+guidelines put the licensing burden on you.
 
 ## Status
 
-No release cut yet — [CHANGELOG.md](CHANGELOG.md) lists what exists today.
+No release cut yet; [CHANGELOG.md](CHANGELOG.md) lists what exists today.
 
-Working code, not yet flashed to hardware. The map format, the packer, the
-generated index and the rendering maths are covered by tests and by the preview
-renderer. The Monkey C compiles for both the Venu 3 and Venu 3S under Connect IQ
-SDK 9.2.0 and runs in the simulator; it has never run on a real watch, so
-memory headroom and frame timing are still unmeasured. Real-device notes to
-watch for are collected in [docs/DEVICES.md](docs/DEVICES.md).
+The packer, format and rendering maths are covered by tests and by the preview
+renderer. The Monkey C compiles for both products under Connect IQ SDK 9.2.0 and
+runs in the simulator. It has **never run on a real watch**, so memory headroom
+and frame timing are unmeasured — the two things the simulator cannot tell you,
+and the two [DEVICES.md](docs/DEVICES.md) says are tight.
 
 ## Roadmap
 
-- [ ] First compile + on-watch timing measurements
+- [ ] On-watch timing measurements
 - [ ] Waypoints: drop, save, bearing and distance
 - [ ] Route overlay from a GPX packed alongside the map
 - [ ] Place-name labels (needs a text layer in the format)
