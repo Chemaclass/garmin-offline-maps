@@ -182,6 +182,15 @@ CI runs the whole suite on every push and uploads the preview renders as build
 artefacts. It also compiles the app for both products, once you add Garmin SDK
 credentials as repository secrets (see `.github/workflows/ci.yml`).
 
+## Contributing
+
+Most of the interesting work — the packer, the byte format, the look of the map —
+needs nothing but `python3`, because `preview.py` reproduces the on-watch
+renderer on your desktop. Only `source/` needs a Garmin toolchain.
+
+Start at [CONTRIBUTING.md](CONTRIBUTING.md); run `make doctor` if a build step
+complains and it will name the missing piece.
+
 ## Adding more devices
 
 Add the product id to `manifest.xml`, then check

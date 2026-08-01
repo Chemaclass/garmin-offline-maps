@@ -11,6 +11,7 @@ not copy. That rule is why these pages stay short.
 | [FORMAT.md](FORMAT.md) | The byte spec three implementations answer to |
 | [DEVICES.md](DEVICES.md) | Hardware limits and API availability, **with sources** |
 | [DEVELOPMENT.md](DEVELOPMENT.md) | Toolchain, build, tests, conventions, CI |
+| [../CONTRIBUTING.md](../CONTRIBUTING.md) | How to contribute: lanes, feedback loops, PR checklist, agent notes |
 
 ## The 30-second version
 
