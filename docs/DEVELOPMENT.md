@@ -81,6 +81,9 @@ The second command is exactly what CI runs. A diff means either the committed
 pack is stale (commit the regenerated files with your change) or something was
 hand-edited.
 
+If the change is user-visible, it also needs a `CHANGELOG.md` entry — see the
+`changelog` skill for what qualifies. Most work in this repo does not.
+
 ### The three invariants
 
 | # | Contract | Files | Check |

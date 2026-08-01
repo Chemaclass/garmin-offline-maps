@@ -207,6 +207,8 @@ review guidelines put the licensing burden on you.
 
 ## Status
 
+No release cut yet — [CHANGELOG.md](CHANGELOG.md) lists what exists today.
+
 Working code, not yet flashed to hardware. The map format, the packer, the
 generated index and the rendering maths are covered by tests and by the preview
 renderer; the Monkey C has not been through `monkeyc` yet, so budget one round

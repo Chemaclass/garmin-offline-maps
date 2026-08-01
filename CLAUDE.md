@@ -58,6 +58,8 @@ Every fact lives in exactly one page; link rather than restate.
 ## Repo notes
 
 - Commits: conventional, `ref:` not `refactor:`. Signing key E51B5BF45F85D160.
+- User-visible changes get a `CHANGELOG.md` entry. The `changelog` skill has the
+  rules on what counts — most work here (refactors, tests, docs) does not.
 - `developer_key` is the app's Connect IQ store identity and is gitignored.
   Never read, print, or commit it.
 - The Monkey C has never been through `monkeyc` — budget compile fixes on the
