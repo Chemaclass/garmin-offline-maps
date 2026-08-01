@@ -5,35 +5,29 @@ description: Render the map to PNG to see what the watch would draw, and refresh
 
 # Preview renders
 
-`tools/mappack/mappack/preview.py` re-implements `source/MapRenderer.mc` in
-Python — same Web Mercator projection, same tile lookup, same two-pass draw
-order (areas, then strokes), same pen widths, and the palette scraped live out
-of `source/Palette.mc`. It renders from the real generated resources in
-`mapdata/active/`. **It is the only way to check the rendering maths without a
-watch**, so treat a preview that looks wrong as a real bug.
-
-Needs Pillow, which is optional everywhere else in this repo:
+`mappack/preview.py` re-implements `source/MapRenderer.mc` in Python over the
+real generated artefacts. **It is the only way to check the rendering maths
+without a watch**, so treat a preview that looks wrong as a real bug. Background:
+[docs/PACKER.md § The two mirrors](../../../docs/PACKER.md#the-two-mirrors).
 
 ```bash
-pip install pillow      # without it, 10 of the 67 tests skip
-```
+pip install pillow      # optional everywhere else; required here
 
-## Render
-
-```bash
 cd tools/mappack
 python3 -m mappack.preview --zoom 16 --out preview.png
-python3 -m mappack.preview --zoom 15 --heading 40 --out preview-heading-up.png
-python3 -m mappack.preview --zoom 15 --day --size 390 --out preview-venu3s-day.png
+python3 -m mappack.preview --zoom 15 --heading 40 --out heading-up.png
+python3 -m mappack.preview --zoom 15 --day --size 390 --out venu3s-day.png
 ```
 
-`--size 390` is the Venu 3S screen; the default is the Venu 3's 454. `--day`
-switches to the daylight palette. `--palette` points at a different `Palette.mc`.
+`--size 390` is the Venu 3S screen (default 454, the Venu 3). `--day` switches
+palette. `--palette` points at a different `Palette.mc`.
 
-Then actually look at the file — `Read` the PNG, do not just confirm the command
-exited 0. Things that only show up visually: roads vanishing at a zoom, a layer
-drawing over one it should sit under, tile seams where the clip buffer is wrong,
-a colour that is invisible against the background.
+## Then actually look at it
+
+`Read` the PNG. Do not report success because the command exited 0. Things that
+only show up visually: roads vanishing at a zoom, a layer drawing over one it
+should sit under, tile seams where the clip buffer is wrong, a colour invisible
+against its background.
 
 Sweep every zoom the way CI does:
 
@@ -41,7 +35,7 @@ Sweep every zoom the way CI does:
 for z in 12 14 15 16 17; do python3 -m mappack.preview --zoom "$z" --out "preview-z$z.png"; done
 ```
 
-`preview*.png` at the repo root is gitignored on purpose; `docs/img/preview*.png`
-is the exception and those four are what the README embeds. Only refresh those
-when the rendering genuinely changed — they are documentation, and churning them
-makes real visual regressions hard to spot in review.
+`preview*.png` at the repo root is gitignored on purpose. The four in
+`docs/img/` are what the README embeds — refresh those **only** when the
+rendering genuinely changed, since churning them hides real visual regressions
+in review.

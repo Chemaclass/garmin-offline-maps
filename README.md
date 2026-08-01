@@ -28,20 +28,32 @@ bitmap; every frame after that is a blit. There is no runtime data path at all �
 no network, no filesystem, no companion app.
 
 ```
-OpenStreetMap ──> tools/mappack ──> resources compiled into the .prg ──> the watch
-   Overpass         classify           blocks/*.json  (base64)            TileStore
-   or .osm.pbf      simplify           MapIndex.mc    (generated)         MapRenderer
-                    tile + varint                                         BufferedBitmap
+OpenStreetMap                tools/mappack                    the watch
+─────────────                ─────────────                    ─────────
+Overpass or .osm.pbf   →   classify by tag             →   MapIndex.mc  (generated switch)
+                           project to Web Mercator          jsonData resources (base64)
+                           simplify (Douglas–Peucker)              ↓
+                           clip into 256 px tiles           TileStore   (lazy load + LRU)
+                           delta + zigzag varints                 ↓
+                           group tiles into blocks          TileReader  (binary cursor)
+                           emit base64 JSON + index               ↓
+                                                            MapRenderer (into a BufferedBitmap)
 ```
 
-**Why it looks like this.** Four measured limits: 768 KB of app RAM, ~128 KB of
-key-value storage, no filesystem API, and under 1 KB/s over BLE. Compiling the
-map in is the only option left. Then ~0.5 s per frame before the watchdog
-complains forces render-once-and-blit.
+**Why it looks like this.** Four measured limits leave no other option: 768 KB of
+app RAM, ~128 KB of key-value storage, no filesystem API at all, and under
+1 KB/s over BLE. Sources and the rest in [docs/DEVICES.md](docs/DEVICES.md).
 
-**Three moving parts to know:** `tools/mappack/` (Python, tested),
-`source/` (Monkey C, needs the SDK), and a byte format that
-[three implementations](docs/FORMAT.md) must agree on.
+Then one performance reality: every `drawLine` is an interpreted call, and a
+full redraw has to stay well under a second to feel like a map rather than a
+slideshow. So the map renders **once** into an off-screen `BufferedBitmap` when
+the view changes, and each frame after that just blits it — while your finger is
+down, the same buffer is blitted at an offset, and the re-render happens when you
+let go.
+
+**Three moving parts:** `tools/mappack/` (Python, tested), `source/` (Monkey C,
+needs the SDK), and a byte format that [three implementations](docs/FORMAT.md)
+must agree on.
 
 Deeper: **[docs/](docs/README.md)** — architecture, rendering, packer, format,
 devices, development.
@@ -123,19 +135,12 @@ The packer prints a size report. Rough numbers at the default settings
 | 30 × 30 km (a city + surroundings) | ~3 MB | ~70 |
 | 60 × 60 km (a metro region) | ~11 MB | ~200 |
 
-Two ceilings to respect, both of which the packer warns about:
+Two ceilings to respect, both of which the packer warns about: the Connect IQ
+store rejects `.iq` bundles over **15 MB**, and Connect IQ runs out of resource
+ids somewhere around **255** per type.
 
-- the Connect IQ store rejects `.iq` bundles over **15 MB**
-- Connect IQ runs out of resource ids somewhere around **255** per type
-
-Knobs, in the order you should reach for them:
-
-```bash
-make pack BBOX=... ZOOMS=12,14        # drop the top zoom: 4x smaller, less detail up close
-make pack BBOX=... SIMPLIFY=2.0       # coarser geometry: smaller, slightly angular
-make pack BBOX=... EXTRA="--max-points-per-tile 700"   # thins dense tiles, redraws faster
-make pack BBOX=... EXTRA="--buildings" # adds footprints; expensive, rarely worth it
-```
+If a pack comes out too big, the knobs — and the order to reach for them — are
+in [docs/PACKER.md](docs/PACKER.md#budgets). Shrinking the bbox beats all of them.
 
 ## Controls
 
@@ -149,41 +154,6 @@ make pack BBOX=... EXTRA="--buildings" # adds footprints; expensive, rarely wort
 
 The menu holds heading-up, dark theme, an on-screen stats overlay for debugging
 render times, and the pack's attribution.
-
-## How it works
-
-```
-OpenStreetMap                tools/mappack                    the watch
-─────────────                ─────────────                    ─────────
-Overpass or .osm.pbf   →   classify by tag             →   MapIndex.mc  (generated switch)
-                           project to Web Mercator          jsonData resources (base64)
-                           simplify (Douglas–Peucker)              ↓
-                           clip into 256 px tiles           TileStore   (lazy load + LRU)
-                           delta + zigzag varints                 ↓
-                           group tiles into blocks          TileReader  (binary cursor)
-                           emit base64 JSON + index               ↓
-                                                            MapRenderer (into a BufferedBitmap)
-```
-
-The design is shaped almost entirely by four platform limits, all measured
-rather than guessed — see [docs/DEVICES.md](docs/DEVICES.md) for sources:
-
-| Limit | Venu 3 | What it forced |
-|---|---|---|
-| Watch-app RAM | 768 KB | Blocks load lazily and are evicted by byte budget, not count |
-| `Application.Storage` | ~128 KB total, 8 KB/value | Map data cannot live there; only view state does |
-| Filesystem API | none | You cannot copy tiles onto the watch over USB; data is compiled in |
-| Companion BLE transfer | under 1 KB/s | Streaming a map from the phone is not viable either |
-
-And one performance reality: a Connect IQ app has roughly half a second per
-frame before the watchdog complains, and every `drawLine` is an interpreted
-call. So the map is rendered **once into an off-screen `BufferedBitmap`** when
-the view changes, and each frame after that just blits it. While your finger is
-down, the same buffer is blitted at an offset; the re-render happens when you
-let go. That is what makes dragging feel smooth on hardware that cannot redraw
-a thousand line segments per frame.
-
-The binary tile format is documented in [docs/FORMAT.md](docs/FORMAT.md).
 
 ## Tests
 
@@ -200,20 +170,13 @@ tools/mappack/tests/
 └── contract/      agreements with the Monkey C: tile format, palette/layer ids
 ```
 
-Between them: varint and zigzag round trips, Mercator projection,
-Douglas–Peucker, polygon and polyline clipping, tag classification, the tile and
-block codecs, the generated resources and the generated `MapIndex.mc`.
-
-Two of them are worth calling out, because the watch code cannot be unit tested
-without the SDK:
-
-- `mappack/decode.py` is a line-by-line mirror of `source/TileReader.mc`, and
-  the round-trip tests prove the packer's output is exactly what the watch
-  parser expects.
-- `mappack/preview.py` re-implements `source/MapRenderer.mc` in Python — same
-  projection, same tile lookup, same two-pass draw order, same palette scraped
-  live out of `source/Palette.mc` — and renders real PNGs from the real
-  generated artefacts. If the preview looks right, the watch maths is right.
+The `contract/` group is the interesting one. The watch code cannot be unit
+tested without the SDK, so two Python modules stand in for it: `decode.py` is a
+line-by-line mirror of `source/TileReader.mc`, and `preview.py` re-implements
+`source/MapRenderer.mc` — same projection, same draw order, palette scraped live
+out of `source/Palette.mc` — rendering real PNGs from the real generated
+artefacts. If the preview looks right, the watch maths is right.
+Details in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md#testing).
 
 CI runs the whole suite on every push and uploads the preview renders as build
 artefacts. It also compiles the app for both products, once you add Garmin SDK
@@ -222,10 +185,10 @@ credentials as repository secrets (see `.github/workflows/ci.yml`).
 ## Adding more devices
 
 Add the product id to `manifest.xml`, then check
-[docs/DEVICES.md](docs/DEVICES.md) for the watch-app memory of the model you are
-adding — that is what decides whether the off-screen buffer fits. The renderer
-already falls back to drawing straight to the screen when a buffer cannot be
-allocated, so a tight device degrades rather than crashes.
+[docs/DEVICES.md](docs/DEVICES.md#adding-another-device) for that model's
+watch-app memory — it decides whether the off-screen buffer fits. The renderer
+falls back to drawing straight to the screen when it does not, so a tight device
+degrades rather than crashes.
 
 Good next candidates, all round and touch-capable with the same API level:
 `vivoactive5`, `venu2`, `venu2s`, `venu2plus`, `fr165`, `fr265`, `fr965`.

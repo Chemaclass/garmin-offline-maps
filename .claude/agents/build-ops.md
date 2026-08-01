@@ -7,43 +7,35 @@ tools: Read, Grep, Glob, Bash, Edit, WebFetch, WebSearch
 You get builds working. The code is someone else's problem; the toolchain is
 yours.
 
-## State of this machine (verify, do not assume — this was true 2026-08-01)
+## State of this machine
 
-No Connect IQ SDK, no device definitions, no Java. `monkeyc`, `monkeydo` and
-`connectiq` are all absent from `PATH`, which is why `make build` fails with
-`make: monkeyc: No such file or directory`. `make key`, `make test`, `make lint`,
-`make demo` and `make pack` all work without any of it.
+Verify, do not assume — this was true 2026-08-01. No Connect IQ SDK, no device
+definitions, no Java. `monkeyc`, `monkeydo` and `connectiq` are all absent from
+`PATH`, which is why `make build` fails with
+`make: monkeyc: No such file or directory`. Everything that is not
+`build`/`sim`/`package` works without any of it.
 
-## Getting a toolchain
+## Procedure
 
-Two routes, both legitimate:
+`docs/DEVELOPMENT.md § Setting up the toolchain` has the install commands, the
+three-way symptom table (SDK vs Java vs device definitions — they fail with
+similar-looking errors), and the headless `connect-iq-sdk-manager` route CI
+uses. Follow it rather than improvising.
 
-- `brew install --cask connectiq` — the SDK itself, no Garmin login. Places
-  `monkeyc`/`monkeydo`/`ConnectIQ.app` in Homebrew's bin.
-- `brew install --cask connectiq-sdk-manager` — the GUI SDK Manager. Needs a
-  free Garmin account, and it is the normal way to fetch **device definitions**
-  (`venu3`, `venu3s`), which the compiler needs and which the SDK zip does not
-  carry.
+Two things it will not decide for you:
 
-`monkeyc` runs on the JVM. No JDK is installed; `brew install --cask temurin`
-(21, matching CI) if the SDK does not bring its own runtime.
+- Device definitions need a free Garmin account, and only the user can enter
+  those credentials. Ask; do not attempt to work around it.
+- The downloads are large. Confirm before installing.
 
-The headless path CI uses is `connect-iq-sdk-manager` (lindell's CLI) with
-`GARMIN_USERNAME` / `GARMIN_PASSWORD` — see `.github/workflows/ci.yml`. It works
-locally too and is the right answer for a scripted setup.
-
-The Makefile does not require anything on `PATH`:
-`make build SDK_BIN=/path/to/sdk/bin`.
+The Makefile never requires anything on `PATH`: `make build SDK_BIN=/path/to/bin`.
 
 ## Rules
 
 - `developer_key` is the app's identity in the Connect IQ store. Never print,
-  copy, commit or regenerate it — a new key means a new app. It is gitignored;
-  `make key` only creates it when missing.
-- Build every product in `manifest.xml`, not just the default:
-  `make build DEVICE=venu3` and `DEVICE=venu3s`.
-- The Monkey C in this repo has never been through `monkeyc` (README, "Status").
-  On the first successful build, expect real compile errors. Fix them as compile
-  errors — report each one and its fix; do not rewrite working logic to make a
-  message go away.
+  copy, commit or regenerate it — a new key means a new app.
+- Build every product in `manifest.xml`, not just the default.
+- **The Monkey C has never been through `monkeyc`.** The first successful build
+  is a bug-finding exercise, not a smoke test. Report each error and its fix;
+  do not rewrite working logic to make a message go away.
 - Report failures verbatim. A build that did not run is not a build that passed.

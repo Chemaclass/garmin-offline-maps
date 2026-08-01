@@ -5,10 +5,12 @@ import Toybox.Math;
 //! Draws the visible tiles into a device context.
 //!
 //! Performance notes, because they drove every decision here:
-//!  * A Connect IQ app gets roughly half a second per frame before the
-//!    watchdog gets unhappy, and each `drawLine` is an interpreted call. So
-//!    rendering happens once into an off-screen buffer when the view changes,
-//!    never per frame, and the total segment count is hard-capped.
+//!  * Each `drawLine` is an interpreted call, and a full redraw has to stay
+//!    well under a second to feel like a map rather than a slideshow. (The
+//!    watchdog itself only fires around 5 s -- see docs/DEVICES.md -- so this
+//!    is a usability ceiling, not a crash one.) Rendering therefore happens
+//!    once into an off-screen buffer when the view changes, never per frame,
+//!    and the total segment count is hard-capped.
 //!  * Geometry is decoded straight into draw calls -- no intermediate feature
 //!    objects -- because allocation is the other thing that hurts on a 768 KB
 //!    heap.

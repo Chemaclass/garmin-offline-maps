@@ -1,7 +1,12 @@
 # Rendering on the watch
 
-Everything here is shaped by two numbers: **768 KB** of heap and **~0.5 s** per
-frame before the watchdog complains. Every drawing call is interpreted.
+Everything here is shaped by a 768 KB heap and by every drawing call being
+interpreted. Hardware numbers and their sources: [DEVICES.md](DEVICES.md).
+
+On timing, be precise about which ceiling is which. The **watchdog** fires
+around 5 s and kills the app. Long before that, a full redraw that takes even a
+few hundred milliseconds makes the map feel like a slideshow. The budgets below
+target the second ceiling; the first is not the one you will hit.
 
 ## Render once, blit many
 
@@ -36,8 +41,9 @@ A `BufferedBitmap` is created with a fixed palette. Sixteen entries keeps it at
 | 454 × 454 (Venu 3) | ~103 KB | ~206 KB |
 | 390 × 390 (Venu 3S) | ~76 KB | ~152 KB |
 
-Out of 768 KB, that is the difference between comfortable and not. **Adding a
-17th colour to `Palette.mc` is a memory change, not a cosmetic one.**
+Out of 768 KB of watch-app memory — which holds code *and* resident data —
+that is the difference between comfortable and not. **Adding a 17th colour to
+`Palette.mc` is a memory change, not a cosmetic one.**
 
 Slots 0–9 are the render layers and must line up index-for-index with
 `classify.py`'s `L_*` constants. Slots 10–15 are chrome: background, text, dim,

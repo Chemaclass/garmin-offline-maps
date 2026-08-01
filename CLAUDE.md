@@ -1,95 +1,66 @@
 # garmin-offline-maps
 
 Offline vector map for Garmin Venu 3 / 3S. Map data is **compiled into the app**
-— no phone, no network, no tile server. Two halves:
+— no phone, no network, no tile server.
 
-| Half | Where | Language | Testable? |
+| Half | Path | Language | Testable? |
 |---|---|---|---|
-| Packer | `tools/mappack/` | Python 3.9+ | yes — `make test` |
-| Watch app | `source/` | Monkey C | only via the SDK; CI needs Garmin creds |
+| Packer | `tools/mappack/` | Python 3.9+, stdlib only | yes — `make test` |
+| Watch app | `source/` | Monkey C | only via the SDK, which is not installed here |
 
-Read `docs/FORMAT.md` before touching anything that reads or writes bytes, and
-`docs/DEVICES.md` before adding a device or growing memory use.
+**[docs/README.md](docs/README.md) is the index.** Read the relevant page before
+non-trivial work: `ARCHITECTURE` (whole system), `RENDERING` (watch-side drawing
+and memory), `PACKER` (the Python side), `FORMAT` (the byte spec), `DEVICES`
+(hardware limits, with sources), `DEVELOPMENT` (build, test, conventions).
 
-## The three invariants
+## Three invariants
 
-These are the things that break silently. Check them on every relevant change.
+These break silently. Full detail in [docs/README.md](docs/README.md#three-invariants).
 
-**1. The format is a three-way contract.** These must agree byte for byte:
+1. **The byte format has three implementations** — `pack.py` (writer),
+   `decode.py` (reference reader), `TileReader.mc` (on-watch reader).
+   `decode.py` is a deliberate line-by-line mirror of the Monkey C. Change one,
+   change all three, and update `docs/FORMAT.md`.
+2. **Layer ids 0–9 are shared across languages** — `classify.py`'s `L_*` are
+   array indices into `Palette.mc`, which `preview.py` also *parses* at runtime.
+3. **`mapdata/active/**` and `source/generated/MapIndex.mc` are generated.**
+   Never hand-edit; regenerate with `make demo` or `make pack`. CI fails on any
+   diff.
 
-- `tools/mappack/mappack/pack.py` + `emit.py` + `varint.py` — the writer
-- `tools/mappack/mappack/decode.py` — reference reader, used by the tests
-- `source/TileReader.mc` — the on-watch reader
-
-`decode.py` is a deliberate line-by-line mirror of `TileReader.mc`. Change one,
-change all three, update `docs/FORMAT.md`, and run `make test` —
-`tests/contract/test_tile_format.py` round-trips writer against reader.
-
-**2. Layer ids are shared between Python and Monkey C.** `classify.py`'s
-`L_WATER_AREA=0 … L_MOTORWAY=9` must line up index-for-index with the first ten
-entries of `Palette.NIGHT` / `Palette.DAY` and with `WIDTH_FAR` / `WIDTH_NEAR`.
-`preview.py` scrapes `source/Palette.mc` at runtime, so a palette edit that
-breaks its parse breaks the preview tests, not just the colours.
-
-**3. `mapdata/active/**` and `source/generated/MapIndex.mc` are generated.**
-Never hand-edit them — regenerate with `make demo` (the committed synthetic
-pack) or `make pack`. CI runs `make demo` and fails on any diff, so a hand-edit
-shows up as a red build, not as a bug.
-
-## Platform limits that shape the design
-
-Not preferences — measured constraints (sources in `docs/DEVICES.md`):
-
-| Limit | Venu 3 | Consequence in the code |
-|---|---|---|
-| Watch-app RAM | 768 KB | `TileStore` evicts by **byte budget**, not block count |
-| `Application.Storage` | ~128 KB total, 8 KB/value | Only view state lives there, never map data |
-| Filesystem API | none | Tiles cannot be side-loaded; they are compiled in |
-| Frame budget | ~0.5 s before the watchdog | Render **once** into a `BufferedBitmap`, then blit |
-| Palette | 16 entries | Every colour drawn must exist in `Palette.NIGHT`/`DAY` |
-| Resource ids | ~255 per type | Packer budget defaults to 200 jsonData blocks |
-| Store bundle | 15 MB max `.iq` | Packer warns above 12 MB in-app |
-
-Corollary: every `drawLine` is an interpreted call. Adding per-frame work in
-`MapRenderer` is expensive in a way desktop instincts do not predict.
+`tests/contract/` guards 1 and 2. A failure there means "go edit the other
+side", not "fix this code".
 
 ## Commands
 
 ```bash
-make test                              # 67 tests (10 skip without Pillow)
-make lint                              # compileall over the packer
+make test                              # packer suite (10 skip without Pillow)
 make demo                              # rebuild the committed demo pack
-make pack BBOX=w,s,e,n NAME="Madrid"   # hits Overpass — see the skill first
+make pack BBOX=w,s,e,n NAME="Madrid"   # hits Overpass
 make build DEVICE=venu3                # needs monkeyc on PATH
-make sim                               # simulator + side-load
-make package                           # .iq store bundle
 ```
 
-`pip install pillow` unskips the 10 preview tests. `pip install osmium` enables
-`make pack INPUT=region.osm.pbf`.
-
-The Connect IQ SDK is **not** installed on this machine as of 2026-08-01 —
-see the `sdk` skill. Everything except `build`/`sim`/`package` works without it.
+`make build`/`sim`/`package` need the Connect IQ SDK. Everything else does not.
+Setup: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md#setting-up-the-toolchain).
 
 ## Conventions
 
-Monkey C, as written here: `import Toybox.X` at the top, `//!` for doc
-comments, `hidden var _name` for private state, untyped `var` (no `as Type`
-annotations anywhere in `source/`), constants grouped in a `module` when both a
-class and its statics need them.
+**Monkey C, as written here:** `import Toybox.X` at the top, `//!` doc comments
+explaining *why*, `hidden var _name` for private state, untyped `var` — there
+are no `as Type` annotations anywhere in `source/`, so do not introduce a
+partial typing regime. Shared constants go in a `module`.
 
-Python: stdlib only in `mappack/` — Pillow is optional and import-guarded, and
-osmium is imported lazily for `.pbf` only. Keep it that way; the packer must run
-on a bare `python3`.
+**Python:** stdlib only in `mappack/`. Pillow is optional and import-guarded,
+osmium is lazy-imported for `.pbf`. Do not add a dependency — restructure.
 
-Docs are part of the change. `docs/FORMAT.md` is the format spec, not a
-description of it — if the bytes move, it moves.
+**Docs are part of the change.** If the bytes move, `docs/FORMAT.md` moves.
+Every fact lives in exactly one page; link rather than restate.
 
 ## Repo notes
 
 - Commits: conventional, `ref:` not `refactor:`. Signing key E51B5BF45F85D160.
-- `developer_key` is gitignored and unrecoverable — regenerating it means a new
-  app identity in the Connect IQ store. Never read, print, or commit it.
-- No git remote configured yet; `main` is the only branch.
+- `developer_key` is the app's Connect IQ store identity and is gitignored.
+  Never read, print, or commit it.
+- The Monkey C has never been through `monkeyc` — budget compile fixes on the
+  first build, and never claim a watch-side change builds.
 - Global CLAUDE.md rules about Eloquent/repositories/`T`-prefixed types/Mockery
   are PHP-project rules and do not apply here.

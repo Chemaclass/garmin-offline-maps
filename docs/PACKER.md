@@ -60,10 +60,8 @@ Each block file is one base64 string in a one-element JSON array:
 ["TQEMA/oAwQACBQARAAYAygAHAB0AAQEM8BCACQoVCQ1hNxsGLSgZWDYQLiAaADYlAB8..."]
 ```
 
-A one-element array rather than a bare string so the top-level JSON value is
-unambiguously a container. Base64 costs 33% on disk, which is the price of
-Connect IQ having no binary resource type — still far cheaper than a JSON array
-of numbers, which would cost 8–16 bytes of heap per coordinate once parsed.
+Why base64, and why an array rather than a bare string:
+[FORMAT.md § Transport](FORMAT.md#transport).
 
 `choose_block_log2` picks the grouping per zoom, aiming at `SOFT_BLOCK_TARGET`
 (24 KB) per block and staying under `MAX_BLOCK_BYTES` (60 KB, because tile
@@ -107,13 +105,8 @@ difference between an app that installs and one that does not.
 | Block bytes | `SOFT_BLOCK_TARGET` 24 KB | `MAX_BLOCK_BYTES` 60 KB | — |
 | Features per layer | — | `MAX_FEATURES_PER_LAYER` 255 (`u8` count) | — |
 
-Rough sizes at default settings (zooms 12/14/16, no buildings):
-
-| Area | In-app | Resources |
-|---|---|---|
-| 10 × 10 km (a town) | ~0.4 MB | ~20 |
-| 30 × 30 km (a city) | ~3 MB | ~70 |
-| 60 × 60 km (a metro region) | ~11 MB | ~200 |
+Rough area-to-size numbers at the defaults are in the
+[README](../README.md#how-much-area-fits).
 
 Knobs, in the order to reach for them:
 

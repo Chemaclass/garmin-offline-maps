@@ -4,7 +4,7 @@ Two halves that meet at a byte format and a generated file.
 
 | Half | Path | Language | Runs on | Tested by |
 |---|---|---|---|---|
-| Packer | `tools/mappack/` | Python 3.9+, stdlib only | your machine, CI | `make test` (67 tests) |
+| Packer | `tools/mappack/` | Python 3.9+, stdlib only | your machine, CI | `make test` |
 | Watch app | `source/` | Monkey C | the watch | the simulator, and `preview.py` by proxy |
 
 They meet at:
@@ -112,26 +112,27 @@ Full pipeline in [PACKER.md](PACKER.md).
 
 ## Why it is shaped like this
 
-Four measured platform limits, not preferences. Sources in [DEVICES.md](DEVICES.md).
+Four measured platform limits, not preferences. The numbers and their sources
+live in [DEVICES.md](DEVICES.md); what each one forced:
 
-| Limit | Venu 3 | What it forced |
-|---|---|---|
-| Watch-app RAM | 768 KB | `TileStore` evicts by **byte budget**, not entry count |
-| `Application.Storage` | ~128 KB total, 8 KB/value | Only six scalars persist; map data never goes there |
-| Filesystem API | none | Tiles cannot be side-loaded over USB — they are compiled in |
-| Companion BLE | under 1 KB/s | Streaming a map from the phone is not viable either |
+| Limit | Consequence in this codebase |
+|---|---|
+| Watch-app RAM | `TileStore` evicts by **byte budget**, not entry count |
+| `Application.Storage` size, and its transient-heap cost | Only six scalars persist; map data never goes there |
+| No filesystem API | Tiles cannot be side-loaded over USB — they are compiled in |
+| Companion BLE throughput | Streaming a map from the phone is not viable either |
 
-Plus one performance reality: ~0.5 s per frame before the watchdog complains,
-and every drawing call is interpreted. Hence the off-screen buffer, the hard
-segment caps, and decoding geometry straight into draw calls with no
-intermediate feature objects — allocation is the other thing that hurts on a
-768 KB heap.
+Plus one performance reality: every drawing call is interpreted, and a full
+redraw has to stay well under a second to feel responsive — the watchdog itself
+only fires around 5 s, so this is a usability ceiling, not a crash ceiling.
+Hence the off-screen buffer, the hard segment caps in [RENDERING.md](RENDERING.md),
+and decoding geometry straight into draw calls with no intermediate feature
+objects. Allocation is the other thing that hurts on this heap.
 
 ## What is deliberately absent
 
-- **No protobuf / MVT.** There is no protobuf decoder on Connect IQ, and writing
-  one in Monkey C would cost more heap and more interpreted calls than the map
-  data itself. See FORMAT.md.
+- **No protobuf / MVT** — there is no protobuf decoder on Connect IQ; the
+  reasoning is in [FORMAT.md](FORMAT.md).
 - **No tags, strings, or feature ids in the format.** Layer id and geometry only.
 - **No labels.** Text needs a layer the format does not have yet — on the roadmap.
 - **No runtime data loading of any kind.** The absence is the product.

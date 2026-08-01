@@ -5,7 +5,7 @@
 Most of it. The packer, the tests and the preview renderer need only `python3`.
 
 ```bash
-make test     # 67 tests (10 skip without Pillow)
+make test     # the packer suite (10 skip without Pillow)
 make lint     # compileall over the packer
 make demo     # rebuild the committed demo pack
 make pack     # build a pack for a real area
@@ -89,12 +89,10 @@ hand-edited.
 | 2 | Layer ids 0–9 | `classify.py`, `Palette.mc` | `tests/contract/test_palette.py` |
 | 3 | Generated artefacts | `mapdata/active/**`, `MapIndex.mc` | `make demo` + `git diff` |
 
-For (1), `decode.py` is a line-by-line mirror of the Monkey C, because the watch
-parser is the one thing CI cannot execute. Change one, change all three, and
-update `FORMAT.md` — it is the spec, not a description of it.
-
-For (2), note that `preview.py` *parses* `Palette.mc` at runtime, so reformatting
-those array literals can break tests even when the colours are fine.
+Two traps worth naming: `docs/FORMAT.md` is the spec rather than a description
+of it, so bytes moving means it moves too; and `preview.py` *parses*
+`Palette.mc` at runtime, so reformatting those array literals can break tests
+even when the colours are fine.
 
 A failure in `tests/contract/` means "go edit the other side", not "fix this
 code" — that is why those tests are kept apart from the rest.
@@ -174,15 +172,18 @@ the README embeds — refresh those only when the rendering genuinely changed.
 
 ## Adding a device
 
-Check [DEVICES.md](DEVICES.md) first — watch-app memory versus the buffer size
-is what decides viability, and `MapRenderer` degrades to direct drawing rather
-than crashing when it does not fit. Then add the product id to `manifest.xml`,
-update the `for device in venu3 venu3s` loop in CI, and build it explicitly.
+The checklist lives in [DEVICES.md § Adding another device](DEVICES.md#adding-another-device).
+Watch-app memory versus the buffer size is what decides viability; `MapRenderer`
+degrades to direct drawing rather than crashing when it does not fit. Remember
+the `for device in venu3 venu3s` loop in CI lists devices literally.
 
 ## Agents
 
-`.claude/` carries project-specific config: four agents split along the repo's
-seams (`watch-app`, `map-packer`, `contract-auditor`, `build-ops`) and five
-skills (`sdk`, `pack`, `contracts`, `preview`, `add-device`). `settings.json`
-denies writes to the generated paths and reads of `developer_key`; a PostToolUse
-hook surfaces the invariant that applies to whichever file was just touched.
+`.claude/` carries project config: four agents split along the repo's seams
+(`watch-app`, `map-packer`, `contract-auditor`, `build-ops`) and five skills
+(`sdk`, `pack`, `contracts`, `preview`, `add-device`). `settings.json` denies
+writes to the generated paths and reads of `developer_key`; a PostToolUse hook
+surfaces whichever invariant applies to the file just touched.
+
+Those files deliberately do **not** restate what is here — they point at these
+pages. Keep it that way: one fact, one home.
