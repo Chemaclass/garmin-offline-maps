@@ -13,10 +13,20 @@
 SHELL := /bin/bash
 
 DEVICE      ?= venu3
-SDK_BIN     ?=
+
+# Homebrew's connectiq cask links monkeyc and monkeydo onto PATH but *not*
+# connectiq, the simulator launcher -- so `make sim` cannot rely on PATH the way
+# `make build` can. Autodetect the Caskroom SDK instead, newest version last.
+# An explicit SDK_BIN= on the command line still wins.
+BREW_PREFIX := $(shell brew --prefix 2>/dev/null)
+CASK_SDK    := $(lastword $(sort $(wildcard $(BREW_PREFIX)/Caskroom/connectiq/*/connectiq-sdk-mac-*/bin)))
+SDK_BIN     ?= $(CASK_SDK)
+
 MONKEYC     := $(if $(SDK_BIN),$(SDK_BIN)/monkeyc,monkeyc)
 MONKEYDO    := $(if $(SDK_BIN),$(SDK_BIN)/monkeydo,monkeydo)
 SIMULATOR   := $(if $(SDK_BIN),$(SDK_BIN)/connectiq,connectiq)
+
+SIM_PORT    ?= 1234          # the simulator's side-load socket
 
 KEY         ?= developer_key
 BIN         := bin
@@ -36,7 +46,7 @@ ZOOMS       ?= 12,14,16
 SIMPLIFY    ?= 1.0
 EXTRA       ?=
 
-.PHONY: help key pack demo build sim package test lint clean distclean
+.PHONY: help doctor key pack demo build sim package test lint clean distclean
 
 help:
 	@sed -n 's/^## //p' $(MAKEFILE_LIST)
@@ -49,7 +59,42 @@ help:
 	@echo "  make sim         launch the simulator and side-load the app"
 	@echo "  make package     build the .iq bundle for the Connect IQ store"
 	@echo "  make test        run the packer test suite"
+	@echo "  make doctor      report which toolchain pieces are missing"
 	@echo "  make clean       remove build output"
+
+# --- diagnosis -------------------------------------------------------------
+# The four watch-side prerequisites fail with similar-looking errors, so name
+# them individually rather than letting monkeyc guess. Checks existence only --
+# developer_key is never read.
+
+doctor:
+	@echo "== watch app =="
+	@printf '  %-20s' "compiler"; \
+		if command -v "$(MONKEYC)" >/dev/null 2>&1; then \
+			"$(MONKEYC)" --version 2>&1 | head -1; \
+		else echo "MISSING   brew install --cask connectiq"; fi
+	@printf '  %-20s' "java"; \
+		if java -version >/dev/null 2>&1; then java -version 2>&1 | head -1; \
+		else echo "MISSING   brew install --cask temurin@21"; fi
+	@printf '  %-20s' "simulator"; \
+		if [ -x "$(SIMULATOR)" ] || command -v "$(SIMULATOR)" >/dev/null 2>&1; then \
+			echo "$(SIMULATOR)"; \
+		else echo "MISSING   in the connectiq cask, but not linked onto PATH"; fi
+	@printf '  %-20s' "devices"; \
+		d="$$HOME/Library/Application Support/Garmin/ConnectIQ/Devices"; \
+		if [ -d "$$d" ] && [ -n "$$(ls -A "$$d" 2>/dev/null)" ]; then \
+			ls "$$d" | tr '\n' ' '; echo; \
+		else echo "MISSING   open SdkManager.app, log in, get venu3 + venu3s"; fi
+	@printf '  %-20s' "signing key"; \
+		if [ -f "$(KEY)" ]; then echo "present"; else echo "MISSING   make key"; fi
+	@echo "== packer =="
+	@printf '  %-20s' "python3"; $(PYTHON) --version 2>&1
+	@printf '  %-20s' "pillow"; \
+		if $(PYTHON) -c "import PIL" 2>/dev/null; then echo "present"; \
+		else echo "absent    pip install pillow -- 10 preview tests skip"; fi
+	@printf '  %-20s' "osmium"; \
+		if $(PYTHON) -c "import osmium" 2>/dev/null; then echo "present"; \
+		else echo "absent    pip install osmium -- only for .osm.pbf input"; fi
 
 # --- signing ---------------------------------------------------------------
 
@@ -89,8 +134,21 @@ build: $(KEY)
 	@ls -lh $(PRG)
 
 sim: build
-	@echo ">> starting simulator (leave it running), then side-loading"
-	@($(SIMULATOR) &) ; sleep 6 ; $(MONKEYDO) $(PRG) $(DEVICE)
+	@if nc -z 127.0.0.1 $(SIM_PORT) 2>/dev/null; then \
+		echo ">> reusing the running simulator"; \
+	else \
+		echo ">> starting simulator (leave it running between builds)"; \
+		$(SIMULATOR) >/dev/null 2>&1 & \
+	fi
+	@for i in $$(seq 1 30); do \
+		nc -z 127.0.0.1 $(SIM_PORT) 2>/dev/null && break; \
+		if [ $$i -eq 30 ]; then \
+			echo ">> simulator never opened port $(SIM_PORT)" >&2; exit 1; \
+		fi; \
+		sleep 1; \
+	done
+	@echo ">> side-loading $(PRG) as $(DEVICE) -- Ctrl-C detaches, sim keeps running"
+	$(MONKEYDO) $(PRG) $(DEVICE)
 
 package: $(KEY)
 	@mkdir -p $(BIN)
