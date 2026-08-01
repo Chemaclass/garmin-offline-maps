@@ -61,7 +61,10 @@ class LocationTracker {
         _running = false;
     }
 
-    function onPosition(info) {
+    //! Annotated because `Position.enableLocationEvents` types its callback
+    //! parameter exactly; an untyped signature is rejected. See the note on
+    //! API-boundary annotations in docs/DEVELOPMENT.md.
+    function onPosition(info as Position.Info) as Void {
         if (info == null || info.position == null) { return; }
         var degrees = info.position.toDegrees();
         _lat = degrees[0];

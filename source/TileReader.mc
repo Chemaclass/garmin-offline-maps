@@ -58,18 +58,22 @@ class TileReader {
     }
 
     //! LEB128: seven payload bits per byte, high bit means "more follows".
+    //!
+    //! Written with the continuation bit as the loop condition rather than a
+    //! `while (true)` with an inner return: the compiler cannot prove the latter
+    //! ever returns, and rejects it.
     function uvarint() {
         var result = 0;
         var shift = 0;
-        while (true) {
+        var more = true;
+        while (more) {
             var b = bytes[pos];
             pos += 1;
             result = result | ((b & 0x7F) << shift);
-            if ((b & 0x80) == 0) {
-                return result;
-            }
+            more = (b & 0x80) != 0;
             shift += 7;
         }
+        return result;
     }
 
     //! Zigzag: small negative deltas stay one byte wide.

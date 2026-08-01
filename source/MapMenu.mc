@@ -43,11 +43,13 @@ class MapMenuDelegate extends WatchUi.Menu2InputDelegate {
     function onSelect(item) {
         var id = item.getId();
 
+        // `onSelect` receives the base MenuItem; these two entries are built as
+        // ToggleMenuItems, and only that subtype carries isEnabled().
         if (id == :headingUp) {
-            _camera.headingUp = item.isEnabled();
+            _camera.headingUp = (item as ToggleMenuItem).isEnabled();
             _view.invalidate();
         } else if (id == :night) {
-            _camera.night = item.isEnabled();
+            _camera.night = (item as ToggleMenuItem).isEnabled();
             // The palette is baked into the off-screen buffer, so it has to go.
             _view.rebuild();
         } else if (id == :stats) {

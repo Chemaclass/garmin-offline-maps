@@ -52,7 +52,8 @@ class OfflineMapsApp extends Application.AppBase {
         }
     }
 
-    function onTick() {
+    //! Annotated because `Timer.start` requires a `Method() as Void`.
+    function onTick() as Void {
         if (_camera == null || _view == null || !_camera.headingUp) { return; }
         if (_tracker.pollHeading()) {
             _camera.heading = _tracker.heading();
