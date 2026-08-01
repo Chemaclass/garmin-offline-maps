@@ -134,10 +134,26 @@ code" — that is why those tests are kept apart from the rest.
 ## Conventions
 
 **Monkey C, as written here:** `import Toybox.X` at the top, `//!` doc comments
-that explain *why*, `hidden var _name` for private state, untyped `var` (there
-are no `as Type` annotations anywhere in `source/` — do not introduce a partial
-typing regime), shared constants in a `module` when both a class and its statics
-need them.
+that explain *why*, `hidden var _name` for private state, untyped `var`, shared
+constants in a `module` when both a class and its statics need them.
+
+Your own logic stays untyped — do not introduce a partial typing regime. The
+exception is **API boundaries where Garmin types the signature for you**. The
+checker rejects an untyped callback passed to `Position.enableLocationEvents` or
+`Timer.start`, and rejects `item.isEnabled()` when `onSelect` hands you the base
+`MenuItem`. Five sites carry the minimum annotation for that reason, each with a
+`//!` saying so:
+
+| Site | Why |
+|---|---|
+| `LocationTracker.onPosition` ×2 | `Method(loc as Position.Info) as Void` |
+| `OfflineMapsApp.onTick` | `Timer.start` wants `Method() as Void` |
+| `MapMenu` `item as ToggleMenuItem` ×2 | only the subtype has `isEnabled()` |
+
+The alternative was compiling at `-l 0`, which builds clean but disables type
+checking for the whole codebase. Rejected: the checker caught a genuine defect
+on its first run (`TileReader.uvarint` had no provable return path), and that is
+worth more than a fully annotation-free `source/`.
 
 **Python:** stdlib only in `mappack/`. Pillow is optional and import-guarded;
 osmium is imported lazily for `.pbf`. Do not add a dependency — restructure.

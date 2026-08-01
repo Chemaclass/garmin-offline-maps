@@ -7,9 +7,9 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-No release has been cut yet — everything below is what exists today. The app has
-not been through `monkeyc` or run on hardware, so nothing here is verified
-on-watch.
+No release has been cut yet — everything below is what exists today. The app
+compiles for the Venu 3 and Venu 3S and runs in the simulator, but has **not**
+run on hardware, so nothing here is verified on-watch.
 
 ### Added
 

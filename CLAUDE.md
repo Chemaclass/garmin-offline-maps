@@ -45,9 +45,15 @@ Setup: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md#setting-up-the-toolchain).
 ## Conventions
 
 **Monkey C, as written here:** `import Toybox.X` at the top, `//!` doc comments
-explaining *why*, `hidden var _name` for private state, untyped `var` — there
-are no `as Type` annotations anywhere in `source/`, so do not introduce a
-partial typing regime. Shared constants go in a `module`.
+explaining *why*, `hidden var _name` for private state, untyped `var`, shared
+constants in a `module`.
+
+Your own logic stays untyped — do not introduce a partial typing regime. The one
+exception is **API boundaries where Garmin types the signature for you**: a
+callback handed to `Position.enableLocationEvents` or `Timer.start`, or a
+downcast like `item as ToggleMenuItem`. The type checker rejects those untyped,
+so they carry the minimum annotation and a `//!` saying why. Five sites today;
+adding a sixth needs the same justification, not a general licence to annotate.
 
 **Python:** stdlib only in `mappack/`. Pillow is optional and import-guarded,
 osmium is lazy-imported for `.pbf`. Do not add a dependency — restructure.
@@ -62,7 +68,8 @@ Every fact lives in exactly one page; link rather than restate.
   rules on what counts — most work here (refactors, tests, docs) does not.
 - `developer_key` is the app's Connect IQ store identity and is gitignored.
   Never read, print, or commit it.
-- The Monkey C has never been through `monkeyc` — budget compile fixes on the
-  first build, and never claim a watch-side change builds.
+- The Monkey C compiles for both products and runs in the simulator; it has
+  never run on hardware. Never claim a watch-side change builds without having
+  run `make build`, and never claim on-watch behaviour at all.
 - Global CLAUDE.md rules about Eloquent/repositories/`T`-prefixed types/Mockery
   are PHP-project rules and do not apply here.

@@ -49,10 +49,15 @@ does not link `connectiq` there, so it builds but breaks `make sim`.
 On the watch: plug in over USB, copy the `.prg` into `GARMIN/APPS/`, eject. The
 Venu 3 mounts over MTP, not mass storage, so macOS Finder will not show it.
 
-## Expect compile errors on the first build
+## Build expectations
 
-This Monkey C has never been through `monkeyc`. The first real build is a
-bug-finding exercise, not a smoke test. Fix each error on its merits and report
-it; do not restructure working logic to silence a message.
+The app compiles clean for both products under SDK 9.2.0 and runs in the
+simulator. It has never run on hardware.
+
+The ~38 `Cannot determine if container access is using container type` warnings
+are expected: they are what the untyped-`var` convention costs, not defects.
+Errors are not expected — if one appears, fix it on its merits and report it; do
+not restructure working logic, and do not reach for `-l 0` to silence the type
+checker. See the annotation note in docs/DEVELOPMENT.md § Conventions.
 
 `developer_key` is the app's store identity — never print, commit or regenerate.

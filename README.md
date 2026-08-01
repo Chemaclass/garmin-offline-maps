@@ -220,9 +220,10 @@ No release cut yet — [CHANGELOG.md](CHANGELOG.md) lists what exists today.
 
 Working code, not yet flashed to hardware. The map format, the packer, the
 generated index and the rendering maths are covered by tests and by the preview
-renderer; the Monkey C has not been through `monkeyc` yet, so budget one round
-of compile fixes on first build. Real-device notes to watch for are collected in
-[docs/DEVICES.md](docs/DEVICES.md).
+renderer. The Monkey C compiles for both the Venu 3 and Venu 3S under Connect IQ
+SDK 9.2.0 and runs in the simulator; it has never run on a real watch, so
+memory headroom and frame timing are still unmeasured. Real-device notes to
+watch for are collected in [docs/DEVICES.md](docs/DEVICES.md).
 
 ## Roadmap
 

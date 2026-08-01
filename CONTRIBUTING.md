@@ -129,8 +129,9 @@ Both halves have a house style, stated in
 [docs/DEVELOPMENT.md § Conventions](docs/DEVELOPMENT.md#conventions). The two
 that catch people out:
 
-- **Monkey C here is untyped.** There are no `as Type` annotations anywhere in
-  `source/`. Do not introduce a partial typing regime.
+- **Monkey C here is untyped**, except at Garmin API boundaries that the type
+  checker will not accept untyped — five annotated sites, each with a `//!`
+  saying why. Do not introduce a partial typing regime beyond those.
 - **The packer is stdlib-only.** Pillow is optional and import-guarded, osmium is
   lazy-imported for `.pbf`. Do not add a dependency — restructure.
 
@@ -156,9 +157,11 @@ And the skills, which encode procedures rather than facts: `sdk`, `pack`,
 
 Two rules that matter more for agents than for humans:
 
-- **Never claim a watch-side change builds.** The Monkey C in `source/` has not
-  been through `monkeyc`, and `make test` does not compile a single line of it.
-  Say what you verified and what you did not.
+- **Never claim a watch-side change builds without running `make build`.**
+  `make test` does not compile a single line of `source/`, so a green test suite
+  says nothing about the watch app. And never claim on-watch behaviour at all —
+  nothing here has run on real hardware. Say what you verified and what you did
+  not.
 - **Never read, print, regenerate or commit `developer_key`.** It is the app's
   identity in the Connect IQ store; replacing it means a new app, and it is not
   recoverable.
@@ -167,14 +170,18 @@ Two rules that matter more for agents than for humans:
 
 Honest state, also recorded in [CHANGELOG.md](CHANGELOG.md): the packer, the
 byte format and the rendering maths are covered by tests and by a Python
-re-implementation of the renderer. The watch app has **not** been through
-`monkeyc` and has not run on hardware. Budget a round of compile fixes on the
-first real build — and if you are the one who does it, that is a genuinely
-valuable contribution.
+re-implementation of the renderer. The watch app compiles for both products
+under Connect IQ SDK 9.2.0 and runs in the simulator.
+
+It has **never run on a real watch.** Memory headroom and frame timing are the
+two things the simulator will not tell you, and they are exactly the two the
+[hardware limits](docs/DEVICES.md) say are tight. Treat every on-watch claim as
+unverified until someone flashes it.
 
 ## Good first contributions
 
-- Run the first real `monkeyc` build and fix what falls out.
+- **Run it on an actual Venu 3 and report what happens.** The single most
+  valuable thing anyone can do for this project right now.
 - Add a device — see the `add-device` skill and
   [docs/DEVICES.md](docs/DEVICES.md); memory versus buffer size is what decides
   viability.
