@@ -33,17 +33,20 @@ then popped — would otherwise leave the buffer blitted at a stale offset forev
 
 ## Why 16 colours
 
-A `BufferedBitmap` is created with a fixed palette. Sixteen entries keeps it at
-4 bits per pixel where the device supports it:
+Sixteen entries *would* keep a paletted `BufferedBitmap` at 4 bits per pixel:
 
-| Screen | 4 bpp | 8 bpp |
+| Screen | 4 bpp (paletted) | 8 bpp (what we use) |
 |---|---|---|
 | 454 × 454 (Venu 3) | ~103 KB | ~206 KB |
 | 390 × 390 (Venu 3S) | ~76 KB | ~152 KB |
 
-Out of 768 KB of watch-app memory — which holds code *and* resident data —
-that is the difference between comfortable and not. **Adding a 17th colour to
-`Palette.mc` is a memory change, not a cosmetic one.**
+We pay the right-hand column, because a paletted buffer cannot be drawn to at
+all — see [below](#why-the-buffer-is-not-paletted). Out of 768 KB of watch-app
+memory, which holds code *and* resident data, that is a real cost.
+
+The 16-colour limit still governs everything drawn, because `Palette.mc` is the
+app's colour vocabulary and slots 0–9 are a cross-language contract. It is no
+longer what sets the buffer's bit depth.
 
 Slots 0–9 are the render layers and must line up index-for-index with
 `classify.py`'s `L_*` constants. Slots 10–15 are chrome: background, text, dim,
@@ -69,33 +72,30 @@ adding one.
 Note the exception is thrown by the *reference accessors*, not by
 `createBufferedBitmap`, which is why the `try` sits where it does.
 
-### Open: the paletted buffer rejects every primitive we draw
+### Why the buffer is not paletted
 
-Observed on the first simulator run, venu3, SDK 9.2.0:
+It used to be. On the first simulator run it threw on every frame:
 
 ```
 MapView: buffered draw failed, drawing direct:
 Anti aliased primitives cannot be drawn to a paletted buffer
 ```
 
-The buffer allocates fine and the reference resolves; the throw comes from the
-draw calls inside `onUpdate`'s `try`. `dc.setAntiAlias(false)` does not help,
-and the error persists with the `fillPolygon` pass skipped entirely — so
-`drawLine` at a pen width wider than 1 is anti-aliased too. **Every primitive
-`MapRenderer` draws is rejected by a paletted target on this device.**
+The buffer allocated fine and the reference resolved; the throw came from the
+draw calls. `dc.setAntiAlias(false)` did not help, and it still threw with the
+`fillPolygon` pass skipped entirely — so `drawLine` above pen width 1 is
+anti-aliased too. **Every primitive `MapRenderer` draws is rejected by a
+paletted target.** The buffer was therefore allocated and never used: the app
+was direct-drawing every frame, the opposite of the design above.
 
-So the fallback on line 61 fires on every frame, and the "render once, then
-blit" design in this document is not what actually runs today — it is direct
-drawing, every frame, with the buffer allocated and unused.
+`:palette` is now omitted from `createBufferedBitmap`, which costs 8 bpp
+instead of 4 — the right-hand column of the table above. That is the price of
+having the buffered path work at all.
 
-The two ways out trade against each other, and neither is free:
-
-| Option | Cost |
-|---|---|
-| Drop `:palette` from `createBufferedBitmap` | 8 bpp instead of 4 — the doubled figures in the table above, against 768 KB total |
-| Keep the palette, stop using anti-aliased primitives | Needs an alternative to `drawLine`/`fillPolygon`; visibly rougher |
-
-Unresolved. Do not describe the buffered path as working until it is.
+**This makes the memory budget tighter, not looser.** ~206 KB on a Venu 3 out
+of 768 KB that also holds code and resident data. If a device cannot afford it,
+`createBuffer` fails and the direct-draw fallback takes over, which is what
+that path is for. Re-check [DEVICES.md](DEVICES.md) before adding a model.
 
 ## Two passes, and hard caps
 

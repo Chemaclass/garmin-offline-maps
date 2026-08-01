@@ -75,10 +75,14 @@ class MapView extends WatchUi.View {
     hidden function createBuffer() {
         if (_width == null || _height == null) { return; }
         try {
+            // No `:palette`. A paletted buffer refuses every primitive
+            // MapRenderer draws -- drawLine above pen width 1 and fillPolygon
+            // are both anti-aliased, and the API rejects those outright:
+            // "Anti aliased primitives cannot be drawn to a paletted buffer".
+            // The cost is 8 bpp instead of 4; see docs/RENDERING.md.
             _bufferRef = Graphics.createBufferedBitmap({
                 :width => _width,
-                :height => _height,
-                :palette => Palette.colours(_camera.night)
+                :height => _height
             });
             _useBuffer = (_bufferRef != null);
         } catch (ex) {

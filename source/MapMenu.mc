@@ -50,8 +50,9 @@ class MapMenuDelegate extends WatchUi.Menu2InputDelegate {
             _view.invalidate();
         } else if (id == :night) {
             _camera.night = (item as ToggleMenuItem).isEnabled();
-            // The palette is baked into the off-screen buffer, so it has to go.
-            _view.rebuild();
+            // The buffer is no longer paletted, so the theme is just a repaint
+            // -- no need to throw the allocation away and take it again.
+            _view.invalidate();
         } else if (id == :stats) {
             _view.toggleDebug();
             WatchUi.popView(WatchUi.SLIDE_DOWN);
