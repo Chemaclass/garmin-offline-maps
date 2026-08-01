@@ -19,11 +19,14 @@ class TileStore {
     //! and decoding one needs the base64 String plus the ByteArray at once.
     const RESERVE_BYTES = 36000;
 
-    hidden var _zoom;
-    hidden var _blockX;
-    hidden var _blockY;
-    hidden var _data;
-    hidden var _used;
+    //! Five parallel arrays, one cache entry per index. Typed because the hot
+    //! paths below subscript them, and the checker will not index an untyped
+    //! value; the counters underneath stay untyped like the rest of the app.
+    hidden var _zoom as Array<Number>;
+    hidden var _blockX as Array<Number>;
+    hidden var _blockY as Array<Number>;
+    hidden var _data as Array<ByteArray>;
+    hidden var _used as Array<Number>;
     hidden var _tick;
     hidden var _bytes;
     hidden var _budget;
@@ -125,7 +128,7 @@ class TileStore {
 
     //! Array.remove() deletes by value, which is wrong when two blocks share a
     //! zoom or index, so rebuild by position instead.
-    hidden function removeAt(list, index) {
+    hidden function removeAt(list as Array, index) as Array {
         var out = new [list.size() - 1];
         var at = 0;
         for (var i = 0; i < list.size(); i += 1) {

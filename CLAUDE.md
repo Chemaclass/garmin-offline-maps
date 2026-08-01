@@ -48,12 +48,23 @@ Setup: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md#setting-up-the-toolchain).
 explaining *why*, `hidden var _name` for private state, untyped `var`, shared
 constants in a `module`.
 
-Your own logic stays untyped — do not introduce a partial typing regime. The one
-exception is **API boundaries where Garmin types the signature for you**: a
-callback handed to `Position.enableLocationEvents` or `Timer.start`, or a
-downcast like `item as ToggleMenuItem`. The type checker rejects those untyped,
-so they carry the minimum annotation and a `//!` saying why. Five sites today;
-adding a sixth needs the same justification, not a general licence to annotate.
+Your own logic stays untyped — do not introduce a partial typing regime. Two
+exceptions, both forced by the type checker rather than chosen:
+
+1. **API boundaries where Garmin types the signature for you**: a callback handed
+   to `Position.enableLocationEvents` or `Timer.start`, or a downcast like
+   `item as ToggleMenuItem`. The checker rejects those untyped.
+2. **Values that get subscripted.** `x[i]` on an untyped value warns
+   ("Cannot determine if container access is using container type"), and the
+   annotation has to sit on every hop from where the container is created to
+   where it is indexed — miss one and the warning comes back. That is
+   `Palette.colours()` and its `colours` parameters, `MapView.buttonCentre()`,
+   `TileReader`'s `bytes`/`block`, and `TileStore`'s five parallel arrays.
+
+Annotate the container, not the arithmetic around it: counters, offsets and
+coordinates stay untyped. Anything outside these two cases needs the same kind
+of justification, not a general licence to annotate. `make build` is warning-free
+today — keep it that way, that is what makes a new warning worth reading.
 
 **Python:** stdlib only in `mappack/`. Pillow is optional and import-guarded,
 osmium is lazy-imported for `.pbf`. Do not add a dependency — restructure.

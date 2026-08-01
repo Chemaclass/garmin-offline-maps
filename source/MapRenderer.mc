@@ -112,7 +112,10 @@ class MapRenderer {
         }
     }
 
-    hidden function drawTile(dc, store, colours, camera, pass, dataZoom, log2,
+    //! `colours` is annotated for the same reason as in MapView: it is indexed
+    //! here, and a plain parameter is `Object?`, which the checker will not
+    //! index. It comes from `Palette.colours()`, which is typed at the source.
+    hidden function drawTile(dc, store, colours as Array<Number>, camera, pass, dataZoom, log2,
                              tileX, tileY, centreX, centreY, scale,
                              halfW, halfH, cosT, sinT, width, height, budget) {
         var block = store.block(dataZoom, tileX >> log2, tileY >> log2);

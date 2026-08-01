@@ -208,7 +208,9 @@ class MapView extends WatchUi.View {
 
     //! [x, y] centre of a button, placed on a circle so it stays on-screen on
     //! round displays.
-    function buttonCentre(degrees) {
+    //!
+    //! Typed because every caller indexes it; see the note above `drawOverlay`.
+    function buttonCentre(degrees) as Array<Number> {
         var orbit = _width * BUTTON_ORBIT;
         var radians = degrees * Math.PI / 180.0;
         return [(_width / 2.0 + orbit * Math.cos(radians)).toNumber(),
@@ -231,7 +233,11 @@ class MapView extends WatchUi.View {
 
     // ---- overlay --------------------------------------------------------
 
-    hidden function drawOverlay(dc, colours) {
+    //! The overlay helpers all index `colours`, so `colours` is annotated the
+    //! whole way down from `Palette.colours()`. A parameter defaults to
+    //! `Object?`, which the checker cannot index, and an unannotated hop
+    //! anywhere in the chain puts the warning back.
+    hidden function drawOverlay(dc, colours as Array<Number>) {
         drawPositionMarker(dc, colours);
         drawButtons(dc, colours);
         drawScaleBar(dc, colours);
@@ -241,7 +247,7 @@ class MapView extends WatchUi.View {
         }
     }
 
-    hidden function drawPositionMarker(dc, colours) {
+    hidden function drawPositionMarker(dc, colours as Array<Number>) {
         if (!_tracker.hasFix()) { return; }
 
         var zoom = _camera.zoom;
@@ -293,14 +299,15 @@ class MapView extends WatchUi.View {
         return [(cx + dx * c - dy * s).toNumber(), (cy + dx * s + dy * c).toNumber()];
     }
 
-    hidden function drawButtons(dc, colours) {
+    hidden function drawButtons(dc, colours as Array<Number>) {
         var r = buttonRadius();
         drawButton(dc, colours, buttonCentre(-38), r, "+", false);
         drawButton(dc, colours, buttonCentre(38), r, "-", false);
         drawButton(dc, colours, buttonCentre(142), r, null, _camera.follow);
     }
 
-    hidden function drawButton(dc, colours, centre, r, glyph, active) {
+    hidden function drawButton(dc, colours as Array<Number>, centre as Array<Number>,
+                               r, glyph, active) {
         dc.setColor(colours[Palette.SLOT_PANEL], Graphics.COLOR_TRANSPARENT);
         dc.fillCircle(centre[0], centre[1], r);
         var ink = active ? colours[Palette.SLOT_ACCENT] : colours[Palette.SLOT_TEXT];
@@ -320,7 +327,7 @@ class MapView extends WatchUi.View {
         }
     }
 
-    hidden function drawScaleBar(dc, colours) {
+    hidden function drawScaleBar(dc, colours as Array<Number>) {
         var metresPerPixel = _camera.metresPerPixel();
         var target = _width * 0.28;
         var metres = niceDistance(metresPerPixel * target);
@@ -354,7 +361,7 @@ class MapView extends WatchUi.View {
         return metres.format("%d") + " m";
     }
 
-    hidden function drawStatus(dc, colours) {
+    hidden function drawStatus(dc, colours as Array<Number>) {
         if (_camera.headingUp) {
             // North arrow, so you can still tell which way is up.
             var cx = (_width * 0.5).toNumber();
@@ -379,7 +386,7 @@ class MapView extends WatchUi.View {
         }
     }
 
-    hidden function drawDebug(dc, colours) {
+    hidden function drawDebug(dc, colours as Array<Number>) {
         dc.setColor(colours[Palette.SLOT_DIM], Graphics.COLOR_TRANSPARENT);
         var lines = [
             "z" + _camera.zoom + " -> data z" + MapIndex.dataZoomFor(_camera.zoom),

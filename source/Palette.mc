@@ -86,7 +86,10 @@ module Palette {
         return layer <= SLOT_BUILDING;
     }
 
-    function colours(night) {
+    //! Typed because callers index the result. Everything downstream that
+    //! passes this array on carries the same annotation, so the checker can
+    //! see a container all the way to the `colours[slot]` at the far end.
+    function colours(night) as Array<Number> {
         return night ? NIGHT : DAY;
     }
 
