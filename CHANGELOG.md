@@ -7,7 +7,12 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-Nothing yet.
+### Fixed
+
+- **The map now says why your position is not shown.** A missing marker used to
+  be silent, which is indistinguishable from a broken app. It now reads
+  "Searching for GPS" before the first fix, and "You are outside this map" when
+  your position falls outside the packed region.
 
 ## [0.1.0] - 2026-08-02
 

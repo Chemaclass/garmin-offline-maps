@@ -241,10 +241,32 @@ class MapView extends WatchUi.View {
         drawPositionMarker(dc, colours);
         drawButtons(dc, colours);
         drawScaleBar(dc, colours);
+        drawPositionStatus(dc, colours);
         drawStatus(dc, colours);
         if (_showDebug) {
             drawDebug(dc, colours);
         }
+    }
+
+    //! Say why the position marker is not on screen.
+    //!
+    //! `drawPositionMarker` returns silently in both of these cases, and a
+    //! missing dot is indistinguishable from a broken app: the first time this
+    //! ran on a watch, the map was a demo pack of Madrid and the user was in
+    //! Berlin, so the marker was culled 2300 km off-screen with nothing said.
+    hidden function drawPositionStatus(dc, colours as Array<Number>) {
+        var message = null;
+        if (!_tracker.hasFix()) {
+            message = WatchUi.loadResource(Rez.Strings.WaitingForGps) as String;
+        } else if (!Camera.contains(_tracker.lat(), _tracker.lon())) {
+            message = WatchUi.loadResource(Rez.Strings.OutsideMap) as String;
+        } else {
+            return;     // the marker itself is on screen, nothing to explain
+        }
+
+        dc.setColor(colours[Palette.SLOT_DIM], Graphics.COLOR_TRANSPARENT);
+        dc.drawText(_width / 2, (_height * 0.72).toNumber(), Graphics.FONT_XTINY,
+                    message, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     hidden function drawPositionMarker(dc, colours as Array<Number>) {

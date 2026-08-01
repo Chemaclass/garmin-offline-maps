@@ -3,6 +3,11 @@
 
     <string id="NoDataHere">No map data here</string>
 
+    <!-- Why the position marker is not on screen. Without these the app looks
+         broken: a missing marker is indistinguishable from a missing feature. -->
+    <string id="WaitingForGps">Searching for GPS</string>
+    <string id="OutsideMap">You are outside this map</string>
+
     <string id="MenuTitle">Map</string>
     <string id="MenuHeadingUp">Heading up</string>
     <string id="MenuHeadingUpSub">Rotate the map as you turn</string>

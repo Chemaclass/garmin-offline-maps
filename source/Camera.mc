@@ -92,10 +92,16 @@ class Camera {
         if (lon < -180.0d) { lon += 360.0d; }
     }
 
+    //! Is this position inside the packed region? Static because the overlay
+    //! asks it about the GPS fix, not about the camera.
+    static function contains(someLat, someLon) {
+        return someLon >= MapIndex.WEST && someLon <= MapIndex.EAST
+            && someLat >= MapIndex.SOUTH && someLat <= MapIndex.NORTH;
+    }
+
     //! Is the centre inside the packed region?
     function insidePack() {
-        return lon >= MapIndex.WEST && lon <= MapIndex.EAST
-            && lat >= MapIndex.SOUTH && lat <= MapIndex.NORTH;
+        return contains(lat, lon);
     }
 
     function jumpToPackCentre() {
