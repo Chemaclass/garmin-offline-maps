@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(make help:*)",
+      "Bash(make test:*)",
+      "Bash(make lint:*)",
+      "Bash(make demo:*)",
+      "Bash(make key:*)",
+      "Bash(make build:*)",
+      "Bash(make package:*)",
+      "Bash(make clean:*)",
+      "Bash(python3 -m unittest:*)",
+      "Bash(python3 -m mappack:*)",
+      "Bash(python3 -m compileall:*)",
+      "Bash(python3 -c:*)",
+      "Bash(monkeyc:*)",
+      "Bash(monkeydo:*)",
+      "Bash(connect-iq-sdk-manager:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git add:*)",
+      "Bash(rtk:*)",
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(wc:*)",
+      "Bash(file:*)",
+      "Bash(xxd:*)",
+      "Bash(base64:*)",
+      "Bash(brew search:*)",
+      "Bash(brew info:*)",
+      "Bash(brew list:*)"
+    ],
+    "ask": [
+      "Bash(make pack:*)"
+    ],
+    "deny": [
+      "Read(./developer_key)",
+      "Read(./developer_key.pem)",
+      "Bash(cat developer_key*)",
+      "Edit(./source/generated/MapIndex.mc)",
+      "Write(./source/generated/MapIndex.mc)",
+      "Edit(./mapdata/active/**)",
+      "Write(./mapdata/active/**)",
+      "Bash(rm -rf:*)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/contract-guard.sh"
+          }
+        ]
+      }
+    ]
+  }
+}

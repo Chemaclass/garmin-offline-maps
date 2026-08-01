@@ -9,6 +9,9 @@ developer_key
 developer_key.pem
 *.der
 
+# Claude Code -- .claude/ is shared; local overrides are not
+.claude/settings.local.json
+
 # Python
 __pycache__/
 *.py[cod]
