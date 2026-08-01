@@ -162,6 +162,26 @@ osmium is imported lazily for `.pbf`. Do not add a dependency — restructure.
 
 **Commits:** conventional, `ref:` rather than `refactor:`.
 
+## Driving the map without a watch
+
+```bash
+make serve                       # then open http://127.0.0.1:8765
+make serve PACK=mapdata/berlin   # a pack you built for yourself
+```
+
+Serves the Python renderer in a browser with the same interaction model as
+`MapView`/`MapDelegate`: dragging slides the rendered image and only re-renders
+on release, the way the watch blits its buffer at an offset; `/pan` is a mirror
+of `Camera.panPixels`; zoom clamps to the index's `MIN_ZOOM`/`MAX_ZOOM`. The
+stats panel reports tiles, segments, missing blocks and whether the render hit
+the segment budget.
+
+This exercises the pack, the block and tile decode, the projection, draw order,
+the palette and the budgets. It does **not** exercise Monkey C, the heap, or
+frame timing — a render that looks fine here can still fail to allocate its
+buffer on the device. The Connect IQ simulator is the better tool when it runs;
+this is what you use when it does not.
+
 ## Testing
 
 ```bash

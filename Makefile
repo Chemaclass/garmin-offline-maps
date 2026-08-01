@@ -46,7 +46,7 @@ ZOOMS       ?= 12,14,16
 SIMPLIFY    ?= 1.0
 EXTRA       ?=
 
-.PHONY: help doctor key pack demo build sim package test lint clean distclean
+.PHONY: help doctor key pack demo build sim serve package test lint clean distclean
 
 help:
 	@sed -n 's/^## //p' $(MAKEFILE_LIST)
@@ -57,6 +57,7 @@ help:
 	@echo "  make demo        rebuild the bundled synthetic demo pack"
 	@echo "  make build       compile for DEVICE=$(DEVICE)"
 	@echo "  make sim         launch the simulator and side-load the app"
+	@echo "  make serve       drive the map in a browser (no SDK needed)"
 	@echo "  make package     build the .iq bundle for the Connect IQ store"
 	@echo "  make test        run the packer test suite"
 	@echo "  make doctor      report which toolchain pieces are missing"
@@ -154,6 +155,23 @@ package: $(KEY)
 	@mkdir -p $(BIN)
 	$(MONKEYC) -e -f monkey.jungle -o $(IQ) -y $(KEY) -w -r
 	@ls -lh $(IQ)
+
+# --- interactive demo ------------------------------------------------------
+# Drives the Python renderer in a browser: pan, zoom, themes, heading-up and
+# the real segment budgets. Needs Pillow, needs no SDK, and is the only way to
+# *use* the map when the Connect IQ simulator will not run.
+#
+#   make serve                      # the committed demo pack
+#   make serve PACK=mapdata/berlin  # a pack you built for yourself
+
+PACK  ?= mapdata/active
+PORT  ?= 8765
+
+serve:
+	cd $(PACK_DIR) && $(PYTHON) -m mappack.serve \
+		--pack "$(CURDIR)/$(PACK)" \
+		--index "$(if $(filter mapdata/active,$(PACK)),$(CURDIR)/source/generated/MapIndex.mc,$(CURDIR)/$(PACK)/MapIndex.mc)" \
+		--port $(PORT)
 
 # --- checks ----------------------------------------------------------------
 

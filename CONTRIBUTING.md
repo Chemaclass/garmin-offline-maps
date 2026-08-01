@@ -56,6 +56,16 @@ That is the intended loop for anything about colour, draw order, projection or
 simplification. See the `preview` skill, or
 [docs/RENDERING.md](docs/RENDERING.md) for what the renderer is actually doing.
 
+To *drive* the map rather than look at a still — pan, zoom, switch themes, watch
+the segment budget — there is a browser harness that needs no SDK:
+
+```bash
+make serve      # http://127.0.0.1:8765
+```
+
+Details and its limits in
+[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md#driving-the-map-without-a-watch).
+
 To work with real map data instead of the bundled synthetic pack:
 
 ```bash

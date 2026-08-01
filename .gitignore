@@ -34,3 +34,6 @@ tools/mappack/*.osm
 # a large pack for your own area, uncomment the next line so it stays local.
 # mapdata/active/
 .DS_Store
+
+# Personal packs built alongside the committed demo
+mapdata/berlin/
