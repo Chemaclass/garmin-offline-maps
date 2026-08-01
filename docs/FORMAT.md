@@ -16,7 +16,7 @@ resources. Change one implementation and you must change all three.
 
 ## Why not just use Mapbox Vector Tiles?
 
-MVT is protobuf, and there is no protobuf decoder on Connect IQ — writing one
+MVT is protobuf, and there is no protobuf decoder on Connect IQ, writing one
 in Monkey C would cost more heap and more interpreted calls than the map data
 itself. This format keeps MVT's good ideas (tile-local coordinates, delta and
 zigzag encoding, layers) and drops everything that costs bytes or cycles on a
@@ -49,7 +49,7 @@ would cost roughly 8–16 bytes of heap per coordinate once parsed.
 ## Coordinates
 
 Every tile is 256 world pixels square at its zoom, and geometry inside it is
-quantised to an **extent of 1024** units per axis — four units per pixel, so
+quantised to an **extent of 1024** units per axis, four units per pixel, so
 about 40 cm at z16 in mid-latitudes. Geometry is clipped to the tile with a
 **64-unit buffer** (16 px), so coordinates legitimately run from −64 to 1088;
 the buffer is what stops a road stroke ending abruptly at a tile seam.
@@ -115,7 +115,7 @@ varints. That is what makes the two-pass draw affordable: pass one draws the
 filled areas of every visible tile, pass two draws the strokes. Without it, a
 lake in one tile would paint over a road in the tile next door.
 
-The first point's deltas are relative to `(0, 0)`, so the sequence is uniform —
+The first point's deltas are relative to `(0, 0)`, so the sequence is uniform,
 no special case for the first coordinate.
 
 ### Varints
@@ -152,7 +152,7 @@ asserts the two agree.
 | 8 | primary | line | 10 |
 | 9 | motorway, trunk | line | 9 |
 
-Polygons are stored without their closing point — the renderer closes them —
+Polygons are stored without their closing point; the renderer closes them,
 and holes are dropped. On a 1.4" screen an unfilled island in a lake is not
 worth the bytes.
 

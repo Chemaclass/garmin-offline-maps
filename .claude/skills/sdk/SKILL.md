@@ -7,7 +7,7 @@ description: Set up, locate or repair the Connect IQ toolchain, then compile/run
 
 Full procedure, install commands and the CI route:
 **[docs/DEVELOPMENT.md § Setting up the toolchain](../../../docs/DEVELOPMENT.md#setting-up-the-toolchain)**.
-Read it — do not improvise an install.
+Read it, do not improvise an install.
 
 ## 1. Diagnose before installing
 
@@ -25,13 +25,13 @@ SDK binaries give `make: monkeyc: No such file or directory`; missing Java gives
 ## 2. Ask before installing
 
 These are multi-hundred-MB downloads, and device definitions need the user's own
-free Garmin account — only they can enter those credentials. Do not try to route
+free Garmin account; only they can enter those credentials. Do not try to route
 around the login. `temurin@21` is a `.pkg` and needs `sudo`, so the user must run
 that one themselves; the other casks you can install.
 
 Device definitions also require accepting the SDK licence agreement in
 `SdkManager.app`. An unaccepted agreement leaves the Devices list empty while
-looking like a completed login — if `make doctor` still says `MISSING` after the
+looking like a completed login. If `make doctor` still says `MISSING` after the
 user reports success, that is the usual cause.
 
 ## 3. Build and run
@@ -43,7 +43,7 @@ make package                # .iq for the store
 ```
 
 The Makefile autodetects the Homebrew SDK; `SDK_BIN=` is only for an SDK
-installed elsewhere. Never suggest `SDK_BIN="$(brew --prefix)/bin"` — the cask
+installed elsewhere. Never suggest `SDK_BIN="$(brew --prefix)/bin"`: the cask
 does not link `connectiq` there, so it builds but breaks `make sim`.
 
 On the watch: plug in over USB, copy the `.prg` into `GARMIN/APPS/`, eject. The
@@ -69,8 +69,8 @@ for d in $(grep -o 'iq:product id="[^"]*"' manifest.xml | cut -d'"' -f2); do
     make build DEVICE="$d" || echo "FAILED: $d"
 done
 ```
-Errors are not expected — if one appears, fix it on its merits and report it; do
+Errors are not expected. If one appears, fix it on its merits and report it; do
 not restructure working logic, and do not reach for `-l 0` to silence the type
 checker. See the annotation note in docs/DEVELOPMENT.md § Conventions.
 
-`developer_key` is the app's store identity — never print, commit or regenerate.
+`developer_key` is the app's store identity: never print, commit or regenerate.

@@ -1,11 +1,11 @@
 # garmin-offline-maps
 
-Offline vector map for Garmin Venu 3 / 3S. Map data is **compiled into the app**
-— no phone, no network, no tile server.
+Offline vector map for Garmin Venu 3 / 3S. Map data is **compiled into the app**:
+no phone, no network, no tile server.
 
 | Half | Path | Language | Testable? |
 |---|---|---|---|
-| Packer | `tools/mappack/` | Python 3.9+, stdlib only | yes — `make test` |
+| Packer | `tools/mappack/` | Python 3.9+, stdlib only | yes, `make test` |
 | Watch app | `source/` | Monkey C | only via the SDK, which is not installed here |
 
 **[docs/README.md](docs/README.md) is the index.** Read the relevant page before
@@ -17,11 +17,11 @@ and memory), `PACKER` (the Python side), `FORMAT` (the byte spec), `DEVICES`
 
 These break silently. Full detail in [docs/README.md](docs/README.md#three-invariants).
 
-1. **The byte format has three implementations** — `pack.py` (writer),
+1. **The byte format has three implementations**: `pack.py` (writer),
    `decode.py` (reference reader), `TileReader.mc` (on-watch reader).
    `decode.py` is a deliberate line-by-line mirror of the Monkey C. Change one,
    change all three, and update `docs/FORMAT.md`.
-2. **Layer ids 0–9 are shared across languages** — `classify.py`'s `L_*` are
+2. **Layer ids 0–9 are shared across languages**: `classify.py`'s `L_*` are
    array indices into `Palette.mc`, which `preview.py` also *parses* at runtime.
 3. **`mapdata/active/**` and `source/generated/MapIndex.mc` are generated.**
    Never hand-edit; regenerate with `make demo` or `make pack`. CI fails on any
@@ -48,7 +48,7 @@ Setup: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md#setting-up-the-toolchain).
 explaining *why*, `hidden var _name` for private state, untyped `var`, shared
 constants in a `module`.
 
-Your own logic stays untyped — do not introduce a partial typing regime. Two
+Your own logic stays untyped. Do not introduce a partial typing regime. Two
 exceptions, both forced by the type checker rather than chosen:
 
 1. **API boundaries where Garmin types the signature for you**: a callback handed
@@ -57,17 +57,17 @@ exceptions, both forced by the type checker rather than chosen:
 2. **Values that get subscripted.** `x[i]` on an untyped value warns
    ("Cannot determine if container access is using container type"), and the
    annotation has to sit on every hop from where the container is created to
-   where it is indexed — miss one and the warning comes back. That is
+   where it is indexed. Miss one and the warning comes back. That is
    `Palette.colours()` and its `colours` parameters, `MapView.buttonCentre()`,
    `TileReader`'s `bytes`/`block`, and `TileStore`'s five parallel arrays.
 
 Annotate the container, not the arithmetic around it: counters, offsets and
 coordinates stay untyped. Anything outside these two cases needs the same kind
 of justification, not a general licence to annotate. `make build` is warning-free
-today — keep it that way, that is what makes a new warning worth reading.
+today. Keep it that way: that is what makes a new warning worth reading.
 
 **Python:** stdlib only in `mappack/`. Pillow is optional and import-guarded,
-osmium is lazy-imported for `.pbf`. Do not add a dependency — restructure.
+osmium is lazy-imported for `.pbf`. Do not add a dependency; restructure.
 
 **Docs are part of the change.** If the bytes move, `docs/FORMAT.md` moves.
 Every fact lives in exactly one page; link rather than restate.
@@ -76,7 +76,7 @@ Every fact lives in exactly one page; link rather than restate.
 
 - Commits: conventional, `ref:` not `refactor:`. Signing key E51B5BF45F85D160.
 - User-visible changes get a `CHANGELOG.md` entry. The `changelog` skill has the
-  rules on what counts — most work here (refactors, tests, docs) does not.
+  rules on what counts; most work here (refactors, tests, docs) does not.
 - `developer_key` is the app's Connect IQ store identity and is gitignored.
   Never read, print, or commit it.
 - The Monkey C compiles for all 24 products and runs in the simulator. Never

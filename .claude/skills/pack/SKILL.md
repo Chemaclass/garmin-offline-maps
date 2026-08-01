@@ -23,7 +23,7 @@ than a city goes through a Geofabrik extract, not Overpass; add
 ## Read the size report, do not skim it
 
 `cli.py:report` prints resources used, in-app bytes, and points dropped, and
-warns on each ceiling. A warning is a blocker, not a note — an over-budget pack
+warns on each ceiling. A warning is a blocker, not a note: an over-budget pack
 produces an app that will not install or a map with the detail gutted.
 
 If it is too big, reach for the knobs in PACKER.md in the documented order.
@@ -34,11 +34,11 @@ Shrinking the bbox beats every one of them.
 1. Look at it: `cd tools/mappack && python3 -m mappack.preview --zoom 16 --out
    preview.png` (needs Pillow). The preview reproduces the on-watch renderer, so
    if it looks wrong the watch will look wrong.
-2. `make test` — the round-trip and generated-artefact tests run against
+2. `make test`: the round-trip and generated-artefact tests run against
    whatever is in `mapdata/active/`.
 3. **Decide whether the pack gets committed.** The demo pack is committed on
    purpose so the repo builds out of the box, and CI regenerates it with
-   `make demo` and fails on any diff. A large personal pack should stay local —
+   `make demo` and fails on any diff. A large personal pack should stay local,
    `.gitignore` has a commented-out line for exactly this. Never quietly commit
    a real pack over the demo.
 4. Attribution is not optional. OSM-derived packs are ODbL. A different source

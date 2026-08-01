@@ -1,7 +1,7 @@
 # Offline Maps for Garmin
 
 A pannable, zoomable map for Garmin watches that ship no cartography of their
-own — 24 of them, across the **Venu**, **Venu Sq**, **vívoactive** and
+own: 24 of them, across the **Venu**, **Venu Sq**, **vívoactive** and
 **Forerunner** families. No phone, no network, no subscription: the map is
 compiled into the app.
 
@@ -19,7 +19,7 @@ renderer, a Python re-implementation of the on-watch drawing code.</sub>
 ## Why
 
 The Venu 3 is a capable watch with no map. Garmin's own cartography is not
-available for it — `WatchUi.MapView` is unsupported on this device — and the
+available for it (`WatchUi.MapView` is unsupported on this device), and the
 Connect IQ map apps that exist stream raster tiles, so they need your phone in
 range, an internet connection, and usually a subscription.
 
@@ -30,8 +30,8 @@ at the hotel.
 ## What it does
 
 - Pan by dragging, zoom with on-screen buttons, over the whole packed region
-- **Follow me** — recentres on every GPS fix; one tap to re-engage after panning
-- **North-up or heading-up** — the map turns with you, with a north arrow
+- **Follow me**: recentres on every GPS fix; one tap to re-engage after panning
+- **North-up or heading-up**: the map turns with you, with a north arrow
 - Roads by class, water, rivers, parks and forests, railways, paths
 - Scale bar, dark and light themes, position marker with a heading wedge
 - All offline, from a pack you build for your own area
@@ -50,7 +50,7 @@ make build    # compiles with the bundled demo map
 make sim      # opens the simulator and side-loads it
 ```
 
-Then swap the demo for where you actually live — by name:
+Then swap the demo for where you actually live, by name:
 
 ```bash
 make pack CITY="Madrid"      # or Murcia, Hamburg, New York, ...
@@ -59,7 +59,7 @@ make build
 
 That geocodes the name, pulls just the features the renderer draws from
 [Overpass](https://overpass-api.de/), and packs 12 km around the centre.
-`RADIUS_KM=10` for more, `CITY_INDEX=1` when a name is ambiguous — it prints
+`RADIUS_KM=10` for more, `CITY_INDEX=1` when a name is ambiguous. It prints
 every match it found. `BBOX=west,south,east,north` still takes an exact region,
 and `INPUT=…` a [Geofabrik](https://download.geofabrik.de/) extract.
 
@@ -69,20 +69,20 @@ ceilings and the tuning knobs in the order to reach for them.
 
 ## How it works
 
-There is no runtime data path — no network, no filesystem, no companion app.
+There is no runtime data path, no network, no filesystem, no companion app.
 That shape is forced by four measured limits: 768 KB of app RAM, ~128 KB of
 key-value storage, no filesystem API, and under 1 KB/s over BLE.
 
 Three moving parts: `tools/mappack/` (Python, tested), `source/` (Monkey C,
 needs the SDK), and a byte format that three implementations must agree on.
 
-**[docs/](docs/README.md)** is the index — the pipeline in 30 seconds, then
+**[docs/](docs/README.md)** is the index: the pipeline in 30 seconds, then
 architecture, rendering, packer, format, devices, development and publishing.
 
 ## Contributing
 
-Most of the interesting work — the packer, the byte format, the look of the map
-— needs nothing but `python3`; only `source/` needs a Garmin toolchain. `make
+Most of the interesting work (the packer, the byte format, the look of the map)
+needs nothing but `python3`; only `source/` needs a Garmin toolchain. `make
 test` runs 85 tests without the SDK.
 
 Start at **[CONTRIBUTING.md](CONTRIBUTING.md)**. Adding a watch model is a good
@@ -90,13 +90,13 @@ first change: see [docs/DEVICES.md](docs/DEVICES.md#adding-another-device).
 
 ## Licence and attribution
 
-Code is MIT — see [LICENSE](LICENSE).
+Code is MIT. See [LICENSE](LICENSE).
 
 Map data is **not** covered by it. Packs built from OpenStreetMap are derived
 works under the [ODbL](https://opendatacommons.org/licenses/odbl/) and must
 credit "© OpenStreetMap contributors"; the app carries that in its About screen
 and the packer writes it into every pack. Pack a different source and you set
-`--attribution` and check that source's terms yourself — Garmin's review
+`--attribution` and check that source's terms yourself. Garmin's review
 guidelines put the licensing burden on you.
 
 ## Status

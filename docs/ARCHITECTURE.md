@@ -9,10 +9,10 @@ Two halves that meet at a byte format and a generated file.
 
 They meet at:
 
-- **`mapdata/active/blocks/*.json`** — the map data, as Connect IQ resources
-- **`source/generated/MapIndex.mc`** — generated Monkey C that maps a tile
+- **`mapdata/active/blocks/*.json`**: the map data, as Connect IQ resources
+- **`source/generated/MapIndex.mc`**: generated Monkey C that maps a tile
   coordinate to a resource id
-- **[FORMAT.md](FORMAT.md)** — the byte contract both sides implement
+- **[FORMAT.md](FORMAT.md)**: the byte contract both sides implement
 
 Everything below the packer's output is compiled into the `.prg`. There is no
 runtime data path: no network, no filesystem, no companion app.
@@ -55,7 +55,7 @@ OfflineMapsApp.getInitialView
 
 `onFix` recentres the camera only when `camera.follow` is set. `onTick` polls
 the magnetometer and repaints only when the heading moved more than ~5°
-(`0.087` rad) — the map cannot usefully redraw faster than that.
+(`0.087` rad). The map cannot usefully redraw faster than that.
 
 ### The frame loop
 
@@ -119,11 +119,11 @@ live in [DEVICES.md](DEVICES.md); what each one forced:
 |---|---|
 | Watch-app RAM | `TileStore` evicts by **byte budget**, not entry count |
 | `Application.Storage` size, and its transient-heap cost | Only six scalars persist; map data never goes there |
-| No filesystem API | Tiles cannot be side-loaded over USB — they are compiled in |
+| No filesystem API | Tiles cannot be side-loaded over USB, they are compiled in |
 | Companion BLE throughput | Streaming a map from the phone is not viable either |
 
 Plus one performance reality: every drawing call is interpreted, and a full
-redraw has to stay well under a second to feel responsive — the watchdog itself
+redraw has to stay well under a second to feel responsive. The watchdog itself
 only fires around 5 s, so this is a usability ceiling, not a crash ceiling.
 Hence the off-screen buffer, the hard segment caps in [RENDERING.md](RENDERING.md),
 and decoding geometry straight into draw calls with no intermediate feature
@@ -131,8 +131,8 @@ objects. Allocation is the other thing that hurts on this heap.
 
 ## What is deliberately absent
 
-- **No protobuf / MVT** — there is no protobuf decoder on Connect IQ; the
+- **No protobuf / MVT**: there is no protobuf decoder on Connect IQ; the
   reasoning is in [FORMAT.md](FORMAT.md).
 - **No tags, strings, or feature ids in the format.** Layer id and geometry only.
-- **No labels.** Text needs a layer the format does not have yet — on the roadmap.
+- **No labels.** Text needs a layer the format does not have yet, on the roadmap.
 - **No runtime data loading of any kind.** The absence is the product.

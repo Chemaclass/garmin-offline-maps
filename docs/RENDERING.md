@@ -10,8 +10,8 @@ target the second ceiling; the first is not the one you will hit.
 
 ## Render once, blit many
 
-`MapView` owns an off-screen `BufferedBitmap`. The expensive work — decoding
-tiles and drawing thousands of segments — runs **only** when `_dirty` is set.
+`MapView` owns an off-screen `BufferedBitmap`. The expensive work, decoding
+tiles and drawing thousands of segments, runs **only** when `_dirty` is set.
 
 ```
 camera change (zoom, pan release, GPS recentre, heading step, theme)
@@ -24,12 +24,12 @@ onUpdate
 ```
 
 While dragging, `_dragX/_dragY` change and the **same** buffer is blitted at an
-offset — no re-render. `endDrag` clears the offset, applies
+offset, no re-render. `endDrag` clears the offset, applies
 `camera.panPixels(dx, dy)` and sets `_dirty`.
 
 `endDrag` clears the offset *before* checking `_dragging`, on purpose: a STOP
-without a matching START — which happens when a drag begins over a view that is
-then popped — would otherwise leave the buffer blitted at a stale offset forever.
+without a matching START, which happens when a drag begins over a view that is
+then popped, would otherwise leave the buffer blitted at a stale offset forever.
 
 ## Why 16 colours
 
@@ -41,7 +41,7 @@ Sixteen entries *would* keep a paletted `BufferedBitmap` at 4 bits per pixel:
 | 390 × 390 (Venu 3S) | ~76 KB | ~152 KB |
 
 We pay the right-hand column, because a paletted buffer cannot be drawn to at
-all — see [below](#why-the-buffer-is-not-paletted). Out of 768 KB of watch-app
+all; see [below](#why-the-buffer-is-not-paletted). Out of 768 KB of watch-app
 memory, which holds code *and* resident data, that is a real cost.
 
 The 16-colour limit still governs everything drawn, because `Palette.mc` is the
@@ -52,7 +52,7 @@ Slots 0–9 are the render layers and must line up index-for-index with
 `classify.py`'s `L_*` constants. Slots 10–15 are chrome: background, text, dim,
 position, panel, accent.
 
-Switching the theme calls `MapView.rebuild()` rather than just repainting — the
+Switching the theme calls `MapView.rebuild()` rather than just repainting, the
 palette is baked into the buffer at creation.
 
 ## Degrading instead of crashing
@@ -62,11 +62,11 @@ Three separate failure paths, all handled:
 | Failure | Where | Response |
 |---|---|---|
 | Buffer will not allocate | `createBuffer` | `_useBuffer = false`, draw straight to the screen |
-| Reference returns null | `bufferBitmap` | System reclaimed it in the background — rebuild once |
+| Reference returns null | `bufferBitmap` | System reclaimed it in the background, rebuild once |
 | `OutOfGraphicsMemoryException` | `bufferBitmap`, `onUpdate` | Drop the buffer, fall back permanently |
 
 Direct drawing is slower and flickers while panning, but it works. This is what
-lets a tighter device run the app at all — see [DEVICES.md](DEVICES.md) before
+lets a tighter device run the app at all; see [DEVICES.md](DEVICES.md) before
 adding one.
 
 Note the exception is thrown by the *reference accessors*, not by
@@ -83,13 +83,13 @@ Anti aliased primitives cannot be drawn to a paletted buffer
 
 The buffer allocated fine and the reference resolved; the throw came from the
 draw calls. `dc.setAntiAlias(false)` did not help, and it still threw with the
-`fillPolygon` pass skipped entirely — so `drawLine` above pen width 1 is
+`fillPolygon` pass skipped entirely, so `drawLine` above pen width 1 is
 anti-aliased too. **Every primitive `MapRenderer` draws is rejected by a
 paletted target.** The buffer was therefore allocated and never used: the app
 was direct-drawing every frame, the opposite of the design above.
 
 `:palette` is now omitted from `createBufferedBitmap`, which costs 8 bpp
-instead of 4 — the right-hand column of the table above. That is the price of
+instead of 4: the right-hand column of the table above. That is the price of
 having the buffered path work at all.
 
 **This makes the memory budget tighter, not looser.** ~206 KB on a Venu 3 out
@@ -116,11 +116,11 @@ appears. When a pass hits its budget it stops and sets `_truncated`.
 Three more things worth knowing about the inner loop:
 
 - **Geometry is decoded straight into draw calls.** No intermediate feature
-  objects — allocation is the other thing that hurts on this heap.
+  objects, allocation is the other thing that hurts on this heap.
 - **Layer ids ascend**, so the area pass can `return` as soon as it sees the
   first stroke layer, and `layerBytes` lets either pass skip a layer it does not
   want without decoding it.
-- **Unknown layer ids are skipped, not fatal** — a pack built by a newer packer
+- **Unknown layer ids are skipped, not fatal**: a pack built by a newer packer
   than the app still renders what the app understands.
 
 ## Tile selection under rotation
@@ -136,7 +136,7 @@ var radius = Math.sqrt(halfW * halfW + halfH * halfH) / scale;
 Getting this wrong shows up as wedges of missing map at the corners when you
 turn.
 
-`scale` is `2^(displayZoom - dataZoom)` — `MapIndex.dataZoomFor()` picks the
+`scale` is `2^(displayZoom - dataZoom)`: `MapIndex.dataZoomFor()` picks the
 highest packed zoom at or below the display zoom, so intermediate zooms are
 rendered by scaling the nearest data zoom rather than by storing every level.
 
@@ -157,14 +157,14 @@ out-of-memory in the middle of a pan.
 Two implementation notes that look odd and are not:
 
 - Parallel arrays (`_zoom`, `_blockX`, `_blockY`, `_data`, `_used`) rather than a
-  dictionary of objects — fewer allocations, and the cache holds a handful of
+  dictionary of objects, fewer allocations, and the cache holds a handful of
   entries so a linear scan is free.
 - `removeAt` rebuilds the array by position because `Array.remove()` deletes by
   *value*, which is wrong the moment two blocks share a zoom or an index.
 
 ## Interaction
 
-`MapDelegate` extends `InputDelegate`, **not** `BehaviorDelegate` — a
+`MapDelegate` extends `InputDelegate`, **not** `BehaviorDelegate`: a
 BehaviorDelegate turns swipes into page/back behaviours, eating exactly the
 gestures panning needs.
 
@@ -188,7 +188,7 @@ right in heading-up mode too.
 
 `Settings.save` writes six `Application.Storage` values, and each `setValue`
 transiently needs several times its payload in free heap. So saving happens in
-`MapView.onHide()` and `AppBase.onStop()` — **not** on every zoom press, which
+`MapView.onHide()` and `AppBase.onStop()`: **not** on every zoom press, which
 repeats.
 
 On load, the stored centre is restored only when the stored pack name matches

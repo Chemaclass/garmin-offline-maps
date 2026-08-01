@@ -27,8 +27,8 @@ and this repo already keeps its engineering history in git.
 ## Adding an entry
 
 1. Open `CHANGELOG.md` and find `## [Unreleased]`.
-2. Pick the section — `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`,
-   `Security` — and create it if missing, keeping that order.
+2. Pick the section (`Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`,
+   `Security`) and create it if missing, keeping that order.
 3. Add one line at the **end** of that section's list.
 
 Write what changed from the user's side:
@@ -49,7 +49,7 @@ capability in bold when it is a feature; a plain sentence is fine for a fix.
 One or two lines each.
 
 If an entry for the same change already exists, amend it rather than adding a
-second — several commits often add up to one user-visible change.
+second: several commits often add up to one user-visible change.
 
 ## Honesty rules for this project
 
@@ -58,7 +58,7 @@ second — several commits often add up to one user-visible change.
   auditing coverage.
 - Do not list work that is planned or in progress. The roadmap lives in
   `README.md`.
-- If a change only shows up when someone rebuilds their pack, say so — packs are
+- If a change only shows up when someone rebuilds their pack, say so. Packs are
   compiled in, so users do not get map changes without repacking.
 
 ## Cutting a release
@@ -70,8 +70,8 @@ second — several commits often add up to one user-visible change.
 2. Rename `## [Unreleased]` to `## [x.y.z] - YYYY-MM-DD` using today's real date.
 3. Add a fresh, empty `## [Unreleased]` above it.
 4. Update the link definitions at the bottom of the file.
-5. Sanity-check the section against `git log` since the last tag — a
+5. Sanity-check the section against `git log` since the last tag. A
    user-visible change that never got an entry is the usual miss.
 
 Releasing to the Connect IQ store also needs `make package` and the same
-`developer_key` that signed any previous upload — see `.claude/skills/sdk`.
+`developer_key` that signed any previous upload. See `.claude/skills/sdk`.

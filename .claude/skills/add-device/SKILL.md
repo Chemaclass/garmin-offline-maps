@@ -9,7 +9,7 @@ Support is a memory question first and a product-id question second.
 
 The checklist and the candidate list are in
 [docs/DEVICES.md § Adding another device](../../../docs/DEVICES.md#adding-another-device).
-Look the model up there **before editing anything** — that page has the real
+Look the model up there **before editing anything**: that page has the real
 numbers and their sources.
 
 ## What decides viability
@@ -17,7 +17,7 @@ numbers and their sources.
 Watch-app memory versus the off-screen buffer, which is roughly
 `width × height / 2` bytes at 4 bpp. `MapRenderer` falls back to drawing
 straight to the screen when allocation fails, so a tight device degrades rather
-than crashes — but it degrades into a visibly worse map, and that is worth
+than crashes. It degrades into a visibly worse map, though, and that is worth
 saying out loud rather than reporting the device as supported.
 
 Beyond memory: touch screen, round display, and API level ≥ `minApiLevel` in
@@ -26,8 +26,8 @@ Beyond memory: touch screen, round display, and API level ≥ `minApiLevel` in
 ## Then
 
 1. Add `<iq:product id="..."/>` to `manifest.xml`.
-2. Update the `for device in venu3 venu3s` loop in `.github/workflows/ci.yml` —
-   it lists devices literally.
+2. Nothing to change in CI: `.github/workflows/ci.yml` reads its build list out
+   of `manifest.xml`.
 3. Download the device definition, then `make build DEVICE=<id>` and
    `make sim DEVICE=<id>`. See the `sdk` skill if the toolchain is not set up.
 4. Only if the screen is much larger: a bigger viewport shows more tiles at
@@ -37,5 +37,5 @@ Beyond memory: touch screen, round display, and API level ≥ `minApiLevel` in
 
 ## Name the devices you built for
 
-A manifest edit is not support — run `make build DEVICE=<id>` for each one and
+A manifest edit is not support. Run `make build DEVICE=<id>` for each one and
 report the devices that actually compiled.

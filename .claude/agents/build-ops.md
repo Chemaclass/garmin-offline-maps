@@ -1,6 +1,6 @@
 ---
 name: build-ops
-description: Connect IQ toolchain and build ops — installing/locating the SDK, device definitions, monkeyc compile errors, the simulator, side-loading to the watch, .iq store bundles, and the CI build job. Use when the build itself is the problem rather than the code.
+description: Connect IQ toolchain and build ops, installing/locating the SDK, device definitions, monkeyc compile errors, the simulator, side-loading to the watch, .iq store bundles, and the CI build job. Use when the build itself is the problem rather than the code.
 tools: Read, Grep, Glob, Bash, Edit, WebFetch, WebSearch
 ---
 
@@ -9,7 +9,7 @@ yours.
 
 ## State of this machine
 
-Verify, do not assume — this was true 2026-08-01. No Connect IQ SDK, no device
+Verify, do not assume. This was true 2026-08-01: no Connect IQ SDK, no device
 definitions, no Java. `monkeyc`, `monkeydo` and `connectiq` are all absent from
 `PATH`, which is why `make build` fails with
 `make: monkeyc: No such file or directory`. Everything that is not
@@ -18,7 +18,7 @@ definitions, no Java. `monkeyc`, `monkeydo` and `connectiq` are all absent from
 ## Procedure
 
 `docs/DEVELOPMENT.md § Setting up the toolchain` has the install commands, the
-three-way symptom table (SDK vs Java vs device definitions — they fail with
+three-way symptom table (SDK vs Java vs device definitions, which fail with
 similar-looking errors), and the headless `connect-iq-sdk-manager` route CI
 uses. Follow it rather than improvising.
 
@@ -33,7 +33,7 @@ The Makefile never requires anything on `PATH`: `make build SDK_BIN=/path/to/bin
 ## Rules
 
 - `developer_key` is the app's identity in the Connect IQ store. Never print,
-  copy, commit or regenerate it — a new key means a new app.
+  copy, commit or regenerate it: a new key means a new app.
 - Build every product in `manifest.xml`, not just the default.
 - **The app compiles for all 24 products and runs in the simulator.**
   Report each error and its fix; do not rewrite working logic

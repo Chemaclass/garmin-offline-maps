@@ -1,7 +1,7 @@
 # The packer
 
 `tools/mappack` turns OpenStreetMap data into Connect IQ resources plus a
-generated Monkey C index. Pure stdlib — Pillow is optional and import-guarded,
+generated Monkey C index. Pure stdlib, Pillow is optional and import-guarded,
 osmium is imported lazily for `.pbf` only. Keep it that way: the packer must run
 on a bare `python3`.
 
@@ -20,12 +20,12 @@ match, and packs a box around the centre of the one it picked.
 
 | Knob | Default | What it does |
 |---|---|---|
-| `CITY` | — | the name to look up, e.g. `"Murcia, Spain"` |
+| `CITY` | - | the name to look up, e.g. `"Murcia, Spain"` |
 | `RADIUS_KM` | 6 | half-width of the box, so the default packs 12 × 12 km |
 | `CITY_INDEX` | 0 | which match to use when the name is ambiguous |
 
 **The place's own boundary is not the pack.** Nominatim returns the
-administrative area, and that is far bigger than it sounds — Madrid's is
+administrative area, and that is far bigger than it sounds. Madrid's is
 31 × 37 km, Hamburg's 147 × 70 km, and New York State comes back at 647 km
 across. Packing those raw produces something no watch will hold, so the bounds
 come from `RADIUS_KM` around the centre instead: the size follows from the
@@ -78,7 +78,7 @@ Connect IQ runs out of resource ids somewhere around **255 per type**. The demo
 pack alone has 122 tiles (2 at z12, 9 at z14, 111 at z16). One resource per tile
 would exhaust the budget on a single small town.
 
-So tiles are grouped: a block covers `2^block_log2` tiles per axis — 8×8 at the
+So tiles are grouped: a block covers `2^block_log2` tiles per axis, 8×8 at the
 default `log2 = 3`. The demo's 122 tiles become **7 resources**.
 
 ```
@@ -105,7 +105,7 @@ offsets in the directory are `u16`). When a block still overflows,
 
 ## Generated output
 
-**`source/generated/MapIndex.mc`** — pack metadata as constants, plus a
+**`source/generated/MapIndex.mc`**: pack metadata as constants, plus a
 generated `switch` that maps a block coordinate to a resource id:
 
 ```monkeyc
@@ -129,11 +129,11 @@ any diff against what is committed.
 
 ## Budgets
 
-`cli.py:report` prints these and warns. They are not advisory — they are the
+`cli.py:report` prints these and warns. They are not advisory; they are the
 difference between an app that installs and one that does not.
 
 One of them is not a per-device number. **The store's 15 MB limit applies to the
-whole `.iq`, and the map is compiled into every product in `manifest.xml`** — so
+whole `.iq`, and the map is compiled into every product in `manifest.xml`**, so
 the pack is paid for once per device supported. At 24 products the usable budget
 is about 600 KB of packed data, not 15 MB. `tools/build-city.sh` fails the build
 rather than letting you find out at upload; the fix is a smaller pack or a
@@ -142,10 +142,10 @@ shorter product list for that listing.
 | Budget | Default | Ceiling | Warns at |
 |---|---|---|---|
 | jsonData resources | `--resource-budget 200` | ~255 (Connect IQ) | 250 |
-| In-app size (base64) | — | 15 MB ÷ products (store rejects `.iq` above 15 MB) | 12 MB |
-| Points per tile | `--max-points-per-tile 1100` | — | >25% dropped |
-| Block bytes | `SOFT_BLOCK_TARGET` 24 KB | `MAX_BLOCK_BYTES` 60 KB | — |
-| Features per layer | — | `MAX_FEATURES_PER_LAYER` 255 (`u8` count) | — |
+| In-app size (base64) | - | 15 MB ÷ products (store rejects `.iq` above 15 MB) | 12 MB |
+| Points per tile | `--max-points-per-tile 1100` | - | >25% dropped |
+| Block bytes | `SOFT_BLOCK_TARGET` 24 KB | `MAX_BLOCK_BYTES` 60 KB | - |
+| Features per layer | - | `MAX_FEATURES_PER_LAYER` 255 (`u8` count) | - |
 
 ### How much area fits
 
@@ -169,8 +169,8 @@ At `SIMPLIFY=2.0 --max-points-per-tile 700` that same Berlin box drops to 2.73 M
 and 106 ids. Which is the other lesson: the knobs above move real numbers.
 
 Note that fitting the budgets is necessary, not sufficient. The renderer's own
-per-pass segment caps decide how much of a pack is actually *drawn* on screen —
-see [RENDERING.md](RENDERING.md) — and a pack can sit comfortably inside every
+per-pass segment caps decide how much of a pack is actually *drawn* on screen,
+see [RENDERING.md](RENDERING.md), and a pack can sit comfortably inside every
 budget here and still truncate at render time.
 
 Knobs, in the order to reach for them:
@@ -190,7 +190,7 @@ Neither is optional, and neither is a place to be clever.
 
 **`decode.py`** is a line-by-line mirror of `source/TileReader.mc`. It exists so
 `tests/contract/test_tile_format.py` can prove the writer's output is what the watch
-parser expects — the watch parser being the one thing CI cannot execute. Keep the
+parser expects, the watch parser being the one thing CI cannot execute. Keep the
 correspondence even where idiomatic Python would be shorter.
 
 **`preview.py`** re-implements `source/MapRenderer.mc`: same projection, same
@@ -209,6 +209,6 @@ preview stops being evidence of anything.
 
 `osmread.py` sends a `User-Agent` identifying the project and queries only the
 tags `classify.py` can use (`OVERPASS_FILTERS`). Anything bigger than a city
-should come from a [Geofabrik](https://download.geofabrik.de/) extract instead —
+should come from a [Geofabrik](https://download.geofabrik.de/) extract instead,
 do not point a regional bbox at a free public API. Use `--cache foo.osm` when
 iterating on the same area so it is fetched once.

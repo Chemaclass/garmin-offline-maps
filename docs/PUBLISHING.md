@@ -2,7 +2,7 @@
 
 ## One listing per city, and why
 
-The map is **compiled into the app**. That is not a shortcut — the platform
+The map is **compiled into the app**. That is not a shortcut. The platform
 offers no alternative, and [DEVICES.md](DEVICES.md) has the receipts: there is
 no `File`, `FileSystem` or `IO` module in Toybox at all, `Application.Storage`
 is ~128 KB against a 2.7 MB pack, and BLE moves under 1 KB/s.
@@ -11,7 +11,7 @@ So an app cannot download a region, and cannot free one. Users choose their
 coverage the only way the platform allows: **by installing and uninstalling
 apps**. The Connect IQ store *is* the delivery mechanism.
 
-That falls out of the architecture rather than fighting it — the packer already
+That falls out of the architecture rather than fighting it. The packer already
 emits exactly one pack per build, so a per-city listing needs no watch-side code
 at all.
 
@@ -48,7 +48,7 @@ old one. The build refuses ids that are malformed or shared between cities,
 because a duplicate would publish one city over another.
 
 `developer_key` is the *developer* identity and is shared by every city. One
-key, many app ids. It is gitignored and unrecoverable — losing it means losing
+key, many app ids. It is gitignored and unrecoverable: losing it means losing
 the ability to update every listing you have published.
 
 ## Building one
@@ -60,7 +60,7 @@ make city CITY=berlin     # -> bin/offline-maps-berlin.iq
 
 `tools/build-city.sh` swaps that city's id and name into the tracked
 `manifest.xml` and `resources/strings/strings.xml`, packs the region, builds
-every product, then puts everything back — including the demo pack, so the repo
+every product, then puts everything back, including the demo pack, so the repo
 never keeps another city's identity and CI's `make demo` check stays green. The
 restore runs on failure and on interrupt, not just on success.
 
@@ -78,7 +78,7 @@ at upload.
 
 Two ways out, and the second is usually the right one for a dense city:
 
-- Shrink the pack — `SIMPLIFY`, `--max-points-per-tile`, fewer zooms
+- Shrink the pack with `SIMPLIFY`, `--max-points-per-tile`, or fewer zooms
   ([PACKER.md](PACKER.md#budgets)).
 - **Cut the product list for that listing.** Nothing requires every listing to
   cover every watch. A city listing built for one screen family is a smaller
@@ -87,7 +87,7 @@ Two ways out, and the second is usually the right one for a dense city:
 ## Uploading
 
 1. Garmin Developer Account, and accept the developer agreement.
-2. The dashboard is **apps-developer.garmin.com** — it moved; older guides point
+2. The dashboard is **apps-developer.garmin.com**. It moved; older guides point
    elsewhere.
 3. Upload the `.iq`. It is validated first; only then can you add the
    description and screenshots.
@@ -101,7 +101,7 @@ before the first submission. Two things that bite this app specifically:
   "© OpenStreetMap contributors". The app carries it in the About screen and the
   packer writes it into every pack, but the listing description should say it
   too. A different source means `--attribution` and checking that source's terms
-  yourself — Garmin puts the licensing burden on you.
+  yourself. Garmin puts the licensing burden on you.
 - **Permissions.** `Positioning` and `Sensor` are declared; the description
   should explain why a map needs them.
 
@@ -109,5 +109,5 @@ before the first submission. Two things that bite this app specifically:
 
 Side-load the `.prg` and use it for a few minutes first. The buffered render and
 the frame budget are the two things the simulator cannot tell you, and
-[DEVICES.md](DEVICES.md) says both are tight — a one-star review for a map that
+[DEVICES.md](DEVICES.md) says both are tight. A one-star review for a map that
 flickers while panning is expensive to undo.

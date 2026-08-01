@@ -1,7 +1,7 @@
 # Documentation
 
-Every fact lives on exactly one page. If you need it somewhere else, link — do
-not copy. That rule is why these pages stay short.
+Every fact lives on exactly one page. If you need it somewhere else, link rather
+than copy. That rule is why these pages stay short.
 
 | Page | Owns |
 |---|---|
@@ -37,14 +37,14 @@ source/generated/MapIndex.mc                                          (BufferedB
 
 Break these and nothing shouts until much later.
 
-1. **The byte format has three implementations** — `pack.py` (writer),
+1. **The byte format has three implementations**: `pack.py` (writer),
    `decode.py` (reference reader), `TileReader.mc` (on-watch reader). They must
    agree byte for byte. `decode.py` is a deliberate line-by-line mirror of the
    Monkey C, because the watch parser is the one thing CI cannot execute.
-2. **Layer ids 0–9 are shared across languages** — `classify.py`'s `L_*`
+2. **Layer ids 0–9 are shared across languages**: `classify.py`'s `L_*`
    constants are array indices into `Palette.mc`, which `preview.py` also
    *parses* at runtime.
-3. **`mapdata/active/**` and `source/generated/MapIndex.mc` are generated** —
+3. **`mapdata/active/**` and `source/generated/MapIndex.mc` are generated**,
    never hand-edited. CI runs `make demo` and fails on any diff.
 
 `tests/contract/` guards 1 and 2; the `make demo` diff guards 3. A failure there

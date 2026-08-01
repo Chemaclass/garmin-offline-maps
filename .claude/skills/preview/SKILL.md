@@ -36,6 +36,6 @@ for z in 12 14 15 16 17; do python3 -m mappack.preview --zoom "$z" --out "previe
 ```
 
 `preview*.png` at the repo root is gitignored on purpose. The four in
-`docs/img/` are what the README embeds — refresh those **only** when the
+`docs/img/` are what the README embeds, refresh those **only** when the
 rendering genuinely changed, since churning them hides real visual regressions
 in review.

@@ -1,6 +1,6 @@
 ---
 name: contracts
-description: Verify the cross-file invariants before committing — the three MapPack format implementations agreeing byte for byte, layer ids shared between classify.py and Palette.mc, and the generated artefacts being current. Use after any change to the binary format, varints, the packer, the palette, or TileReader.mc, or when a round-trip test fails and it is unclear which side drifted.
+description: Verify the cross-file invariants before committing: the three MapPack format implementations agreeing byte for byte, layer ids shared between classify.py and Palette.mc, and the generated artefacts being current. Use after any change to the binary format, varints, the packer, the palette, or TileReader.mc, or when a round-trip test fails and it is unclear which side drifted.
 ---
 
 # Contract check
@@ -22,7 +22,7 @@ make demo && git diff --exit-code -- mapdata/active source/generated/MapIndex.mc
 
 `tests/contract/test_tile_format.py` round-trips the writer against the
 reference reader; `tests/contract/test_palette.py` checks the layer ids and the
-renderer budgets. The `make demo` diff is exactly what CI runs — a diff there
+renderer budgets. The `make demo` diff is exactly what CI runs; a diff there
 means the committed pack is stale or something was hand-edited.
 
 ## If something fails
@@ -33,7 +33,7 @@ Work out which implementation is intended, then bring the others to it:
 - **Format drift** → `pack.py`/`emit.py`/`varint.py`, `decode.py`,
   `source/TileReader.mc`, and `docs/FORMAT.md`. All four move together.
   `decode.py` must stay a line-by-line mirror of the Monkey C even where
-  idiomatic Python would be shorter — that correspondence *is* the test.
+  idiomatic Python would be shorter; that correspondence *is* the test.
 - **Layer-id drift** → `classify.py`'s `L_*` are array indices into
   `Palette.mc`. Note `preview.py` parses `Palette.mc` at runtime, so a purely
   cosmetic reformat there can break the suite.

@@ -6,24 +6,25 @@ Garmin toolchain can compile. Knowing which half you are in decides everything
 about your feedback loop.
 
 [docs/README.md](docs/README.md) is the documentation index. Every fact lives on
-exactly one page — this file owns the *process*, not the facts, and links out for
+exactly one page. This file owns the *process*, not the facts, and links out for
 the rest.
 
 ## Pick your lane
 
 | Lane | Where | What you need | Loop |
 |---|---|---|---|
-| Packer, format, map data | `tools/mappack/` | `python3` | `make test` — under a second |
+| Packer, format, map data | `tools/mappack/` | `python3` | `make test`: under a second |
 | Rendering, look of the map | `tools/mappack/mappack/preview.py` | `python3` + Pillow | render a PNG, look at it |
 | Watch app | `source/` | the Connect IQ SDK | compile, then the simulator |
-| Docs | `docs/` | nothing | — |
+| Docs | `docs/` | nothing | - |
 
 The first three lanes cover most of the interesting work, and only the third
 needs a Garmin account.
 
 ## Setup
 
-**Without the SDK** — the packer, the whole test suite, and the preview renderer:
+**Without the SDK** you get the packer, the whole test suite, and the preview
+renderer:
 
 ```bash
 git clone <this repo> && cd garmin-offline-maps
@@ -40,7 +41,7 @@ and let it tell you which one is missing:
 make doctor
 ```
 
-Device definitions are the only step that cannot be scripted — Garmin gates them
+Device definitions are the only step that cannot be scripted: Garmin gates them
 behind a free account and a licence agreement you have to accept by hand.
 
 ## The fast loop
@@ -56,8 +57,8 @@ That is the intended loop for anything about colour, draw order, projection or
 simplification. See the `preview` skill, or
 [docs/RENDERING.md](docs/RENDERING.md) for what the renderer is actually doing.
 
-To *drive* the map rather than look at a still — pan, zoom, switch themes, watch
-the segment budget — there is a browser harness that needs no SDK:
+To *drive* the map rather than look at a still (pan, zoom, switch themes, watch
+the segment budget), there is a browser harness that needs no SDK:
 
 ```bash
 make serve      # http://127.0.0.1:8765
@@ -72,7 +73,7 @@ To work with real map data instead of the bundled synthetic pack:
 make pack BBOX=-3.75,40.38,-3.65,40.45 NAME="Madrid"
 ```
 
-Read [docs/PACKER.md](docs/PACKER.md) first — packs have hard size budgets, and
+Read [docs/PACKER.md](docs/PACKER.md) first: packs have hard size budgets, and
 `make pack` hits the public Overpass API, so be polite with it.
 
 ## The three invariants
@@ -80,7 +81,7 @@ Read [docs/PACKER.md](docs/PACKER.md) first — packs have hard size budgets, an
 These break silently, which is why they get their own tests. Full statement in
 [docs/README.md § Three invariants](docs/README.md#three-invariants).
 
-1. The byte format has **three** implementations — `pack.py`, `decode.py`,
+1. The byte format has **three** implementations, `pack.py`, `decode.py`,
    `TileReader.mc`. Change one, change all three, and update
    [docs/FORMAT.md](docs/FORMAT.md).
 2. Layer ids 0–9 are array indices shared between `classify.py` and `Palette.mc`.
@@ -102,7 +103,7 @@ The middle command is exactly what CI runs. A diff there means either you
 hand-edited a generated file, or the committed pack went stale and should be
 regenerated and committed alongside your change.
 
-If you touched `source/`, also build every product — a change can compile for one
+If you touched `source/`, also build every product: a change can compile for one
 device and not the other:
 
 ```bash
@@ -114,7 +115,7 @@ make sim                     # side-load into the simulator and actually look at
 Add a [CHANGELOG.md](CHANGELOG.md) entry under `[Unreleased]` if the change is
 something a user would notice. Most changes here are not.
 
-Update the docs in the same commit. If the bytes move, `docs/FORMAT.md` moves —
+Update the docs in the same commit. If the bytes move, `docs/FORMAT.md` moves,
 docs are part of the change, not a follow-up.
 
 ## Commits and PRs
@@ -140,10 +141,10 @@ Both halves have a house style, stated in
 that catch people out:
 
 - **Monkey C here is untyped**, except at Garmin API boundaries that the type
-  checker will not accept untyped — five annotated sites, each with a `//!`
+  checker will not accept untyped, five annotated sites, each with a `//!`
   saying why. Do not introduce a partial typing regime beyond those.
 - **The packer is stdlib-only.** Pillow is optional and import-guarded, osmium is
-  lazy-imported for `.pbf`. Do not add a dependency — restructure.
+  lazy-imported for `.pbf`. Do not add a dependency, restructure.
 
 Platform limits in [docs/DEVICES.md](docs/DEVICES.md) are measured, with sources,
 not preferences. The watch has ~768 KB of app memory and roughly half a second
@@ -189,9 +190,9 @@ tight.
 
 - **Run it on an actual Venu 3 and report what happens.** The single most
   valuable thing anyone can do for this project right now.
-- Add a device — see the `add-device` skill and
+- Add a device: see the `add-device` skill and
   [docs/DEVICES.md](docs/DEVICES.md); memory versus buffer size is what decides
   viability.
 - Pack a city you know and report where the map looks wrong.
-- Improve tag coverage in `classify.py` — plenty of OSM tags still fall through
+- Improve tag coverage in `classify.py`: plenty of OSM tags still fall through
   to nothing.
