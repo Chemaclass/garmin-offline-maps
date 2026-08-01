@@ -1,22 +1,22 @@
 {
   "attribution": "(c) OpenStreetMap contributors",
-  "base64_bytes": 11052,
-  "binary_bytes": 8280,
-  "block_count": 7,
+  "base64_bytes": 13160,
+  "binary_bytes": 9864,
+  "block_count": 8,
   "block_log2": {
     "12": 3,
     "14": 3,
     "16": 3
   },
   "bounds": [
-    -3.7338000000000022,
-    40.39960000000001,
-    -3.6738,
-    40.436398800000006
+    13.326699999999988,
+    52.495000000000005,
+    13.399700000000024,
+    52.5317988
   ],
   "center": [
-    -3.703800000000001,
-    40.41799940000001
+    13.363200000000006,
+    52.5133994
   ],
   "data_zooms": [
     12,
@@ -25,12 +25,12 @@
   ],
   "extent": 1024,
   "format_version": 1,
-  "name": "Demo City",
+  "name": "Berlin Demo",
   "points_dropped": 0,
-  "points_kept": 1733,
+  "points_kept": 1969,
   "tile_counts": {
     "12": 2,
-    "14": 9,
-    "16": 111
+    "14": 16,
+    "16": 159
   }
 }

@@ -35,10 +35,10 @@ class TestPack(unittest.TestCase):
 
     def test_bounds_cover_the_fixture(self):
         west, south, east, north = self.result.bounds
-        self.assertLess(west, -3.70)
-        self.assertGreater(east, -3.70)
-        self.assertLess(south, 40.42)
-        self.assertGreater(north, 40.41)
+        self.assertLess(west, 13.37)
+        self.assertGreater(east, 13.37)
+        self.assertLess(south, 52.52)
+        self.assertGreater(north, 52.51)
 
     def test_higher_zoom_has_more_tiles(self):
         counts = self.result.tile_counts

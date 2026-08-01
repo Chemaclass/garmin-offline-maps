@@ -12,25 +12,25 @@ module MapIndex {
     const CLIP_BUFFER = 64;
 
     // --- this pack ---
-    const PACK_NAME = "Demo City";
+    const PACK_NAME = "Berlin Demo";
     const ATTRIBUTION = "(c) OpenStreetMap contributors";
     const MIN_ZOOM = 11;
     const MAX_ZOOM = 17;
     const DATA_ZOOMS = [12, 14, 16];
     const BLOCK_LOG2 = [3, 3, 3];
-    const BLOCK_ORIGIN_X = [250, 1002, 4011];
-    const BLOCK_ORIGIN_Y = [193, 772, 3088];
+    const BLOCK_ORIGIN_X = [274, 1099, 4399];
+    const BLOCK_ORIGIN_Y = [167, 671, 2686];
     const KEY_SHIFT = 10;
 
-    const WEST = -3.7338000d;
-    const SOUTH = 40.3996000d;
-    const EAST = -3.6738000d;
-    const NORTH = 40.4363988d;
-    const CENTER_LON = -3.7038000d;
-    const CENTER_LAT = 40.4179994d;
+    const WEST = 13.3267000d;
+    const SOUTH = 52.4950000d;
+    const EAST = 13.3997000d;
+    const NORTH = 52.5317988d;
+    const CENTER_LON = 13.3632000d;
+    const CENTER_LAT = 52.5133994d;
 
-    const BLOCK_COUNT = 7;
-    const DATA_BYTES = 8280;
+    const BLOCK_COUNT = 8;
+    const DATA_BYTES = 9864;
 
     //! Index of z in DATA_ZOOMS, or -1.
     function zoomSlot(z) {
@@ -66,19 +66,20 @@ module MapIndex {
         var key = (rx << KEY_SHIFT) | ry;
         if (z == 12) {
             switch (key) {
-                case 0: return Rez.JsonData.b12_250_193;
+                case 0: return Rez.JsonData.b12_274_167;
+                case 1024: return Rez.JsonData.b12_275_167;
             }
         } else if (z == 14) {
             switch (key) {
-                case 0: return Rez.JsonData.b14_1002_772;
-                case 1024: return Rez.JsonData.b14_1003_772;
+                case 0: return Rez.JsonData.b14_1099_671;
+                case 1024: return Rez.JsonData.b14_1100_671;
             }
         } else if (z == 16) {
             switch (key) {
-                case 0: return Rez.JsonData.b16_4011_3088;
-                case 1: return Rez.JsonData.b16_4011_3089;
-                case 1024: return Rez.JsonData.b16_4012_3088;
-                case 1025: return Rez.JsonData.b16_4012_3089;
+                case 0: return Rez.JsonData.b16_4399_2686;
+                case 1: return Rez.JsonData.b16_4399_2687;
+                case 1024: return Rez.JsonData.b16_4400_2686;
+                case 1025: return Rez.JsonData.b16_4400_2687;
             }
         }
         return null;

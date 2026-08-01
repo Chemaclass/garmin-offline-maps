@@ -7,6 +7,16 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **The bundled demo pack now sits at Berlin's coordinates** rather than
+  Madrid's, so the position marker lands on the map when you open the app
+  without building a pack of your own. The streets are still invented; only the
+  location changed.
+- **The stats overlay is readable and shorter.** Four lines at a fixed pitch
+  overlapped on a 454 px screen. It is now two: your latitude and longitude,
+  then zoom, segments drawn and render time. Spacing scales with the screen.
+
 ### Fixed
 
 - **The map now says why your position is not shown.** A missing marker used to

@@ -2,10 +2,15 @@
 """Generate the synthetic OSM fixture used by the tests and the demo pack.
 
 The geometry is invented -- a tidy grid town with a river, a lake, a park, a
-rail line and a motorway -- but it sits at real Madrid coordinates so you can
-drop the simulator's GPS position into it and watch follow-me work.
+rail line and a motorway -- but it sits at real Berlin coordinates so you can
+stand in the city, open the app, and watch follow-me put the marker on the
+map. The streets are not Berlin's; only the location is.
 
     python3 tests/make_fixture.py tests/demo-city.osm
+
+Moving this somewhere else means regenerating the fixture *and* the committed
+demo pack (`make demo`), and updating the bounds assertions in
+tests/integration/test_pack.py.
 """
 
 from __future__ import annotations
@@ -14,11 +19,13 @@ import math
 import sys
 from typing import Dict, List, Tuple
 
-CENTER_LON = -3.7038
-CENTER_LAT = 40.4168
+CENTER_LON = 13.3632
+CENTER_LAT = 52.5122
 
-# roughly 4.4 km x 3.3 km
-HALF_W = 0.026
+# Roughly 4.4 km x 3.3 km. A degree of longitude is shorter this far north, so
+# HALF_W is wider than it would be nearer the equator to keep the same span on
+# the ground: 0.026 / cos(52.5) * cos(40.4) is where this number comes from.
+HALF_W = 0.0325
 HALF_H = 0.015
 
 GRID_COLS = 17

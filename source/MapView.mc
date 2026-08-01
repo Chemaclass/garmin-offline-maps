@@ -408,16 +408,23 @@ class MapView extends WatchUi.View {
         }
     }
 
+    //! Two lines: where you are, and whether the render is keeping up.
+    //!
+    //! It used to be four lines at a fixed 18 px pitch, which collided on a
+    //! 454 px screen and was unreadable. Spacing is now a fraction of the
+    //! screen so it scales with the device, and the tile/cache counters are
+    //! gone: they were useful while tuning the packer, not while wearing it.
     hidden function drawDebug(dc, colours as Array<Number>) {
         dc.setColor(colours[Palette.SLOT_DIM], Graphics.COLOR_TRANSPARENT);
         var lines = [
-            "z" + _camera.zoom + " -> data z" + MapIndex.dataZoomFor(_camera.zoom),
-            _renderer.tilesDrawn() + " tiles  " + _renderer.segmentsDrawn() + " seg",
-            _renderMs + " ms  cache " + (_store.cachedBytes() / 1024) + " KB",
-            _camera.lat.format("%.4f") + ", " + _camera.lon.format("%.4f")
+            _camera.lat.format("%.5f") + ", " + _camera.lon.format("%.5f"),
+            "z" + _camera.zoom + "   " + _renderer.segmentsDrawn() + " seg   "
+                + _renderMs + " ms"
         ];
+        var pitch = _height * 0.075;
+        var top = _height * 0.30;
         for (var i = 0; i < lines.size(); i += 1) {
-            dc.drawText(_width / 2, (_height * 0.30 + i * 18).toNumber(), Graphics.FONT_XTINY,
+            dc.drawText(_width / 2, (top + i * pitch).toNumber(), Graphics.FONT_XTINY,
                         lines[i], Graphics.TEXT_JUSTIFY_CENTER);
         }
     }

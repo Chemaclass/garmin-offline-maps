@@ -131,7 +131,7 @@ endif
 		$(EXTRA)
 
 demo:
-	cd $(PACK_DIR) && $(PACKER) --input tests/demo-city.osm --name "Demo City" \
+	cd $(PACK_DIR) && $(PACKER) --input tests/demo-city.osm --name "Berlin Demo" \
 		--zooms 12,14,16 \
 		--out "$(CURDIR)/mapdata/active" \
 		--index "$(CURDIR)/source/generated/MapIndex.mc"
