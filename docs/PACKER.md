@@ -6,14 +6,49 @@ osmium is imported lazily for `.pbf` only. Keep it that way: the packer must run
 on a bare `python3`.
 
 ```bash
-make pack BBOX=-3.75,40.38,-3.65,40.45 NAME="Madrid"      # live, via Overpass
+make pack CITY="Madrid"                                   # by name, via Nominatim + Overpass
+make pack BBOX=-3.75,40.38,-3.65,40.45 NAME="Madrid"      # an exact region
 make pack INPUT=~/Downloads/madrid.osm.pbf NAME="Madrid"  # needs: pip install osmium
 make demo                                                 # the committed synthetic pack
 ```
 
+## Packing a city by name
+
+`CITY` is the path most people should take. `geocode.py` asks
+[Nominatim](https://nominatim.openstreetmap.org/) for the name, prints every
+match, and packs a box around the centre of the one it picked.
+
+| Knob | Default | What it does |
+|---|---|---|
+| `CITY` | — | the name to look up, e.g. `"Murcia, Spain"` |
+| `RADIUS_KM` | 6 | half-width of the box, so the default packs 12 × 12 km |
+| `CITY_INDEX` | 0 | which match to use when the name is ambiguous |
+
+**The place's own boundary is not the pack.** Nominatim returns the
+administrative area, and that is far bigger than it sounds — Madrid's is
+31 × 37 km, Hamburg's 147 × 70 km, and New York State comes back at 647 km
+across. Packing those raw produces something no watch will hold, so the bounds
+come from `RADIUS_KM` around the centre instead: the size follows from the
+arguments rather than from how a city drew its border. The reported span of each
+match tells you what you are cutting.
+
+Ambiguity is printed, never guessed:
+
+```
+matches for 'Madrid':
+  -> 0  Madrid, Comunidad de Madrid, España  [city]  40.4168,-3.7035  span 31.4 x 36.9 km
+     1  Madrid, Boone County, Iowa, United States  [town]  41.8767,-93.8233  span 2.3 x 2.0 km
+  (a different one? pass --city-index N)
+```
+
+Nominatim asks for one request a second and a User-Agent that identifies the
+app; one lookup per pack is well inside that, and the User-Agent is shared with
+the Overpass client. [Usage policy](https://operations.osmfoundation.org/policies/nominatim/).
+
 ## Pipeline
 
 ```
+geocode.search()        optional: place name -> centre, then a RADIUS_KM box
 osmread.load()          Overpass query or .osm/.osm.xml/.osm.bz2/.osm.gz/.osm.pbf
       │                 XML is stream-parsed, keeping nodes only while ways need them
       ▼  List[Way]

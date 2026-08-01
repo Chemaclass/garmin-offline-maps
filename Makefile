@@ -38,10 +38,17 @@ PACKER      := $(PYTHON) -m mappack
 PACK_DIR    := tools/mappack
 
 # --- map pack inputs -------------------------------------------------------
-# Either BBOX (fetched from Overpass) or INPUT (a local .osm / .osm.pbf file).
+# CITY (looked up by name), BBOX (fetched from Overpass), or INPUT (a local
+# .osm / .osm.pbf file). CITY is the one to reach for; the other two are there
+# when you want an exact region or already have the data.
+CITY        ?=
+RADIUS_KM   ?= 6
+CITY_INDEX  ?= 0
 BBOX        ?=
 INPUT       ?=
-NAME        ?= $(if $(BBOX),custom,demo)
+# With CITY the packer names the pack after the place it found, so leave it
+# empty and let it decide.
+NAME        ?= $(if $(CITY),,$(if $(BBOX),custom,demo))
 ZOOMS       ?= 12,14,16
 SIMPLIFY    ?= 1.0
 EXTRA       ?=
@@ -111,13 +118,14 @@ key: $(KEY)
 # --- map data --------------------------------------------------------------
 
 pack:
-ifeq ($(strip $(BBOX)$(INPUT)),)
-	$(error set BBOX=west,south,east,north or INPUT=path/to/region.osm)
+ifeq ($(strip $(CITY)$(BBOX)$(INPUT)),)
+	$(error set CITY="Madrid", BBOX=west,south,east,north, or INPUT=path/to/region.osm)
 endif
 	cd $(PACK_DIR) && $(PACKER) \
 		$(if $(INPUT),--input "$(abspath $(INPUT))") \
+		$(if $(CITY),--city "$(CITY)" --radius-km $(RADIUS_KM) --city-index $(CITY_INDEX)) \
 		$(if $(BBOX),--bbox "$(BBOX)") \
-		--name "$(NAME)" --zooms "$(ZOOMS)" --simplify $(SIMPLIFY) \
+		$(if $(NAME),--name "$(NAME)") --zooms "$(ZOOMS)" --simplify $(SIMPLIFY) \
 		--out "$(CURDIR)/mapdata/active" \
 		--index "$(CURDIR)/source/generated/MapIndex.mc" \
 		$(EXTRA)

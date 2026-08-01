@@ -50,12 +50,18 @@ make build    # compiles with the bundled demo map
 make sim      # opens the simulator and side-loads it
 ```
 
-Then swap the demo for where you actually are — west,south,east,north:
+Then swap the demo for where you actually live — by name:
 
 ```bash
-make pack BBOX=-3.75,40.38,-3.65,40.45 NAME="Madrid"
+make pack CITY="Madrid"      # or Murcia, Hamburg, New York, ...
 make build
 ```
+
+That geocodes the name, pulls just the features the renderer draws from
+[Overpass](https://overpass-api.de/), and packs 12 km around the centre.
+`RADIUS_KM=10` for more, `CITY_INDEX=1` when a name is ambiguous — it prints
+every match it found. `BBOX=west,south,east,north` still takes an exact region,
+and `INPUT=…` a [Geofabrik](https://download.geofabrik.de/) extract.
 
 The packer prints a size report. Read it: an over-budget pack produces an app
 that will not install, and **[docs/PACKER.md](docs/PACKER.md#budgets)** has the
@@ -77,7 +83,7 @@ architecture, rendering, packer, format, devices, development and publishing.
 
 Most of the interesting work — the packer, the byte format, the look of the map
 — needs nothing but `python3`; only `source/` needs a Garmin toolchain. `make
-test` runs 67 tests without the SDK.
+test` runs 85 tests without the SDK.
 
 Start at **[CONTRIBUTING.md](CONTRIBUTING.md)**. Adding a watch model is a good
 first change: see [docs/DEVICES.md](docs/DEVICES.md#adding-another-device).

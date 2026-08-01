@@ -21,6 +21,11 @@ compiles for all 24 supported products and runs in the simulator, but has
 
 ### Added
 
+- **Pack a city by name.** `make pack CITY="Madrid"` geocodes the place and
+  packs 12 km around its centre, so getting your own city no longer means
+  finding bounding-box coordinates first. Ambiguous names print every match
+  rather than guessing; `RADIUS_KM` and `CITY_INDEX` pick a bigger area or a
+  different match. `BBOX` and `INPUT` still work unchanged.
 - **22 more watches.** The app now covers 24 products across the Venu, Venu Sq,
   vívoactive and Forerunner families — Venu 2/2S/2 Plus/3/3S/4/X1, Venu Sq 2,
   vívoactive 5/6 and Forerunner 165/170/265/570/70/955/965/970. `minApiLevel`

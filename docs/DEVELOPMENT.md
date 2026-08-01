@@ -187,7 +187,7 @@ this is what you use when it does not.
 ## Testing
 
 ```bash
-make test                                                    # everything, 67 tests
+make test                                                    # everything, 85 tests
 cd tools/mappack
 python3 -m unittest discover -s tests/unit -t .              # one category
 python3 -m unittest tests.contract.test_tile_format -v       # one file

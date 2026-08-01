@@ -8,7 +8,7 @@ import sys
 import time
 from typing import List, Tuple
 
-from . import osmread
+from . import geocode, osmread
 from .emit import write_pack
 from .pack import PackOptions, pack
 
@@ -42,8 +42,16 @@ def build_parser() -> argparse.ArgumentParser:
     )
     source = parser.add_argument_group("map source")
     source.add_argument("--input", help="OSM file (.osm, .osm.xml, .osm.bz2, .osm.gz, .osm.pbf)")
+    source.add_argument("--city", help="place name to look up, e.g. \"Madrid\" -- packs "
+                                       "--radius-km around its centre")
     source.add_argument("--bbox", type=parse_bbox,
                         help="west,south,east,north -- fetched live from Overpass when --input is absent")
+    source.add_argument("--radius-km", type=float, default=geocode.DEFAULT_RADIUS_KM,
+                        help="half-width of the box built around --city (default %.0f)"
+                             % geocode.DEFAULT_RADIUS_KM)
+    source.add_argument("--city-index", type=int, default=0,
+                        help="which --city match to use when the name is ambiguous (default 0)")
+    source.add_argument("--nominatim-url", default=geocode.DEFAULT_NOMINATIM_URL)
     source.add_argument("--overpass-url", default=osmread.DEFAULT_OVERPASS_URL)
     source.add_argument("--cache", help="cache the Overpass response at this path and reuse it")
 
@@ -69,11 +77,59 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def resolve_city(args, parser, searcher=None) -> None:
+    """Turn `--city NAME` into a bbox, and into `--name` when none was given.
+
+    Mutates `args`, which is what the rest of `main` already reads. The
+    candidate list is always printed: a name like "Springfield" has dozens of
+    matches, and the packer picking one quietly is how you download the wrong
+    continent.
+    """
+    if args.radius_km <= 0:
+        parser.error("--radius-km must be positive")
+
+    search = searcher if searcher is not None else geocode.search
+    try:
+        places = search(args.city, url=args.nominatim_url)
+    except Exception as exc:                     # network, DNS, bad JSON, HTTP
+        parser.error("could not look up %r: %s" % (args.city, exc))
+
+    if not places:
+        parser.error("no place called %r -- try adding a country, e.g. \"Murcia, Spain\""
+                     % args.city)
+    if not 0 <= args.city_index < len(places):
+        parser.error("--city-index %d out of range (%d match%s)"
+                     % (args.city_index, len(places), "" if len(places) == 1 else "es"))
+
+    chosen = places[args.city_index]
+    print("matches for %r:" % args.city, file=sys.stderr)
+    for i, place in enumerate(places):
+        print("  %s %d  %s" % ("->" if i == args.city_index else "  ", i, place.describe()),
+              file=sys.stderr)
+    if len(places) > 1 and args.city_index == 0:
+        print("  (a different one? pass --city-index N)", file=sys.stderr)
+
+    args.bbox = geocode.bbox_around(chosen.lat, chosen.lon, args.radius_km)
+    west, south, east, north = args.bbox
+    print("packing %.0f km around %.4f,%.4f -> %.4f,%.4f,%.4f,%.4f"
+          % (args.radius_km * 2, chosen.lat, chosen.lon, west, south, east, north),
+          file=sys.stderr)
+
+    if args.name == "map":
+        # The full display_name is "Madrid, Community of Madrid, Spain"; the app
+        # shows this under a 390 px screen, so keep the first component.
+        args.name = chosen.name.split(",")[0].strip() or args.city
+
+
 def main(argv=None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
-    if not args.input and not args.bbox:
-        parser.error("give --input FILE or --bbox west,south,east,north")
+    if not args.input and not args.bbox and not args.city:
+        parser.error("give --input FILE, --bbox west,south,east,north, or --city NAME")
+    if args.city and args.bbox:
+        parser.error("--city and --bbox both set a region; pass one")
+    if args.city and not args.input:
+        resolve_city(args, parser)
 
     zooms = args.zooms
     min_zoom = args.min_zoom if args.min_zoom is not None else max(1, zooms[0] - 1)
