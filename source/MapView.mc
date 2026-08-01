@@ -136,7 +136,11 @@ class MapView extends WatchUi.View {
                     dc.clear();
                     dc.drawBitmap(_dragX, _dragY, bitmap);
                 } catch (ex) {
-                    System.println("MapView: buffered draw failed, drawing direct");
+                    // Name the exception: this catch covers the whole render,
+                    // so swallowing it silently hides real drawing bugs behind
+                    // what looks like a memory fallback.
+                    System.println("MapView: buffered draw failed, drawing direct: "
+                        + ex.getErrorMessage());
                     _bufferRef = null;
                     _useBuffer = false;
                     _dirty = true;

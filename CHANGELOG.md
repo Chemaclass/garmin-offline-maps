@@ -11,6 +11,12 @@ No release has been cut yet — everything below is what exists today. The app
 compiles for the Venu 3 and Venu 3S and runs in the simulator, but has **not**
 run on hardware, so nothing here is verified on-watch.
 
+**Known issue:** the off-screen buffered render does not work. A paletted
+`BufferedBitmap` rejects every primitive `MapRenderer` draws, so the app falls
+back to direct drawing on every frame. It renders, but without the performance
+design it was built around — see
+[docs/RENDERING.md](docs/RENDERING.md#open-the-paletted-buffer-rejects-every-primitive-we-draw).
+
 ### Added
 
 - **Offline vector map for the Venu 3 and Venu 3S.** Pan by dragging, zoom with
