@@ -56,6 +56,12 @@ UNITS_PER_PIXEL = EXTENT // geom.TILE_SIZE
 MAX_BLOCK_BYTES = 60000  # u16 offsets + a comfortable margin under 64 KB
 MAX_FEATURES_PER_LAYER = 255
 
+#: magic, version, zoom, block_log2, u16 block_x, u16 block_y, tile count.
+#: Mirrors `MapFormat.HEADER_BYTES` in source/TileReader.mc.
+HEADER_BYTES = 9
+#: local_x, local_y, u16 payload offset. Mirrors `MapFormat.DIRECTORY_ENTRY_BYTES`.
+DIRECTORY_ENTRY_BYTES = 4
+
 
 @dataclass
 class Feature:
@@ -302,6 +308,19 @@ def encode_block(zoom: int, block_log2: int, block_x: int, block_y: int,
     return bytes(header + directory + payload)
 
 
+def block_size(tiles: Dict[Tuple[int, int], bytes]) -> int:
+    """Encoded size of a block, computed without encoding it.
+
+    `encode_block` writes u16 payload offsets, so it raises on an oversized
+    block rather than returning something a caller can measure and then shrink.
+    Callers that need to decide whether to shrink must size the block first,
+    and this is the one place that arithmetic lives: a 9-byte header, a 4-byte
+    directory entry per tile, then the payloads.
+    """
+    return HEADER_BYTES + DIRECTORY_ENTRY_BYTES * len(tiles) \
+        + sum(len(payload) for payload in tiles.values())
+
+
 #: Blocks below this size are worth merging: fewer resource ids, fewer loads.
 SOFT_BLOCK_TARGET = 24000
 
@@ -319,13 +338,19 @@ def choose_block_log2(encoded: Dict[Tuple[int, int], bytes], budget: int) -> int
         sizes: Dict[Tuple[int, int], int] = {}
         for (tile_x, tile_y), payload in encoded.items():
             key = (tile_x >> log2, tile_y >> log2)
-            sizes[key] = sizes.get(key, 9) + len(payload) + 4
+            sizes[key] = sizes.get(key, HEADER_BYTES) + len(payload) \
+                + DIRECTORY_ENTRY_BYTES
         count = len(sizes)
         largest = max(sizes.values()) if sizes else 0
         if count <= budget and largest <= MAX_BLOCK_BYTES:
             feasible.append((log2, count, largest))
     if not feasible:
-        return 3
+        # Nothing fits: use the *smallest* grouping. It gives the smallest
+        # blocks, which is the only direction that can help, and it leaves the
+        # resource count for the size report to warn about. Returning the
+        # largest grouping here used to guarantee a u16 offset overflow on
+        # dense data -- a crash instead of a warning.
+        return 0
     roomy = [f for f in feasible if f[2] <= SOFT_BLOCK_TARGET]
     if roomy:
         return max(roomy, key=lambda f: f[0])[0]
@@ -370,9 +395,13 @@ def pack(ways, options: PackOptions) -> PackResult:
             grouped.setdefault(block_key, {})[local] = payload
 
         for (block_x, block_y), tile_map in grouped.items():
-            data = encode_block(zoom, log2, block_x, block_y, tile_map)
-            if len(data) > MAX_BLOCK_BYTES:
+            # Size the block *before* encoding it. `encode_block` writes u16
+            # payload offsets, so an oversized block raises on the way out and
+            # never reaches a size check made after the fact.
+            if block_size(tile_map) > MAX_BLOCK_BYTES:
                 data = _shrink_block(zoom, log2, block_x, block_y, tile_map)
+            else:
+                data = encode_block(zoom, log2, block_x, block_y, tile_map)
             blocks[(zoom, block_x, block_y)] = data
 
     return PackResult(
@@ -390,11 +419,17 @@ def _shrink_block(zoom, log2, block_x, block_y, tile_map) -> bytes:
     """Last-resort trim: drop the least important trailing layers per tile."""
     trimmed = dict(tile_map)
     for _ in range(6):
-        data = encode_block(zoom, log2, block_x, block_y, trimmed)
-        if len(data) <= MAX_BLOCK_BYTES:
-            return data
+        # Measure without encoding, for the same reason as in `pack`.
+        if block_size(trimmed) <= MAX_BLOCK_BYTES:
+            return encode_block(zoom, log2, block_x, block_y, trimmed)
         for key, payload in list(trimmed.items()):
             trimmed[key] = _drop_last_layer(payload)
+    if block_size(trimmed) > MAX_BLOCK_BYTES:
+        raise ValueError(
+            "block z%d %d/%d is %d bytes after dropping six layers per tile "
+            "(max %d). The area is too dense at this zoom: drop the top zoom "
+            "with ZOOMS=, raise SIMPLIFY=, or lower --max-points-per-tile."
+            % (zoom, block_x, block_y, block_size(trimmed), MAX_BLOCK_BYTES))
     return encode_block(zoom, log2, block_x, block_y, trimmed)
 
 

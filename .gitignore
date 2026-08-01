@@ -33,3 +33,4 @@ tools/mappack/*.osm
 # The demo pack IS committed so the repo builds out of the box. If you generate
 # a large pack for your own area, uncomment the next line so it stays local.
 # mapdata/active/
+.DS_Store

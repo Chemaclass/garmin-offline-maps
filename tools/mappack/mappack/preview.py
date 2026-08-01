@@ -127,6 +127,28 @@ class PackReader:
         return self._cache[name]
 
 
+class Budgets:
+    """Per-pass segment caps, scraped from source/MapRenderer.mc.
+
+    The watch stops drawing when a pass exceeds its budget, so a preview that
+    ignores these shows detail the device will never render. Scraped rather
+    than duplicated, for the same reason the palette is.
+    """
+
+    def __init__(self, renderer_mc: str):
+        with open(renderer_mc, encoding="utf-8") as fh:
+            source = fh.read()
+        self.area = self._const(source, "AREA_SEGMENTS")
+        self.lines = self._const(source, "MAX_SEGMENTS")
+
+    @staticmethod
+    def _const(source: str, name: str) -> int:
+        return int(re.search(r"const %s = (\d+)" % name, source).group(1))
+
+    def for_pass(self, pass_index: int) -> int:
+        return self.area if pass_index == 0 else self.lines
+
+
 class Style:
     """Colours and pen widths, scraped from source/Palette.mc."""
 
@@ -161,12 +183,15 @@ class Style:
 def render(pack_dir: str, index_path: str, palette_mc: str, size: int = 454,
            zoom: Optional[int] = None, lat: Optional[float] = None,
            lon: Optional[float] = None, heading: float = 0.0,
-           night: bool = True):
+           night: bool = True, renderer_mc: Optional[str] = None):
     from PIL import Image, ImageDraw
 
     index = MapIndexFile(index_path)
     reader = PackReader(pack_dir, index)
     style = Style(palette_mc, night)
+    # MapRenderer.mc sits beside Palette.mc; both are scraped, not duplicated.
+    budgets = Budgets(renderer_mc or os.path.join(os.path.dirname(palette_mc),
+                                                  "MapRenderer.mc"))
 
     display_zoom = zoom if zoom is not None else index.data_zooms[-1]
     centre_lat = lat if lat is not None else index.center_lat
@@ -193,7 +218,7 @@ def render(pack_dir: str, index_path: str, palette_mc: str, size: int = 454,
     rotated = heading != 0.0
     units_to_pixels = scale * TILE_SIZE / index.extent
 
-    stats = {"tiles": 0, "segments": 0, "missing": 0}
+    stats = {"tiles": 0, "segments": 0, "missing": 0, "truncated": False}
 
     def to_screen(origin_x, origin_y, x, y):
         ux = origin_x + x * units_to_pixels
@@ -203,8 +228,17 @@ def render(pack_dir: str, index_path: str, palette_mc: str, size: int = 454,
         return (half + ux, half + uy)
 
     for pass_index in (0, 1):
+        # Mirrors MapRenderer.render: each pass gets its own budget and its own
+        # counter, and the tile loops stop as soon as that budget is spent.
+        budget = budgets.for_pass(pass_index)
+        pass_segments = 0
+        pass_truncated = False
         for tile_y in range(min_ty, max_ty + 1):
+            if pass_truncated:
+                break
             for tile_x in range(min_tx, max_tx + 1):
+                if pass_truncated:
+                    break
                 block = reader.block(data_zoom, tile_x >> log2, tile_y >> log2)
                 if block is None:
                     if pass_index == 0:
@@ -222,6 +256,8 @@ def render(pack_dir: str, index_path: str, palette_mc: str, size: int = 454,
                 origin_y = (tile_y * TILE_SIZE - centre_y) * scale
 
                 for layer_id, features in decode_tile(block, offset):
+                    if pass_truncated:
+                        break
                     is_area = layer_id < style.area_layers
                     if (pass_index == 0) != is_area:
                         continue
@@ -232,9 +268,16 @@ def render(pack_dir: str, index_path: str, palette_mc: str, size: int = 454,
                         if geom_type == 1 and len(screen) >= 3:
                             draw.polygon(screen, fill=colour)
                             stats["segments"] += len(screen)
+                            pass_segments += len(screen)
                         elif len(screen) >= 2:
                             draw.line(screen, fill=colour, width=width, joint="curve")
                             stats["segments"] += len(screen) - 1
+                            pass_segments += len(screen) - 1
+                        # Checked after each feature, as the watch does.
+                        if pass_segments > budget:
+                            pass_truncated = True
+                            stats["truncated"] = True
+                            break
 
     _draw_chrome(draw, size, style, display_zoom, centre_lat, index)
     return image, stats
@@ -283,8 +326,10 @@ def main(argv=None) -> int:
     image, stats = render(args.pack, args.index, args.palette, args.size, args.zoom,
                           args.lat, args.lon, math.radians(args.heading), not args.day)
     image.save(args.out)
-    print("%s  z%s  %d tiles, %d segments, %d blocks missing"
-          % (args.out, args.zoom, stats["tiles"], stats["segments"], stats["missing"]))
+    print("%s  z%s  %d tiles, %d segments, %d blocks missing%s"
+          % (args.out, args.zoom, stats["tiles"], stats["segments"], stats["missing"],
+             "  TRUNCATED (hit the renderer's segment budget)"
+             if stats["truncated"] else ""))
     return 0
 
 
