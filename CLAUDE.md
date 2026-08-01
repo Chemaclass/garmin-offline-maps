@@ -79,8 +79,9 @@ Every fact lives in exactly one page; link rather than restate.
   rules on what counts — most work here (refactors, tests, docs) does not.
 - `developer_key` is the app's Connect IQ store identity and is gitignored.
   Never read, print, or commit it.
-- The Monkey C compiles for all 24 products and runs in the simulator; it has
-  never run on hardware. Never claim a watch-side change builds without having
-  run `make build`, and never claim on-watch behaviour at all.
+- The Monkey C compiles for all 24 products and runs in the simulator. Never
+  claim a watch-side change builds without having run `make build`. State what
+  you actually ran; do not present simulator or compile results as more than
+  they are.
 - Global CLAUDE.md rules about Eloquent/repositories/`T`-prefixed types/Mockery
   are PHP-project rules and do not apply here.

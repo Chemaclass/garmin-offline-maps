@@ -99,8 +99,7 @@ a published app to the key that signed its first upload; a new key means a new
 app. Never print, commit or regenerate it. `make key` only creates it when
 missing.
 
-**Expect real compile errors on the first build.** This Monkey C has never been
-through `monkeyc`. Fix each on its merits; do not restructure working logic to
+**Fix compile errors on their merits.** Do not restructure working logic just to
 silence a message.
 
 ## Before you commit

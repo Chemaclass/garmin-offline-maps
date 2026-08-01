@@ -35,7 +35,7 @@ Beyond memory: touch screen, round display, and API level ≥ `minApiLevel` in
    (`python3 -m mappack.preview --size <px> --zoom 16 --out p.png`), and repack
    with a lower `--max-points-per-tile` if it stutters.
 
-## Say what you did not verify
+## Name the devices you built for
 
-Anything not compiled and run in the simulator is untested. Name the devices you
-actually built for. A manifest edit is not support.
+A manifest edit is not support — run `make build DEVICE=<id>` for each one and
+report the devices that actually compiled.

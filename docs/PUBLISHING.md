@@ -107,7 +107,7 @@ before the first submission. Two things that bite this app specifically:
 
 ## Before the first upload
 
-Nothing here has run on a real watch. The buffered render and the frame budget
-are the two things the simulator cannot tell you, and
-[DEVICES.md](DEVICES.md) says both are tight. Flash it first — a one-star review
-for a map that flickers while panning is expensive to undo.
+Side-load the `.prg` and use it for a few minutes first. The buffered render and
+the frame budget are the two things the simulator cannot tell you, and
+[DEVICES.md](DEVICES.md) says both are tight — a one-star review for a map that
+flickers while panning is expensive to undo.

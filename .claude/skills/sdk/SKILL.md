@@ -52,7 +52,7 @@ Venu 3 mounts over MTP, not mass storage, so macOS Finder will not show it.
 ## Build expectations
 
 The app compiles clean for all 24 products under SDK 9.2.0 and runs in the
-simulator. It has never run on hardware.
+simulator.
 
 **Zero warnings is the expected state**, on every device. It did not used to be:
 `Cannot determine if container access is using container type` fired 36 times

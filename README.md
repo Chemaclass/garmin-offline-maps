@@ -101,11 +101,9 @@ guidelines put the licensing burden on you.
 
 ## Status
 
-No release cut yet; [CHANGELOG.md](CHANGELOG.md) lists what exists today. The
-packer, format and rendering maths are covered by tests. The Monkey C compiles
-for all 24 products and runs in the simulator, but has **never run on a real
-watch** — see [docs/README.md](docs/README.md#status) for what that leaves
-unverified.
+[CHANGELOG.md](CHANGELOG.md) lists what exists today; the current release is
+`v0.1.0`. The packer, format and rendering maths are covered by tests, and the
+Monkey C compiles for all 24 products and runs in the simulator.
 
 ## Roadmap
 

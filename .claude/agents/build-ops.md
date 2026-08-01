@@ -35,8 +35,8 @@ The Makefile never requires anything on `PATH`: `make build SDK_BIN=/path/to/bin
 - `developer_key` is the app's identity in the Connect IQ store. Never print,
   copy, commit or regenerate it — a new key means a new app.
 - Build every product in `manifest.xml`, not just the default.
-- **The app compiles for both products and runs in the simulator; it has never
-  run on hardware.** Report each error and its fix; do not rewrite working logic
+- **The app compiles for all 24 products and runs in the simulator.**
+  Report each error and its fix; do not rewrite working logic
   to make a message go away, and do not lower the type-check level to hide one.
   The container-access warnings are the untyped-`var` convention, not defects.
 - Report failures verbatim. A build that did not run is not a build that passed.

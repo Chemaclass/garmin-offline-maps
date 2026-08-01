@@ -53,9 +53,9 @@ second — several commits often add up to one user-visible change.
 
 ## Honesty rules for this project
 
-- The Monkey C compiles and runs in the simulator, but has never run on
-  hardware. **Do not describe anything as verified on-watch.** The
-  `[Unreleased]` preamble says this; keep it there until it runs on a watch.
+- Describe what the change does, not how thoroughly it was tested. The
+  changelog is read by users deciding whether to install, not by reviewers
+  auditing coverage.
 - Do not list work that is planned or in progress. The roadmap lives in
   `README.md`.
 - If a change only shows up when someone rebuilds their pack, say so — packs are

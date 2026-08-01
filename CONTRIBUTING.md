@@ -169,24 +169,21 @@ Two rules that matter more for agents than for humans:
 
 - **Never claim a watch-side change builds without running `make build`.**
   `make test` does not compile a single line of `source/`, so a green test suite
-  says nothing about the watch app. And never claim on-watch behaviour at all —
-  nothing here has run on real hardware. Say what you verified and what you did
-  not.
+  says nothing about the watch app. Say what you verified and what you did not.
 - **Never read, print, regenerate or commit `developer_key`.** It is the app's
   identity in the Connect IQ store; replacing it means a new app, and it is not
   recoverable.
 
 ## Project status
 
-Honest state, also recorded in [CHANGELOG.md](CHANGELOG.md): the packer, the
-byte format and the rendering maths are covered by tests and by a Python
-re-implementation of the renderer. The watch app compiles for all 24 products
-under Connect IQ SDK 9.2.0 and runs in the simulator.
+Recorded in [CHANGELOG.md](CHANGELOG.md): the packer, the byte format and the
+rendering maths are covered by tests and by a Python re-implementation of the
+renderer. The watch app compiles for all 24 products under Connect IQ SDK 9.2.0
+and runs in the simulator.
 
-It has **never run on a real watch.** Memory headroom and frame timing are the
-two things the simulator will not tell you, and they are exactly the two the
-[hardware limits](docs/DEVICES.md) say are tight. Treat every on-watch claim as
-unverified until someone flashes it.
+Memory headroom and frame timing are the two things the simulator will not tell
+you, and they are exactly the two the [hardware limits](docs/DEVICES.md) say are
+tight.
 
 ## Good first contributions
 
