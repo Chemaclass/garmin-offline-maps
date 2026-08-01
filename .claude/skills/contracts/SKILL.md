@@ -66,6 +66,8 @@ make test    # 67 tests; 10 skip without Pillow (pip install pillow)
 make lint
 ```
 
-`tests/test_format.py` round-trips writer against reference reader;
-`tests/test_preview.py` drives the reader over the real generated resources.
+`tests/contract/` holds both cross-language guards: `test_tile_format.py`
+round-trips writer against reference reader, `test_palette.py` checks the layer
+ids and the renderer budgets. `tests/integration/test_preview.py` drives the
+reader over the real generated resources.
 If both pass and the demo diff is empty, the contracts hold.

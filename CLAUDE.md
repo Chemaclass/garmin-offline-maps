@@ -23,7 +23,7 @@ These are the things that break silently. Check them on every relevant change.
 
 `decode.py` is a deliberate line-by-line mirror of `TileReader.mc`. Change one,
 change all three, update `docs/FORMAT.md`, and run `make test` —
-`tests/test_format.py` round-trips writer against reader.
+`tests/contract/test_tile_format.py` round-trips writer against reader.
 
 **2. Layer ids are shared between Python and Monkey C.** `classify.py`'s
 `L_WATER_AREA=0 … L_MOTORWAY=9` must line up index-for-index with the first ten

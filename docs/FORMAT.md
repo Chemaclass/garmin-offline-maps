@@ -10,8 +10,8 @@ implementations that must agree byte for byte:
 | Reference reader | `tools/mappack/mappack/decode.py` | used by the tests |
 | On-watch reader | `source/TileReader.mc` | used by the app |
 
-`tests/test_format.py` round-trips the writer against the reference reader;
-`tests/test_preview.py` drives the reference reader over the real generated
+`tests/contract/test_tile_format.py` round-trips the writer against the reference
+reader; `tests/integration/test_preview.py` drives the reference reader over the real generated
 resources. Change one implementation and you must change all three.
 
 ## Why not just use Mapbox Vector Tiles?
