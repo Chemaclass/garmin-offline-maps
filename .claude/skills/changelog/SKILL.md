@@ -63,15 +63,43 @@ second: several commits often add up to one user-visible change.
 
 ## Cutting a release
 
-1. Choose the version. Nothing has shipped yet, so the first cut is **0.1.0**.
-   After that: breaking pack-format or manifest changes bump major, new features
-   minor, fixes patch. A format-version bump in `docs/FORMAT.md` is always at
-   least a minor.
+1. Choose the version. Breaking pack-format or manifest changes bump major, new
+   features minor, fixes patch. A format-version bump in `docs/FORMAT.md` is
+   always at least a minor.
 2. Rename `## [Unreleased]` to `## [x.y.z] - YYYY-MM-DD` using today's real date.
 3. Add a fresh, empty `## [Unreleased]` above it.
 4. Update the link definitions at the bottom of the file.
 5. Sanity-check the section against `git log` since the last tag. A
-   user-visible change that never got an entry is the usual miss.
+   user-visible change that never got an entry is the usual miss. Read the
+   diff, not just the subjects: a commit labelled `ref:` has carried
+   user-visible fixes before.
+6. Commit as `docs: cut x.y.z`, then tag and push:
+
+```bash
+git tag -s vX.Y.Z -m "vX.Y.Z
+
+<a few lines of prose, not the bullet list>"
+git push origin main
+git push origin vX.Y.Z          # tags do not ride along with a branch push
+```
+
+7. **Create the GitHub release.** A pushed tag is not a release: it shows under
+   `/tags`, and the Releases page stays empty until a release object exists.
+
+The body is that version's CHANGELOG section verbatim, from the first `###`
+heading down to the next `## [`:
+
+```bash
+python3 - <<'PY' > /tmp/notes.md
+import re
+text = open("CHANGELOG.md", encoding="utf-8").read()
+print(re.search(r"## \[X\.Y\.Z\] - [\d-]+\n(.*?)\n## \[", text, re.S).group(1).strip())
+PY
+gh release create vX.Y.Z --title vX.Y.Z --notes-file /tmp/notes.md
+gh release list --limit 3      # confirm it is there and marked Latest
+```
+
+No assets. The `.iq` goes to Garmin, not to GitHub.
 
 Releasing to the Connect IQ store also needs `make package` and the same
 `developer_key` that signed any previous upload. See `.claude/skills/sdk`.
