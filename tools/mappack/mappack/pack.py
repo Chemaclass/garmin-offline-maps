@@ -43,7 +43,7 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional, Sequence, Tuple
 
 from . import geom
-from .classify import GEOM_POLYGON, Klass, classify
+from .classify import GEOM_POLYGON, L_BUILDING, Klass, classify
 from .varint import encode_points, write_u16, write_uvarint
 
 FORMAT_VERSION = 1
@@ -55,6 +55,16 @@ UNITS_PER_PIXEL = EXTENT // geom.TILE_SIZE
 
 MAX_BLOCK_BYTES = 60000  # u16 offsets + a comfortable margin under 64 KB
 MAX_FEATURES_PER_LAYER = 255
+
+#: Largest share of a tile's point budget that filled areas may take.
+#:
+#: Areas outrank minor roads on importance (green is 50, residential 45), and
+#: among equal importance the biggest feature is taken first. In a place ringed
+#: by farmland that is a disaster: one huerta polygon swallows what is left of
+#: the budget and the street network gets nothing, which is how Murcia packed
+#: as a green field with no roads on it. Reserving the rest for lines means a
+#: map you can still navigate by, whatever the landcover looks like.
+AREA_BUDGET_SHARE = 0.35
 
 #: magic, version, zoom, block_log2, u16 block_x, u16 block_y, tile count.
 #: Mirrors `MapFormat.HEADER_BYTES` in source/TileReader.mc.
@@ -238,6 +248,7 @@ def build_tiles(
     for key, feats in candidates.items():
         feats.sort(key=lambda f: (-f.importance, -len(f.points)))
         budget = options.max_points_per_tile
+        area_budget = int(options.max_points_per_tile * AREA_BUDGET_SHARE)
         per_layer: Dict[int, int] = {}
         chosen: List[TileFeature] = []
         for feat in feats:
@@ -248,6 +259,15 @@ def build_tiles(
             if len(feat.points) > budget:
                 dropped_points += len(feat.points)
                 continue
+            # Filled areas draw first and cover everything under them, so they
+            # are capped separately. Without this they starve the roads drawn
+            # on top; see AREA_BUDGET_SHARE.
+            is_area = feat.layer <= L_BUILDING
+            if is_area:
+                if len(feat.points) > area_budget:
+                    dropped_points += len(feat.points)
+                    continue
+                area_budget -= len(feat.points)
             budget -= len(feat.points)
             per_layer[feat.layer] = count + 1
             chosen.append(feat)

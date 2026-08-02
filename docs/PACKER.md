@@ -147,6 +147,20 @@ shorter product list for that listing.
 | Block bytes | `SOFT_BLOCK_TARGET` 24 KB | `MAX_BLOCK_BYTES` 60 KB | - |
 | Features per layer | - | `MAX_FEATURES_PER_LAYER` 255 (`u8` count) | - |
 
+### Why areas are capped separately
+
+Features compete for a tile's point budget in importance order, and filled
+areas outrank minor roads: green is 50, residential 45. Among equal importance
+the biggest feature is taken first. Somewhere ringed by farmland that is a
+disaster, and Murcia proved it: one huerta polygon swallowed what was left of
+the budget and the street network got nothing, so the city packed as a green
+field with no roads on it.
+
+`AREA_BUDGET_SHARE` reserves the rest of every tile for lines. Areas may take
+35% and no more, whatever the landcover looks like. Murcia went from about
+1,100 green features and no visible streets to 310 green features with the road
+network intact, at the same pack size.
+
 ### How much area fits
 
 Rough numbers at the defaults (zooms 12/14/16, roads + water + green, no
