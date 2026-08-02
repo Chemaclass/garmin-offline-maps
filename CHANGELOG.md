@@ -9,6 +9,25 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Nothing yet.
 
+## [0.3.1] - 2026-08-02
+
+### Fixed
+
+- **Downloading a city no longer risks taking the app down.** On a watch,
+  choosing a city and letting it download ended in a black screen and the
+  Connect IQ error icon. Switching maps now falls back to the built-in map if
+  anything goes wrong, and forgets the city that failed rather than repeating
+  the failure on every launch.
+
+### Changed
+
+- **The city setting on the phone is a dropdown**, listing every city the app
+  knows about as "Country: City", instead of a text field you had to type a
+  name into. Cities published since the app was last updated still appear in
+  the watch's own picker.
+- **The Catalogue URL setting is gone.** It had a working default and a wrong
+  value silently broke every download.
+
 ## [0.3.0] - 2026-08-02
 
 Choosing a city stops being a guessing game, and the catalogue grows without
@@ -117,7 +136,8 @@ simulator.
 - **Preview renderer**: render a pack to PNG and see what the watch will draw
   before spending time flashing it.
 
-[Unreleased]: https://github.com/Chemaclass/garmin-offline-maps/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/Chemaclass/garmin-offline-maps/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.1
 [0.3.0]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.0
 [0.2.0]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.2.0
 [0.1.0]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.1.0
