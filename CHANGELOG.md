@@ -9,6 +9,16 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Nothing yet.
 
+## [0.3.15] - 2026-08-02
+
+### Added
+
+- **The app says which version it is, where you need it.** The download screen
+  now shows the build, and any error drawn on the map is stamped with it. A fix
+  that has not reached your watch and a fix that did not work look exactly the
+  same from the screen; now they do not. If you report a problem, that line is
+  the useful thing to send.
+
 ## [0.3.14] - 2026-08-02
 
 ### Fixed
@@ -335,7 +345,8 @@ simulator.
 - **Preview renderer**: render a pack to PNG and see what the watch will draw
   before spending time flashing it.
 
-[Unreleased]: https://github.com/Chemaclass/garmin-offline-maps/compare/v0.3.14...HEAD
+[Unreleased]: https://github.com/Chemaclass/garmin-offline-maps/compare/v0.3.15...HEAD
+[0.3.15]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.15
 [0.3.14]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.14
 [0.3.13]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.13
 [0.3.12]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.12

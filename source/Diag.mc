@@ -136,8 +136,15 @@ module Diag {
     //! What to put on the map, or null. The crash crumb wins: a caught
     //! exception is a failure the app survived, and the one that killed it
     //! matters more.
+    //!
+    //! Stamped with the build, because the first question about any report of
+    //! this message is which version produced it, and the answer is otherwise
+    //! three taps away in About. A fix that has not reached the watch and a fix
+    //! that did not work look identical from a photograph of the screen; this
+    //! tells them apart in the report itself.
     function message() {
-        if (lastCrash != null) { return "DIED: " + lastCrash; }
-        return lastError;
+        if (lastCrash != null) { return "v" + Version.APP + " DIED: " + lastCrash; }
+        if (lastError != null) { return "v" + Version.APP + " " + lastError; }
+        return null;
     }
 }

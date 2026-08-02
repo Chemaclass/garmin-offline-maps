@@ -53,6 +53,15 @@ class DownloadView extends WatchUi.View {
 
         Ui.resourceLine(dc, colours[Palette.SLOT_DIM], width, height, 0.70,
                         Graphics.FONT_XTINY, Rez.Strings.DownloadKeepPhone);
+
+        // The build, on the one screen every download passes through.
+        //
+        // Downloading a city is where this app has failed before, so it is
+        // where someone will be looking when it fails again, and the first
+        // thing worth knowing is which version they are running. In About it
+        // takes three taps and has to be thought of; here it is simply there.
+        Ui.textLine(dc, colours[Palette.SLOT_DIM], width, height, 0.79,
+                    Graphics.FONT_XTINY, "v" + Version.APP);
     }
 
     hidden function drawBar(dc, colours as Array<Number>, width, height) {
