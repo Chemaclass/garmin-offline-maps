@@ -63,13 +63,28 @@ class MapRenderer {
     hidden var _deadline;
     //! True when a render ended on the clock rather than on its budget.
     hidden var _timedOut;
+    //! Where the next frame resumes: pass, then row, then column. Null means
+    //! the start of a pass.
+    hidden var _cursorPass;
+    hidden var _cursorTileY;
+    hidden var _cursorTileX;
+    //! True once every pass has run to the end for the current view.
+    hidden var _complete;
 
     function initialize() {
         _segments = 0;
         _passWork = 0;
         _tilesDrawn = 0;
         _passTruncated = false;
+        _cursorPass = PASS_AREAS;
+        _cursorTileY = null;
+        _cursorTileX = null;
+        _complete = false;
     }
+
+    //! Has the whole view been drawn? False means the buffer holds a partial
+    //! picture and the view should ask for another frame.
+    function complete() { return _complete; }
 
     function segmentsDrawn() { return _segments; }
     function tilesDrawn() { return _tilesDrawn; }
@@ -89,18 +104,39 @@ class MapRenderer {
         return false;
     }
 
-    function render(dc, camera, store) {
-        _segments = 0;
-        _passWork = 0;
-        _tilesDrawn = 0;
-        _passTruncated = false;
+    //! Draw as much of the map as fits in one frame, and remember where it got
+    //! to so the next frame carries on.
+    //!
+    //! `restart` clears the buffer and begins again, which is what a changed
+    //! view wants. Without it the buffer is left alone and drawing resumes from
+    //! the saved cursor, so the picture accumulates rather than being redrawn
+    //! and thrown away.
+    //!
+    //! This is what makes the map complete at all. A frame has to be short or
+    //! the watchdog kills the app, but a city needs far more drawing than fits
+    //! in one short frame, and truncating to fit meant a screen with its right
+    //! half empty. Spreading the same work over several frames costs a moment
+    //! of the map filling in and gets the whole of it.
+    function render(dc, camera, store, restart) {
         _deadline = System.getTimer() + FRAME_BUDGET_MS;
         _timedOut = false;
+        _passWork = 0;
+        _passTruncated = false;
 
         store.beginFrame();
 
         var colours = Palette.colours(camera.night);
-        Ui.clear(dc, colours);
+        if (restart) {
+            _segments = 0;
+            _tilesDrawn = 0;
+            _complete = false;
+            _cursorPass = PASS_AREAS;
+            _cursorTileY = null;
+            _cursorTileX = null;
+            Ui.clear(dc, colours);
+        } else if (_complete) {
+            return;
+        }
 
         var width = dc.getWidth();
         var height = dc.getHeight();
@@ -164,12 +200,17 @@ class MapRenderer {
             dc.setAntiAlias(true);
         }
 
-        for (var pass = PASS_AREAS; pass <= PASS_LINES; pass += 1) {
+        // Pick up where the last frame stopped. Null means "start of a pass",
+        // which is also the state after a restart.
+        if (_cursorTileY == null) { _cursorTileY = minTileY; }
+        if (_cursorTileX == null) { _cursorTileX = minTileX; }
+
+        for (var pass = _cursorPass; pass <= PASS_LINES; pass += 1) {
             var budget = (pass == PASS_AREAS) ? AREA_SEGMENTS : MAX_SEGMENTS;
             _passWork = 0;
             _passTruncated = false;
-            for (var tileY = minTileY; tileY <= maxTileY && !_passTruncated; tileY += 1) {
-                for (var tileX = minTileX; tileX <= maxTileX && !_passTruncated; tileX += 1) {
+            for (var tileY = _cursorTileY; tileY <= maxTileY && !_passTruncated; tileY += 1) {
+                for (var tileX = _cursorTileX; tileX <= maxTileX && !_passTruncated; tileX += 1) {
                     // Checked per tile, not only per point.
                     //
                     // A tile with nothing packed in it returns from `drawTile`
@@ -183,14 +224,32 @@ class MapRenderer {
                     // a laptop still gets the app killed on the wrist.
                     if (outOfTime()) {
                         _passTruncated = true;
-                        break;
+                        // Stop here and come back to this exact tile.
+                        _cursorPass = pass;
+                        _cursorTileY = tileY;
+                        _cursorTileX = tileX;
+                        return;
                     }
                     drawTile(dc, store, colours, camera, pass, dataZoom, log2,
                              tileX, tileY, centreX, centreY, scale,
                              halfW, halfH, cosT, sinT, width, height, budget);
                 }
+                if (_passTruncated) {
+                    // Out of budget rather than out of time: `drawTile` stopped
+                    // partway along this row, so resume at its start. A tile
+                    // redrawn is harmless; a tile skipped is a hole in the map.
+                    _cursorPass = pass;
+                    _cursorTileY = tileY;
+                    _cursorTileX = minTileX;
+                    return;
+                }
+                _cursorTileX = minTileX;
             }
+            // Pass finished. The next one starts at the top again.
+            _cursorTileY = minTileY;
+            _cursorTileX = minTileX;
         }
+        _complete = true;
     }
 
     //! `colours` is annotated for the same reason as in MapView: it is indexed

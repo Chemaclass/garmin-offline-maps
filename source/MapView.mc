@@ -209,19 +209,25 @@ class MapView extends WatchUi.View {
             var bitmap = bufferBitmap();
             if (bitmap != null) {
                 try {
-                    if (_dirty) {
+                    if (_dirty || !_renderer.complete()) {
                         var started = System.getTimer();
-                        _renderer.render(bitmap.getDc(), _camera, _store);
+                        // `_dirty` means the view moved, so start the picture
+                        // again. Otherwise carry on adding to the one already
+                        // in the buffer.
+                        _renderer.render(bitmap.getDc(), _camera, _store, _dirty);
                         _renderMs = System.getTimer() - started;
-                        // Come back for another pass only while the store still
-                        // has blocks to hand over, so the map finishes over the
-                        // next few frames instead of in one the watchdog kills.
-                        // Not when the render merely ran out of time: that asks
-                        // to be run again immediately and redraws exactly the
-                        // same thing, so the app spins at full tilt without
-                        // ever finishing a map.
-                        _dirty = _store.throttled() && !_renderer.timedOut();
-                        if (_dirty) { WatchUi.requestUpdate(); }
+                        _dirty = false;
+                        // Keep asking until the whole view has been drawn.
+                        //
+                        // Each frame is deliberately short, and a city needs
+                        // more drawing than fits in one, so the picture is built
+                        // up over several. This used to stop as soon as a frame
+                        // ran out of time, which is why a downloaded city drew
+                        // its left half and nothing else. Progress is real
+                        // between frames now, so asking again is not a spin: the
+                        // renderer resumes where it stopped and eventually says
+                        // it is done.
+                        if (!_renderer.complete()) { WatchUi.requestUpdate(); }
                     }
                     Ui.clear(dc, colours);
                     dc.drawBitmap(_dragX, _dragY, bitmap);
@@ -245,7 +251,12 @@ class MapView extends WatchUi.View {
         }
 
         if (!_useBuffer) {
-            _renderer.render(dc, _camera, _store);
+            // Always from scratch here, and never resumed. Without a buffer we
+            // are drawing straight to a screen that is cleared for us each
+            // frame, so there is nothing to accumulate into: a partial pass
+            // would show as the map losing whatever it drew last time. This
+            // path is the memory fallback and is already the degraded one.
+            _renderer.render(dc, _camera, _store, true);
             _dirty = false;
         }
 

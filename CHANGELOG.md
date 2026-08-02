@@ -9,6 +9,17 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Nothing yet.
 
+## [0.3.17] - 2026-08-02
+
+### Fixed
+
+- **The whole map is drawn, not just the part that fit.** A frame has to be
+  short or the watch stops the app, and a city needs more drawing than fits in
+  one, so the rest used to be thrown away: a downloaded city showed its left
+  half and empty space on the right. The map is now built up over a few frames
+  instead, each one short, and keeps what the last one drew. You see it fill in
+  over a moment and then it is complete.
+
 ## [0.3.16] - 2026-08-02
 
 ### Fixed
@@ -364,7 +375,8 @@ simulator.
 - **Preview renderer**: render a pack to PNG and see what the watch will draw
   before spending time flashing it.
 
-[Unreleased]: https://github.com/Chemaclass/garmin-offline-maps/compare/v0.3.16...HEAD
+[Unreleased]: https://github.com/Chemaclass/garmin-offline-maps/compare/v0.3.17...HEAD
+[0.3.17]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.17
 [0.3.16]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.16
 [0.3.15]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.15
 [0.3.14]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.14
