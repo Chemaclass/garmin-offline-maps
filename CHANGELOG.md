@@ -9,6 +9,23 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Nothing yet.
 
+## [0.3.7] - 2026-08-02
+
+### Fixed
+
+- **The crash report in 0.3.6 could never be read.** It recorded the failing
+  step correctly and then walked straight back into it on the next launch, so
+  the app died again before drawing anything and the message was never seen.
+  After a crash the app now starts on the built-in map and shows what happened.
+  Your downloaded city is kept, not deleted; it is just not opened
+  automatically. Pick it again from the menu when you want to retry.
+
+### Added
+
+- **The last crash also appears in Garmin Connect**, under the app's settings,
+  so it can be read and copied on the phone instead of off the watch face. It
+  is empty when nothing has gone wrong.
+
 ## [0.3.6] - 2026-08-02
 
 ### Added
@@ -224,7 +241,8 @@ simulator.
 - **Preview renderer**: render a pack to PNG and see what the watch will draw
   before spending time flashing it.
 
-[Unreleased]: https://github.com/Chemaclass/garmin-offline-maps/compare/v0.3.6...HEAD
+[Unreleased]: https://github.com/Chemaclass/garmin-offline-maps/compare/v0.3.7...HEAD
+[0.3.7]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.7
 [0.3.6]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.6
 [0.3.5]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.5
 [0.3.4]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.4

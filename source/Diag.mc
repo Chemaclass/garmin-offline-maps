@@ -111,6 +111,16 @@ module Diag {
             if (crumb instanceof Lang.String) {
                 lastCrash = crumb;
                 System.println("Diag: previous run died at " + crumb);
+                // Also push it at the phone. Storage is watch-only, so without
+                // this the message can only be read off the watch face; as a
+                // property it turns up in the app's settings in Garmin Connect
+                // at the next sync, which is somewhere it can be copied from.
+                try {
+                    Application.Properties.setValue("lastCrash", crumb);
+                } catch (inner) {
+                    // Older install without the property. The on-screen line
+                    // still works, and that is the one that matters.
+                }
             }
             Application.Storage.deleteValue(KEY_CRUMB);
         } catch (ex) {

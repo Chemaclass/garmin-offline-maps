@@ -23,4 +23,9 @@
             <listEntry value="15">Spain: Valencia</listEntry>
         </settingConfig>
     </setting>
+    <setting propertyKey="@Properties.lastCrash"
+             title="@Strings.SettingLastCrash"
+             prompt="@Strings.SettingLastCrashPrompt">
+        <settingConfig type="alphaNumeric" required="false" />
+    </setting>
 </settings>

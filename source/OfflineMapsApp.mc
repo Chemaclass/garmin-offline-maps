@@ -48,26 +48,48 @@ class OfflineMapsApp extends Application.AppBase {
         // it here is the only chance to, because `Diag.arm` below starts
         // overwriting it.
         Diag.recoverCrash();
-        Diag.arm();
-        Diag.trace("startup.adopt");
-        // Choose the pack before the camera: `Camera.initialize` reads the
-        // pack's centre and zoom range.
+
+        // Safe mode. The crumb says the last run was killed, so do not walk
+        // back into whatever killed it: leave the downloaded city alone and
+        // start on the built-in map.
         //
-        // Guarded for the same reason as `onDownloadDone`: a stored city that
-        // cannot be adopted must not stop the app starting. Without this, one
-        // bad download bricks every launch until the app is reinstalled.
-        try {
-            _pendingCity = adoptStoredCity();
-        } catch (ex) {
-            // Recorded, not just printed: this silently replaces the city the
-            // user chose with the built-in map, and println only reaches a
-            // machine running monkeydo.
-            Diag.record("startup", ex);
+        // Without this the diagnostic cannot work at all. The step that dies is
+        // reached from `onStart`, so every launch died in the same place, and
+        // the message describing it never survived to be drawn. That is exactly
+        // what 0.3.6 did: it recorded the cause correctly and then crashed
+        // again before it could ever be read.
+        //
+        // The city stays in storage. It is not deleted, because the user paid
+        // for that download and may want to retry it from the menu; it is only
+        // not adopted automatically.
+        if (Diag.lastCrash != null) {
             _pendingCity = null;
+            _pendingAdopt = false;
             Pack.use(null);
-            // No guard: `CityStore.clear` handles its own Storage failures and
-            // returns nothing to check.
-            CityStore.clear();
+            System.println("safe mode after: " + Diag.lastCrash);
+        } else {
+            Diag.arm();
+            Diag.trace("startup.adopt");
+            // Choose the pack before the camera: `Camera.initialize` reads the
+            // pack's centre and zoom range.
+            //
+            // Guarded for the same reason as `onDownloadDone`: a stored city
+            // that cannot be adopted must not stop the app starting. Without
+            // this, one bad download bricks every launch until the app is
+            // reinstalled.
+            try {
+                _pendingCity = adoptStoredCity();
+            } catch (ex) {
+                // Recorded, not just printed: this silently replaces the city
+                // the user chose with the built-in map, and println only
+                // reaches a machine running monkeydo.
+                Diag.record("startup", ex);
+                _pendingCity = null;
+                Pack.use(null);
+                // No guard: `CityStore.clear` handles its own Storage failures
+                // and returns nothing to check.
+                CityStore.clear();
+            }
         }
         _pendingAdopt = false;
         Diag.trace("startup.camera");

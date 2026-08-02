@@ -4,4 +4,5 @@
     <property id="cityId" type="string"></property>
     <property id="citySeen" type="number">0</property>
     <property id="packBaseUrl" type="string">https://chemaclass.github.io/garmin-offline-maps/packs</property>
+    <property id="lastCrash" type="string"></property>
 </properties>

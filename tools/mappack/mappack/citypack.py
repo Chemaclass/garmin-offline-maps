@@ -272,6 +272,22 @@ def write_settings_xml(entries: Sequence[Dict[str, object]], path: str,
     lines += [
         '        </settingConfig>',
         '    </setting>',
+        # The watch writes this one and the phone only reads it.
+        #
+        # There is no read-only control in the settings schema, so it is an
+        # ordinary text field. Editing it changes nothing: the app overwrites
+        # it at the next launch and never reads it back.
+        #
+        # It exists because the failure it reports is one the watch cannot
+        # report any other way. The app is killed outright, the screen goes
+        # black, and the only surviving record is what was written to storage
+        # beforehand. Surfacing it here means it can be read in Garmin Connect
+        # instead of off the watch face.
+        '    <setting propertyKey="@Properties.lastCrash"',
+        '             title="@Strings.SettingLastCrash"',
+        '             prompt="@Strings.SettingLastCrashPrompt">',
+        '        <settingConfig type="alphaNumeric" required="false" />',
+        '    </setting>',
         '</settings>',
         '',
     ]
@@ -370,6 +386,9 @@ def write_properties_xml(path: str, base_url: str) -> str:
         # told apart from one made on the watch.
         '    <property id="citySeen" type="number">0</property>',
         '    <property id="packBaseUrl" type="string">%s</property>' % _escape(base_url),
+        # Written by the watch after a crash, read on the phone. See
+        # write_settings_xml for why this is a setting at all.
+        '    <property id="lastCrash" type="string"></property>',
         '</properties>',
         '',
     ]
