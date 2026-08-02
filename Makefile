@@ -24,7 +24,15 @@ SDK_BIN     ?= $(CASK_SDK)
 
 MONKEYC     := $(if $(SDK_BIN),$(SDK_BIN)/monkeyc,monkeyc)
 MONKEYDO    := $(if $(SDK_BIN),$(SDK_BIN)/monkeydo,monkeydo)
-SIMULATOR   := $(if $(SDK_BIN),$(SDK_BIN)/connectiq,connectiq)
+# The binary inside the SDK's own app bundle, not the `connectiq` launcher
+# beside it. That launcher runs `open -a .../ConnectIQ.app`, and `open -a`
+# hands the path to LaunchServices, which resolves it by bundle id: if a copy
+# of ConnectIQ.app has ever been registered from /Applications, that stale one
+# starts instead. It then reports "SDK Version 4.2.0.beta2 or greater is
+# required to run this device" against a 9.2.0 SDK, and cannot find its own
+# version.txt, because it is looking beside itself in /Applications rather than
+# in the SDK. Running the binary keeps its home directory inside the SDK.
+SIMULATOR   := $(if $(SDK_BIN),$(SDK_BIN)/ConnectIQ.app/Contents/MacOS/simulator,connectiq)
 
 # The simulator's side-load socket. Kept on its own line: a trailing `#`
 # comment ends the value but leaves the spaces before it inside the variable.

@@ -151,9 +151,22 @@ class MapView extends WatchUi.View {
     function onUpdate(dc) {
         try {
             drawEverything(dc);
-            // Got a whole frame out of this pack. Whatever the breadcrumb was
-            // tracking, we survived it, so stop writing them.
-            Diag.disarm();
+            // Keep leaving crumbs for as long as a downloaded map is on
+            // screen, and stop only once we are back on the built-in one.
+            //
+            // This used to disarm after any successful frame, which quietly
+            // broke the whole diagnostic in 0.3.8: throttled loading means the
+            // first frame now *does* succeed, so tracing switched off after it
+            // and every later kill left nothing behind. The watchdog does not
+            // only fire on the first frame. It fires whenever a frame runs
+            // long, which is just as easily the third one, mid-pan, as the
+            // map fills in.
+            //
+            // The cost is one storage write per block actually decoded, and
+            // blocks are only decoded on a cache miss. `onStop` clears the
+            // crumb, so a clean exit leaves none and anything still there was
+            // a kill.
+            if (!Pack.isDownloaded()) { Diag.disarm(); }
         } catch (ex) {
             Diag.record("render", ex);
             // The pack that failed to draw must not be drawn again, or this

@@ -272,17 +272,19 @@ def write_settings_xml(entries: Sequence[Dict[str, object]], path: str,
     lines += [
         '        </settingConfig>',
         '    </setting>',
-        # The watch writes this one and the phone only reads it.
+        # The watch writes this one and the phone is only meant to read it.
         #
         # There is no read-only control in the settings schema, so it is an
-        # ordinary text field. Editing it changes nothing: the app overwrites
-        # it at the next launch and never reads it back.
+        # ordinary text field and can be typed into. Worse, opening the
+        # settings page can push the phone's cached value back down over what
+        # the watch wrote. So this is the convenient copy, not the reliable
+        # one: the line drawn on the map is authoritative, and the watch's own
+        # CIQ_LOG.YML over USB is definitive.
         #
-        # It exists because the failure it reports is one the watch cannot
-        # report any other way. The app is killed outright, the screen goes
-        # black, and the only surviving record is what was written to storage
-        # beforehand. Surfacing it here means it can be read in Garmin Connect
-        # instead of off the watch face.
+        # It is still worth having, because the failure it reports is one the
+        # watch cannot report any other way. The app is killed outright, the
+        # screen goes black, and the only surviving record is whatever was
+        # written to storage beforehand.
         '    <setting propertyKey="@Properties.lastCrash"',
         '             title="@Strings.SettingLastCrash"',
         '             prompt="@Strings.SettingLastCrashPrompt">',

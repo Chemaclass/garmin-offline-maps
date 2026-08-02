@@ -40,8 +40,8 @@
     <string id="SourceRepo">Chemaclass/garmin-offline-maps</string>
 
     <!-- Phone-side settings, shown in Garmin Connect. -->
-    <string id="SettingLastCrash">Last crash (read only)</string>
-    <string id="SettingLastCrashPrompt">Empty is good. If the app was ever killed on the watch, this names the step it died on. Editing it does nothing; the watch overwrites it.</string>
+    <string id="SettingLastCrash">Last crash</string>
+    <string id="SettingLastCrashPrompt">Written by the watch, not by you. Empty is good. If the app was ever killed, this names the step it died on. Connect IQ has no read-only field, so this one can be typed in; the watch overwrites it at the next launch after a crash. The same text also appears in red at the bottom of the map, which is the copy worth trusting.</string>
     <string id="SettingCity">City</string>
     <string id="SettingCityPrompt">Easier on the watch: hold the screen, then Change city. Or type a name from the catalogue, such as berlin. Leave empty for the built-in map.</string>
     <string id="SettingCityBuiltIn">Built-in map</string>
