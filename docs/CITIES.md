@@ -25,15 +25,19 @@ two stay in step: choosing on the watch writes the phone setting back.
 in total**, **8 KB per value**, and it holds strings rather than byte arrays, so
 a block is base64 both on the wire and at rest.
 
-Measured against Berlin at one data zoom:
+Measured against Berlin, the densest city likely to be asked for, at one data
+zoom over a 6 km radius:
 
 | Profile | Stored | Verdict |
 |---|---|---|
 | simplify 2.0, 1100 pts | 328 KB | 3x over |
 | simplify 4.0, 300 pts | 103 KB | no headroom |
-| **simplify 4.0, 260 pts** | **71 KB** | the profile, 5 km radius |
+| **simplify 4.0, 260 pts** | **110 KB** | the profile |
 | simplify 6.0, 200 pts | 71 KB | too sparse to read |
 | add z16, street level | 1.62 MB | 13x over |
+
+110 KB against a ~128 KB ceiling is still too tight, which is what the radius
+is for: the same profile over 5 km gives **71 KB**.
 
 So a downloaded city is **an orientation map**: motorways, primaries,
 secondaries, water, rail and parks. No residential streets. Within the budget
@@ -64,15 +68,16 @@ cd tools/mappack
 python3 -m mappack.publish --city "Madrid" --out ../../docs/packs
 ```
 
-Overpass is a shared free service and will return 429 to a batch that hammers
-it. The publisher paces its fetches, waits out a rate limit rather than dying
-on it, and keeps going when one city fails. The catalogue is rebuilt from the
-cities on disk rather than from the ones this run happened to build, so an
-interrupted batch never drops previously published cities.
+That geocodes the name, fetches from Overpass, crops to `--radius-km`, packs at
+the download profile, and rewrites the catalogue. A city that will not fit is
+**reported and skipped** rather than written, because a half-downloaded city is
+worse than an absent one.
 
-That geocodes the name, fetches from Overpass, packs at the download profile,
-and rewrites the catalogue. A city that will not fit is **reported and skipped**
-rather than written, because a half-downloaded city is worse than an absent one.
+Overpass is a shared free service and will return 429 to a batch that hammers
+it. The publisher paces its fetches, waits out a rate limit rather than dying on
+it, and isolates a failure to the city that caused it. The catalogue is rebuilt
+from the cities on disk rather than from the ones this run happened to build, so
+an interrupted batch never drops previously published cities.
 
 Adding a city needs no app update. That is why the setting is a text field
 rather than a dropdown: a dropdown is compiled into the app, so every new city
