@@ -9,6 +9,17 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Nothing yet.
 
+## [0.3.19] - 2026-08-02
+
+### Fixed
+
+- **Panning a downloaded city no longer stops the app.** 0.3.18 let a single
+  piece of map take as long as it liked, and while turning the map with the
+  compass one of them took long enough that the watch cut the app off. Each
+  frame now finishes one piece and then checks the clock before starting
+  another, which keeps both promises: the map always moves forward, and no
+  frame runs away.
+
 ## [0.3.18] - 2026-08-02
 
 ### Fixed
@@ -385,7 +396,8 @@ simulator.
 - **Preview renderer**: render a pack to PNG and see what the watch will draw
   before spending time flashing it.
 
-[Unreleased]: https://github.com/Chemaclass/garmin-offline-maps/compare/v0.3.18...HEAD
+[Unreleased]: https://github.com/Chemaclass/garmin-offline-maps/compare/v0.3.19...HEAD
+[0.3.19]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.19
 [0.3.18]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.18
 [0.3.17]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.17
 [0.3.16]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.16

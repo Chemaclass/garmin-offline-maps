@@ -70,6 +70,9 @@ class MapRenderer {
     hidden var _cursorTileX;
     //! True once every pass has run to the end for the current view.
     hidden var _complete;
+    //! True while drawing the one tile a frame owes the map regardless of the
+    //! clock. See the note in `render`.
+    hidden var _atomicTile;
 
     function initialize() {
         _segments = 0;
@@ -80,6 +83,7 @@ class MapRenderer {
         _cursorTileY = null;
         _cursorTileX = null;
         _complete = false;
+        _atomicTile = false;
     }
 
     //! Has the whole view been drawn? False means the buffer holds a partial
@@ -232,10 +236,21 @@ class MapRenderer {
                         _cursorTileX = tileX;
                         return;
                     }
+                    // The first tile of a frame finishes whatever the clock
+                    // says; the rest may stop partway and be resumed.
+                    _atomicTile = !drewOne;
                     drawTile(dc, store, colours, camera, pass, dataZoom, log2,
                              tileX, tileY, centreX, centreY, scale,
                              halfW, halfH, cosT, sinT, width, height, budget);
                     drewOne = true;
+                    if (_passTruncated) {
+                        // Stopped inside this tile. Come back to it: next frame
+                        // it will be the atomic one and will finish.
+                        _cursorPass = pass;
+                        _cursorTileY = tileY;
+                        _cursorTileX = tileX;
+                        return;
+                    }
                 }
                 _cursorTileX = minTileX;
             }
@@ -332,7 +347,7 @@ class MapRenderer {
                 // comes back for it. Frames are kept short between tiles
                 // instead, where stopping costs nothing. `budget` survives as
                 // the guard against a single tile being absurd.
-                if (_passWork > budget * 4) {
+                if (!_atomicTile && (_passWork > budget || outOfTime())) {
                     _passTruncated = true;
                     return;
                 }
