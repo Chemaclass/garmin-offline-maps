@@ -9,6 +9,16 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Nothing yet.
 
+## [0.3.18] - 2026-08-02
+
+### Fixed
+
+- **The map finishes drawing and then stops.** 0.3.17 built the map up over
+  several frames but could never decide it was done, so it kept redrawing the
+  same part for as long as the app was open: the map stayed incomplete and the
+  battery paid for it. It now draws a whole piece of map at a time, finishes in
+  a handful of frames, and goes quiet.
+
 ## [0.3.17] - 2026-08-02
 
 ### Fixed
@@ -375,7 +385,8 @@ simulator.
 - **Preview renderer**: render a pack to PNG and see what the watch will draw
   before spending time flashing it.
 
-[Unreleased]: https://github.com/Chemaclass/garmin-offline-maps/compare/v0.3.17...HEAD
+[Unreleased]: https://github.com/Chemaclass/garmin-offline-maps/compare/v0.3.18...HEAD
+[0.3.18]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.18
 [0.3.17]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.17
 [0.3.16]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.16
 [0.3.15]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.15

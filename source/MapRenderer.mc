@@ -205,26 +205,28 @@ class MapRenderer {
         if (_cursorTileY == null) { _cursorTileY = minTileY; }
         if (_cursorTileX == null) { _cursorTileX = minTileX; }
 
+        // A whole tile is the unit of progress, and at least one gets drawn per
+        // frame whatever the clock says.
+        //
+        // That guarantee is what makes resuming terminate. Stopping partway
+        // through a tile means resuming at the same tile, redrawing it from the
+        // start, and stopping in the same place: the map never advances and the
+        // app renders for ever. Measured, before this: 575 frames, 15,000
+        // segments, never once complete.
+        //
+        // Overrunning the budget by one tile is affordable because a tile is
+        // bounded work. The packer caps points per tile in the hundreds, so the
+        // worst tile is nothing like the multi-second budget the watchdog
+        // allows.
+        var drewOne = false;
         for (var pass = _cursorPass; pass <= PASS_LINES; pass += 1) {
             var budget = (pass == PASS_AREAS) ? AREA_SEGMENTS : MAX_SEGMENTS;
             _passWork = 0;
             _passTruncated = false;
-            for (var tileY = _cursorTileY; tileY <= maxTileY && !_passTruncated; tileY += 1) {
-                for (var tileX = _cursorTileX; tileX <= maxTileX && !_passTruncated; tileX += 1) {
-                    // Checked per tile, not only per point.
-                    //
-                    // A tile with nothing packed in it returns from `drawTile`
-                    // before a single point is read, so the point-level check
-                    // never runs for it. At the lowest zoom a screen spans
-                    // thirty-six tiles, most of them empty, and each still
-                    // costs a cache scan and a key lookup. That was unbounded
-                    // work, and it is the part that hurts on a watch rather
-                    // than in the simulator: the same loop is a great deal
-                    // slower there, which is how a frame that measures well on
-                    // a laptop still gets the app killed on the wrist.
-                    if (outOfTime()) {
-                        _passTruncated = true;
-                        // Stop here and come back to this exact tile.
+            for (var tileY = _cursorTileY; tileY <= maxTileY; tileY += 1) {
+                for (var tileX = _cursorTileX; tileX <= maxTileX; tileX += 1) {
+                    if (drewOne && outOfTime()) {
+                        // Resume at this tile, which has not been drawn.
                         _cursorPass = pass;
                         _cursorTileY = tileY;
                         _cursorTileX = tileX;
@@ -233,15 +235,7 @@ class MapRenderer {
                     drawTile(dc, store, colours, camera, pass, dataZoom, log2,
                              tileX, tileY, centreX, centreY, scale,
                              halfW, halfH, cosT, sinT, width, height, budget);
-                }
-                if (_passTruncated) {
-                    // Out of budget rather than out of time: `drawTile` stopped
-                    // partway along this row, so resume at its start. A tile
-                    // redrawn is harmless; a tile skipped is a hole in the map.
-                    _cursorPass = pass;
-                    _cursorTileY = tileY;
-                    _cursorTileX = minTileX;
-                    return;
+                    drewOne = true;
                 }
                 _cursorTileX = minTileX;
             }
@@ -329,7 +323,16 @@ class MapRenderer {
                     drawPolyline(dc, reader, pointCount, originX, originY, unitsToPixels,
                                  halfW, halfH, cosT, sinT, rotated, width, height);
                 }
-                if (_passWork > budget || outOfTime()) {
+                // Only a runaway count stops a tile now, not the clock and not
+                // the segment budget.
+                //
+                // A tile is drawn whole or the map gets holes in it. Stopping
+                // partway leaves the rest of that tile undrawn, and the frame
+                // loop has already moved the cursor past it, so nothing ever
+                // comes back for it. Frames are kept short between tiles
+                // instead, where stopping costs nothing. `budget` survives as
+                // the guard against a single tile being absurd.
+                if (_passWork > budget * 4) {
                     _passTruncated = true;
                     return;
                 }
