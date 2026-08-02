@@ -38,8 +38,23 @@ MONKEYDO    := $(if $(SDK_BIN),$(SDK_BIN)/monkeydo,monkeydo)
 # shell gives a process with a window that never draws. It answers on the
 # side-load port and runs the app, so everything looks fine from the terminal
 # while the simulator sits there blank.
-SIM_APP     := $(if $(SDK_BIN),$(SDK_BIN)/ConnectIQ.app,)
-SIMULATOR   := $(if $(SIM_APP),open $(SIM_APP),connectiq)
+# The simulator comes from a different SDK than the compiler, deliberately.
+#
+# 9.2.0's simulator segfaults on macOS 26.5.2 the moment an app draws:
+# EXC_BAD_ACCESS, null deref, every frame inside Garmin's closed-source
+# `simulator` binary. The window appears for about a second and vanishes, and
+# `monkeydo` still exits 0, so from the terminal it looks like it worked.
+# Garmin's own sample apps kill it the same way, so it is not ours to fix.
+#
+# 9.1.0's simulator runs the identical .prg without crashing. So: compile with
+# the newest SDK, simulate with the newest one that survives. Prefer an
+# SDK-manager install under ~/.Garmin (newest last, and never the cask's, which
+# is hard-linked into /Applications where it cannot find its own version.txt).
+SIM_SDK     := $(lastword $(sort $(wildcard $(HOME)/.Garmin/ConnectIQ/Sdks/connectiq-sdk-mac-9.1.*/bin)))
+SIM_APP     := $(if $(SIM_SDK),$(SIM_SDK)/ConnectIQ.app,$(if $(SDK_BIN),$(SDK_BIN)/ConnectIQ.app,))
+SIMULATOR   := $(if $(SIM_APP),$(SIM_APP)/Contents/MacOS/simulator,connectiq)
+# monkeydo has to match the simulator it talks to.
+MONKEYDO_SIM := $(if $(SIM_SDK),$(SIM_SDK)/monkeydo,$(MONKEYDO))
 
 # The simulator's side-load socket. Kept on its own line: a trailing `#`
 # comment ends the value but leaves the spaces before it inside the variable.
@@ -173,15 +188,18 @@ sim: build
 		echo ">> starting simulator (leave it running between builds)"; \
 		$(SIMULATOR) >/dev/null 2>&1 & \
 	fi
-	@for i in $$(seq 1 30); do \
+	@for i in $$(seq 1 60); do \
 		nc -z 127.0.0.1 $(SIM_PORT) 2>/dev/null && break; \
-		if [ $$i -eq 30 ]; then \
-			echo ">> simulator never opened port $(SIM_PORT)" >&2; exit 1; \
+		if [ $$i -eq 60 ]; then \
+			echo ">> simulator never opened port $(SIM_PORT)." >&2; \
+			echo "   A wedged instance keeps the port shut. Reset with:" >&2; \
+			echo "     pkill -f 'bin/monkeydo'; pkill -f 'MacOS/simulator'" >&2; \
+			exit 1; \
 		fi; \
 		sleep 1; \
 	done
 	@echo ">> side-loading $(PRG) as $(DEVICE) -- Ctrl-C detaches, sim keeps running"
-	$(MONKEYDO) $(PRG) $(DEVICE)
+	$(MONKEYDO_SIM) $(PRG) $(DEVICE)
 
 # --- store listings --------------------------------------------------------
 # The map is compiled in, so one listing covers one region. cities.json holds

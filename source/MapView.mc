@@ -334,8 +334,15 @@ class MapView extends WatchUi.View {
 
         var font = Graphics.FONT_XTINY;
         var lineHeight = dc.getFontHeight(font);
-        var lines = wrapText(dc, text, font, _width * 0.90);
-        var top = _height - lineHeight * lines.size() - lineHeight / 2;
+        // 0.70 of the width, and sitting just past the middle of the screen.
+        //
+        // Both numbers are about the display being round. Near the bottom the
+        // usable chord is far narrower than the screen: at 86% of the height on
+        // a 454 px round face it is about 316 px, not the 408 that 90% of the
+        // width suggests. Wrapping to that 408 produced a line clipped at
+        // *both* ends, losing the word that names the failure.
+        var lines = wrapText(dc, text, font, _width * 0.70);
+        var top = (_height * 0.56).toNumber();
 
         // A panel behind it: red on a rendered map is not reliably legible, and
         // this text only appears when something is already wrong.

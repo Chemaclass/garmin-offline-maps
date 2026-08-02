@@ -1,6 +1,7 @@
 import Toybox.Graphics;
 import Toybox.Lang;
 import Toybox.Math;
+import Toybox.System;
 
 //! Draws the visible tiles into a device context.
 //!
@@ -26,6 +27,26 @@ class MapRenderer {
     const AREA_SEGMENTS = 900;
     const MAX_POLYGON_POINTS = 64;
 
+    //! Milliseconds a single render may spend before it gives up and draws
+    //! what it has.
+    //!
+    //! The segment counts above are a proxy for time, and on a downloaded city
+    //! the proxy broke: the watchdog killed the app inside `drawPolyline`,
+    //! decoding varints, with the segment budget not yet spent. Two reasons it
+    //! could not save us. The budget is only tested between features, so one
+    //! dense feature runs to its end whatever the cost; and a segment is not a
+    //! fixed amount of work, so 2600 of them is a different length of frame in
+    //! Berlin than in the demo pack.
+    //!
+    //! Time is what the watchdog actually measures, so measure the same thing.
+    //! It fires around 5 s (docs/DEVICES.md); this leaves room for the blit and
+    //! everything else in the frame.
+    const FRAME_BUDGET_MS = 1200;
+
+    //! Checked every 32 points rather than every point: `getTimer` in the inner
+    //! loop of the hot path would itself cost more than it saves.
+    const TIME_CHECK_MASK = 0x1F;
+
     const PASS_AREAS = 0;
     const PASS_LINES = 1;
 
@@ -33,6 +54,10 @@ class MapRenderer {
     hidden var _passSegments;
     hidden var _tilesDrawn;
     hidden var _passTruncated;
+    //! `System.getTimer()` value past which this render stops.
+    hidden var _deadline;
+    //! True when a render ended on the clock rather than on its budget.
+    hidden var _timedOut;
 
     function initialize() {
         _segments = 0;
@@ -44,11 +69,28 @@ class MapRenderer {
     function segmentsDrawn() { return _segments; }
     function tilesDrawn() { return _tilesDrawn; }
 
+    //! Did the last render stop on the clock? Worth knowing: it means the map
+    //! on screen is missing detail it had time to find but not to draw.
+    function timedOut() { return _timedOut; }
+
+    //! Past the deadline for this frame. Latches `_timedOut`, so the answer
+    //! survives the unwinding that follows.
+    hidden function outOfTime() {
+        if (_timedOut) { return true; }
+        if (System.getTimer() >= _deadline) {
+            _timedOut = true;
+            return true;
+        }
+        return false;
+    }
+
     function render(dc, camera, store) {
         _segments = 0;
         _passSegments = 0;
         _tilesDrawn = 0;
         _passTruncated = false;
+        _deadline = System.getTimer() + FRAME_BUDGET_MS;
+        _timedOut = false;
 
         store.beginFrame();
 
@@ -175,7 +217,7 @@ class MapRenderer {
                     drawPolyline(dc, reader, pointCount, originX, originY, unitsToPixels,
                                  halfW, halfH, cosT, sinT, rotated, width, height);
                 }
-                if (_passSegments > budget) {
+                if (_passSegments > budget || outOfTime()) {
                     _passTruncated = true;
                     return;
                 }
@@ -193,6 +235,18 @@ class MapRenderer {
         var prevInside = false;
 
         for (var i = 0; i < pointCount; i += 1) {
+            // Inside the point loop, not just around it. This is the frame the
+            // watchdog killed: one polyline long enough to run out the clock on
+            // its own, with the caller's budget check never reached.
+            //
+            // No need to consume the remaining varints to keep the reader in
+            // step: `drawTile` builds a fresh one per tile and returns as soon
+            // as it sees the truncation, so this one is thrown away. Reading
+            // them would spend exactly the time we are trying to save.
+            if ((i & TIME_CHECK_MASK) == 0 && outOfTime()) {
+                _passTruncated = true;
+                return;
+            }
             x += reader.svarint();
             y += reader.svarint();
 
@@ -229,6 +283,10 @@ class MapRenderer {
         var at = 0;
 
         for (var i = 0; i < pointCount; i += 1) {
+            if ((i & TIME_CHECK_MASK) == 0 && outOfTime()) {
+                _passTruncated = true;
+                return;
+            }
             x += reader.svarint();
             y += reader.svarint();
             if (at >= keep) {
