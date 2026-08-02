@@ -78,6 +78,26 @@ jobs:
         run: |
           cp docs/index.html site/index.html
           cp -r docs/img site/img
+          # Rewrite the city table from the catalogue that was just built, so
+          # the page cannot advertise a city that is not published, or miss one
+          # that is.
+          python3 - <<'PY'
+          import json, re
+          cities = json.load(open("site/packs/catalogue.json"))["cities"]
+          rows = "\n".join(
+              '          <tr><td>%s</td><td>%s</td><td class="size">%d KB</td></tr>'
+              % (c["name"], c.get("country", ""), c["storedBytes"] // 1024)
+              for c in cities)
+          page = open("site/index.html", encoding="utf-8").read()
+          page, n = re.subn(
+              r"(<!-- CITY-TABLE-START -->).*?(<!-- CITY-TABLE-END -->)",
+              lambda m: m.group(1) + "\n" + rows + "\n          " + m.group(2),
+              page, flags=re.S)
+          if n != 1:
+              raise SystemExit("city table markers not found in index.html")
+          open("site/index.html", "w", encoding="utf-8").write(page)
+          print("wrote %d city rows into the page" % len(cities))
+          PY
           # Stop Pages running Jekyll over the artifact; everything is static
           # and Jekyll would skip any file or folder starting with an
           # underscore.

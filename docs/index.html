@@ -331,23 +331,23 @@ footer p:last-child { margin: 0; }
     </p>
 
     <!--
-      This list mirrors docs/packs/catalogue.json. It is written out statically
-      rather than fetched at runtime, so the page needs no requests at all and
-      works when opened from disk.
+      CITY-TABLE-START and CITY-TABLE-END mark the rows that
+      .github/workflows/publish-packs.yml rewrites from the freshly built
+      catalogue.json, so this page can never disagree with what is published.
+      The rows below are a fallback for opening the file from disk; the
+      workflow replaces them on every deploy.
 
-      Regenerate it by hand whenever a city is published with:
-        cd tools/mappack
-        python3 -m mappack.publish --city "Name" --out ../../docs/packs
+      Do not hand-edit the rows. Edit cities.txt and let CI publish.
     -->
     <div class="scroll">
       <table>
         <thead>
-          <tr><th>City</th><th>Size on watch</th><th>Blocks</th></tr>
+          <tr><th>City</th><th>Country</th><th>Size on watch</th></tr>
         </thead>
         <tbody>
-          <tr><td>Berlin</td><td class="size">71 KB</td><td class="blocks">20</td></tr>
-          <tr><td>Madrid</td><td class="size">56 KB</td><td class="blocks">16</td></tr>
-          <tr><td>Murcia</td><td class="size">38 KB</td><td class="blocks">12</td></tr>
+          <!-- CITY-TABLE-START -->
+          <tr><td>Berlin</td><td>Germany</td><td class="size">71 KB</td></tr>
+          <!-- CITY-TABLE-END -->
         </tbody>
       </table>
     </div>
