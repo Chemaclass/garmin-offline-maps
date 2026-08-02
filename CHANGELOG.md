@@ -9,6 +9,17 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Nothing yet.
 
+## [0.3.3] - 2026-08-02
+
+### Fixed
+
+- **Downloading a city works.** Opening a downloaded map stopped the app dead,
+  with a black screen and the Connect IQ error icon. Numbers arriving from the
+  downloaded map description could be fractional where whole numbers were
+  required, and that failure could not be caught: it ended the app outright.
+  They are now converted as they are read, so a downloaded city draws like a
+  built-in one.
+
 ## [0.3.2] - 2026-08-02
 
 ### Fixed
@@ -148,7 +159,8 @@ simulator.
 - **Preview renderer**: render a pack to PNG and see what the watch will draw
   before spending time flashing it.
 
-[Unreleased]: https://github.com/Chemaclass/garmin-offline-maps/compare/v0.3.2...HEAD
+[Unreleased]: https://github.com/Chemaclass/garmin-offline-maps/compare/v0.3.3...HEAD
+[0.3.3]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.3
 [0.3.2]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.2
 [0.3.1]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.1
 [0.3.0]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.0

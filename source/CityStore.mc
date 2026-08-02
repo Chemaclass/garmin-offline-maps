@@ -77,9 +77,19 @@ module CityStore {
         return stored != null && stored["complete"] == true;
     }
 
+    //! `toNumber()` before `toString()` on every key, everywhere.
+    //!
+    //! A key that arrived from JSON as a Float stringifies as "1024.0" while
+    //! the renderer computes "1024", and the block is then written under one
+    //! name and looked up under another. Same reason the pack metadata is
+    //! coerced; see Pack.
+    function keyName(key) {
+        return KEY_BLOCK + key.toNumber().toString();
+    }
+
     function blockBase64(key) {
         try {
-            return Application.Storage.getValue(KEY_BLOCK + key.toString());
+            return Application.Storage.getValue(keyName(key));
         } catch (ex) {
             return null;
         }
@@ -89,7 +99,7 @@ module CityStore {
     //! city that overruns the device budget shows up at runtime.
     function putBlock(key, encoded) {
         try {
-            Application.Storage.setValue(KEY_BLOCK + key.toString(), encoded);
+            Application.Storage.setValue(keyName(key), encoded);
             return true;
         } catch (ex) {
             System.println("CityStore: could not store block " + key);
@@ -133,7 +143,7 @@ module CityStore {
             if (stored != null && stored["blocks"] != null) {
                 var keys = stored["blocks"] as Array<Number>;
                 for (var i = 0; i < keys.size(); i += 1) {
-                    Application.Storage.deleteValue(KEY_BLOCK + keys[i].toString());
+                    Application.Storage.deleteValue(keyName(keys[i]));
                 }
             }
             Application.Storage.deleteValue(KEY_META);

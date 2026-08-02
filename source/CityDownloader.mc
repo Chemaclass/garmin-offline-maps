@@ -101,8 +101,10 @@ class CityDownloader {
             return;
         }
         if (_onProgress != null) { _onProgress.invoke(_at, _keys.size()); }
-        request(_baseUrl + "/" + _slug + "/b" + _keys[_at].toString() + ".json",
-                method(:onBlock));
+        // toNumber() for the same reason as CityStore.keyName: a Float key
+        // would build ".../b1024.0.json" and 404.
+        request(_baseUrl + "/" + _slug + "/b" + _keys[_at].toNumber().toString()
+                + ".json", method(:onBlock));
     }
 
     //! Same annotation rule as `onMeta`.
