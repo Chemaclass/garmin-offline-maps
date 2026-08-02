@@ -1,0 +1,41 @@
+# Cities published to the download catalogue.
+#
+# One name per line, as you would type it into a search box. Each is geocoded
+# through Nominatim and packed from OpenStreetMap by .github/workflows/
+# publish-packs.yml, which deploys the result to GitHub Pages. Nothing packed
+# is committed: this file is the input, the packs are build output.
+#
+# Adding a city is a one-line change. Someone asking for theirs should open a
+# "Add a city" issue; see .github/ISSUE_TEMPLATE/add-a-city.yml.
+#
+# Ambiguous names resolve to the top Nominatim match, so qualify them when it
+# matters ("Valencia, Spain" rather than "Valencia"). The slug the watch uses
+# is this line lowercased with separators hyphenated, so "Caravaca de la Cruz"
+# becomes caravaca-de-la-cruz. Where a name needs qualifying to geocode but the
+# qualifier should not end up in the slug, write "Query | slug".
+#
+# Cost per city is roughly 40 to 90 KB of published site and one Overpass
+# query. Overpass is a shared free service: the publisher paces itself and
+# backs off, but a list in the hundreds should move to Geofabrik extracts
+# (`--input country-latest.osm.pbf`) rather than hammering it.
+
+# --- Germany
+Berlin
+Hamburg
+Munich
+
+# --- Spain
+Madrid
+Barcelona
+Valencia, Spain | valencia
+Murcia
+Caravaca de la Cruz
+Bullas
+Cehegin
+Cartagena, Spain | cartagena
+
+# --- rest of Europe
+Amsterdam
+Paris
+Lisbon
+Vienna

@@ -1,0 +1,50 @@
+name: Add a city
+description: Ask for a city to be added to the downloadable catalogue
+title: "Add a city: "
+labels: ["city request"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Cities are packed from OpenStreetMap and published to the catalogue the
+        watch downloads from. Adding one is a one-line change, so please ask.
+
+        Before you do, check it is not already there:
+        [the city list](https://chemaclass.github.io/garmin-offline-maps/).
+
+  - type: input
+    id: city
+    attributes:
+      label: City
+      description: >
+        The name as you would type it into a search box. Add the country if the
+        name is used more than once, for example "Valencia, Spain".
+      placeholder: Caravaca de la Cruz, Spain
+    validations:
+      required: true
+
+  - type: textarea
+    id: area
+    attributes:
+      label: What should it cover?
+      description: >
+        A city is packed as a box around its centre, about 10 km across by
+        default. Say if the interesting part is somewhere other than the middle,
+        or if a neighbouring town should be included.
+      placeholder: The old town and the road out towards the reservoir.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: understood
+    attributes:
+      label: What a downloaded city is
+      description: >
+        Worth knowing before you ask, so the result is not a surprise.
+      options:
+        - label: >
+            I understand a downloaded city is an orientation map: major roads,
+            water, rail and parks, with no residential streets. The watch gives
+            the app about 128 KB to hold a city, and street-level detail does
+            not fit. Street detail needs a custom build of the app.
+          required: true

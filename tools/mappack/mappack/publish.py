@@ -50,6 +50,14 @@ def slugify(name: str) -> str:
 
 
 def read_city_list(path: str) -> List[str]:
+    """One city per line. `Query | slug` overrides the generated slug.
+
+    The override exists because a name often needs qualifying to geocode
+    correctly ("Valencia, Spain") while the slug people type should not carry
+    the qualifier. Without it that city publishes as `valencia-spain` and
+    anyone typing `valencia` gets nothing, which is the same silent 404 that
+    capital letters used to cause.
+    """
     names = []
     with open(path, encoding="utf-8") as fh:
         for line in fh:
@@ -57,6 +65,14 @@ def read_city_list(path: str) -> List[str]:
             if line:
                 names.append(line)
     return names
+
+
+def split_entry(entry: str):
+    """`"Valencia, Spain | valencia"` -> `("Valencia, Spain", "valencia")`."""
+    if "|" in entry:
+        query, slug = entry.split("|", 1)
+        return query.strip(), slugify(slug.strip())
+    return entry.strip(), None
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -80,15 +96,16 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def build_city(name: str, args, searcher=None, loader=None) -> Optional[dict]:
+def build_city(entry: str, args, searcher=None, loader=None) -> Optional[dict]:
     """Geocode, fetch, pack and write one city. None when it did not fit."""
+    name, override = split_entry(entry)
     search = searcher if searcher is not None else geocode.search
     places = search(name, url=geocode.DEFAULT_NOMINATIM_URL)
     if not places:
         print("  no match for %r, skipped" % name, file=sys.stderr)
         return None
     place = places[0]
-    slug = slugify(name)
+    slug = override if override else slugify(name)
     bbox = geocode.bbox_around(place.lat, place.lon, args.radius_km)
 
     cache = None

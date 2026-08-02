@@ -98,6 +98,23 @@ class TestBuildCity(unittest.TestCase):
         self.assertEqual(entry["slug"], "madrid-spain")
 
 
+class TestSlugOverride(unittest.TestCase):
+    def test_a_bare_name_has_no_override(self):
+        self.assertEqual(publish.split_entry("Berlin"), ("Berlin", None))
+
+    def test_an_override_drops_the_geocoding_qualifier(self):
+        # "Valencia" alone geocodes to the wrong country often enough to need
+        # qualifying, but nobody should have to type "valencia-spain".
+        self.assertEqual(publish.split_entry("Valencia, Spain | valencia"),
+                         ("Valencia, Spain", "valencia"))
+
+    def test_the_override_is_itself_slugified(self):
+        self.assertEqual(publish.split_entry("X | New York")[1], "new-york")
+
+    def test_whitespace_around_the_bar_is_optional(self):
+        self.assertEqual(publish.split_entry("A, B|c"), ("A, B", "c"))
+
+
 class TestCityList(unittest.TestCase):
     def setUp(self):
         self.dir = tempfile.mkdtemp()

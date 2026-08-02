@@ -1,0 +1,119 @@
+name: Publish city packs
+
+# Builds the download catalogue and the website, and deploys both to GitHub
+# Pages. The packs are build output and are deliberately never committed: this
+# workflow is the only thing that produces them, and the published site is the
+# only place they exist.
+#
+# Run it from the Actions tab, or let it run itself when cities.txt or the
+# packer changes.
+
+on:
+  workflow_dispatch:
+    inputs:
+      radius_km:
+        description: "Half-width of each city, in km"
+        default: "5"
+        required: false
+  push:
+    branches: [main]
+    paths:
+      - cities.txt
+      - tools/mappack/**
+      - docs/index.html
+      - docs/img/**
+      - .github/workflows/publish-packs.yml
+
+# Pages deployment needs these; the default token is read-only.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never let two deploys race. Do not cancel one in flight: a half-finished
+# deploy would take the packs offline for anyone downloading a city.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    # Overpass is slow and paced on purpose. The default 6 h job limit is
+    # plenty; this guard is to stop a hung request burning an afternoon.
+    timeout-minutes: 90
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          # No pip install: mappack is stdlib only, and stays that way.
+
+      # Overpass responses are large and slow to fetch, and they change far
+      # more slowly than the packer does. Caching them means a change to the
+      # packing profile can be republished without touching Overpass at all.
+      - name: Restore cached OpenStreetMap extracts
+        uses: actions/cache@v4
+        with:
+          path: .osmcache
+          key: osm-${{ hashFiles('cities.txt') }}
+          restore-keys: osm-
+
+      - name: Pack every city in cities.txt
+        working-directory: tools/mappack
+        run: |
+          python3 -m mappack.publish \
+            --cities ../../cities.txt \
+            --out ../../site/packs \
+            --cache-dir ../../.osmcache \
+            --radius-km "${{ inputs.radius_km || '5' }}" \
+            --base-url "https://chemaclass.github.io/garmin-offline-maps/packs"
+
+      # The site is the landing page plus the packs. The Markdown in docs/ is
+      # deliberately left out: it is contributor documentation and is read on
+      # GitHub, so publishing it would mean running Jekyll here for no gain.
+      - name: Assemble the site
+        run: |
+          cp docs/index.html site/index.html
+          cp -r docs/img site/img
+          # Stop Pages running Jekyll over the artifact; everything is static
+          # and Jekyll would skip any file or folder starting with an
+          # underscore.
+          touch site/.nojekyll
+          echo "--- site contents"
+          du -sh site site/packs
+          find site -maxdepth 2 -type d | sort
+
+      - name: Check the catalogue is usable
+        run: |
+          python3 - <<'PY'
+          import json, sys, os
+          cat = json.load(open("site/packs/catalogue.json"))
+          cities = cat["cities"]
+          if not cities:
+              sys.exit("catalogue is empty, refusing to deploy")
+          worst = max(c["storedBytes"] for c in cities)
+          print("%d cities, largest %.0f KB" % (len(cities), worst / 1024))
+          # The watch has about 128 KB of Application.Storage for a city. A
+          # pack over that cannot be installed, so it must not be published.
+          if worst > 120 * 1024:
+              sys.exit("a city exceeds the watch's storage budget")
+          for c in cities:
+              meta = "site/packs/%s/meta.json" % c["slug"]
+              if not os.path.isfile(meta):
+                  sys.exit("catalogue lists %s but %s is missing" % (c["slug"], meta))
+          PY
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
