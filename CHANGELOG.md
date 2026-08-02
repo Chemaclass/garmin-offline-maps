@@ -7,7 +7,24 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-Nothing yet.
+### Added
+
+- **A first-run card explains the demo map.** A fresh install opens on a small
+  sample map, which looked like a broken map of wherever you happen to be. It
+  now says so, and points at the two ways to get your own city: hold the screen
+  and choose "Change city", or set City in Garmin Connect. Any tap, swipe or
+  button takes it down, and it never returns once a city is downloaded.
+- **A project website** at
+  [chemaclass.github.io/garmin-offline-maps](https://chemaclass.github.io/garmin-offline-maps/),
+  covering what the app does, how downloading a city works, and which cities
+  are published.
+
+### Fixed
+
+- **Choosing a city works from the watch, and typing one is forgiving.** The
+  map menu gained "Change city", which lists what is actually published. The
+  City setting no longer cares about capitals or spaces, so "Berlin" and
+  "New York" resolve rather than silently finding nothing.
 
 ## [0.2.0] - 2026-08-02
 

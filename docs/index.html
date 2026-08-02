@@ -1,0 +1,425 @@
+<!doctype html>
+<!--
+  Landing page for https://chemaclass.github.io/garmin-offline-maps/
+
+  Deliberately a plain static file with NO Jekyll front matter. Jekyll copies it
+  verbatim: no Liquid processing, no theme, no layout, and it opens correctly
+  straight from disk. A static index.html also stops jekyll-readme-index from
+  promoting README.md to the site root, which is the behaviour we want here.
+
+  Hard rule: no external requests. All CSS is inline, fonts are system fonts, and
+  every image is a relative path inside this repo. Links go out, assets never do.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Offline Maps for Garmin</title>
+<meta name="description" content="An offline vector street map for Garmin watches. The map is data stored on the watch, not streamed tiles. No phone and no signal needed once a city is downloaded.">
+<meta name="theme-color" content="#05070A" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<link rel="icon" href="img/store-icon.png" type="image/png">
+<style>
+/* Dark is the default. Light is opt-in via prefers-color-scheme. */
+:root {
+  --bg:      #05070A;
+  --panel:   #0B0F15;
+  --line:    #1C232C;
+  --text:    #FFFFFF;
+  --dim:     #9AA3AE;
+  --accent:  #00FF88;
+  --link:    #00FF88;
+  --blue:    #00B0FF;
+  --amber:   #FFAA00;
+  --on-accent: #05070A;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg:      #FFFFFF;
+    --panel:   #F4F6F8;
+    --line:    #DCE1E7;
+    --text:    #05070A;
+    --dim:     #5B646F;
+    /* The bright green stays on buttons and rules, where it sits on dark ink.
+       Link and accent text get a darkened variant so they stay readable. */
+    --accent:  #00FF88;
+    --link:    #007A46;
+    --blue:    #00669B;
+    --amber:   #8A5B00;
+    --on-accent: #05070A;
+  }
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 17px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+a { color: var(--link); }
+a:hover { text-decoration: none; }
+
+h1, h2, h3 { line-height: 1.25; font-weight: 650; letter-spacing: -0.01em; }
+h2 { font-size: 1.45rem; margin: 0 0 14px; }
+h3 { font-size: 1.05rem; margin: 0 0 6px; }
+p  { margin: 0 0 16px; }
+
+.dim { color: var(--dim); }
+.small { font-size: 0.9rem; }
+
+section { padding: 46px 0; border-top: 1px solid var(--line); }
+
+/* ---------- header ---------- */
+
+header { padding: 56px 0 46px; text-align: center; }
+
+.mark {
+  width: 76px; height: 76px;
+  border-radius: 18px;
+  display: block;
+  margin: 0 auto 22px;
+}
+
+header h1 {
+  font-size: 2.1rem;
+  margin: 0 0 12px;
+}
+
+.tagline {
+  font-size: 1.12rem;
+  color: var(--dim);
+  max-width: 30em;
+  margin: 0 auto 30px;
+}
+
+.cta {
+  display: inline-block;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 650;
+  font-size: 1.02rem;
+  text-decoration: none;
+  padding: 14px 26px;
+  border-radius: 10px;
+}
+.cta:hover { filter: brightness(1.08); }
+
+.cta-note { margin: 14px 0 0; font-size: 0.9rem; color: var(--dim); }
+.cta-note a { color: var(--dim); }
+
+/* ---------- product shot ---------- */
+
+.shot img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+.caption { text-align: center; color: var(--dim); font-size: 0.85rem; margin: 12px 0 0; }
+
+/* ---------- facts ---------- */
+
+.facts { display: grid; gap: 14px; }
+.fact {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 18px 20px;
+}
+.fact h3 { color: var(--text); }
+.fact p { margin: 0; color: var(--dim); font-size: 0.97rem; }
+
+/* ---------- steps ---------- */
+
+ol.steps { margin: 0; padding: 0 0 0 1.3em; }
+ol.steps li { margin-bottom: 10px; }
+
+.kbd {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.88em;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 1px 6px;
+}
+
+/* ---------- cities ---------- */
+
+.scroll { overflow-x: auto; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.97rem;
+}
+th, td {
+  text-align: left;
+  padding: 11px 14px 11px 0;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+th { color: var(--dim); font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.04em; }
+td.size { color: var(--blue); font-variant-numeric: tabular-nums; }
+td.blocks { color: var(--dim); font-variant-numeric: tabular-nums; }
+
+/* ---------- limitation ---------- */
+
+.limit {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--amber);
+  border-radius: 12px;
+  padding: 20px 22px;
+}
+.limit h2 { font-size: 1.2rem; }
+.limit p:last-child { margin-bottom: 0; }
+
+/* ---------- devices ---------- */
+
+.family { margin-bottom: 18px; }
+.family h3 { margin-bottom: 4px; }
+.ids {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.84rem;
+  color: var(--dim);
+  word-spacing: 0.35em;
+  line-height: 1.8;
+}
+
+/* ---------- footer ---------- */
+
+footer {
+  border-top: 1px solid var(--line);
+  padding: 34px 0 60px;
+  color: var(--dim);
+  font-size: 0.9rem;
+}
+footer p { margin: 0 0 10px; }
+footer p:last-child { margin: 0; }
+
+/* ---------- phone ---------- */
+
+@media (max-width: 620px) {
+  body { font-size: 16px; }
+  header { padding: 40px 0 34px; }
+  header h1 { font-size: 1.72rem; }
+  section { padding: 36px 0; }
+  .shot { max-width: 340px; margin: 0 auto; }
+  .cta { display: block; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <img class="mark" src="img/store-icon.png" alt="" width="512" height="512">
+    <h1>Offline Maps for Garmin</h1>
+    <p class="tagline">
+      A real vector street map for Garmin watches that ship no map of their own.
+      The map is data stored on the watch, not tiles streamed from a phone.
+    </p>
+    <a class="cta" href="https://apps.garmin.com/apps/296a0177-3634-4515-9da2-7336d5dce3c3">Install from the Connect IQ store</a>
+    <p class="cta-note">
+      Free and open source. If it works for you, a review on the store listing helps.
+      <br>
+      <a href="https://github.com/Chemaclass/garmin-offline-maps">Source on GitHub</a>
+    </p>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <!-- Wide banner on a desktop, square cover on a phone, where the banner's
+         baked-in text would be too small to read. One image is loaded, not both.
+         Both files are in this repo: nothing is fetched from another host. -->
+    <div class="shot">
+      <picture>
+        <source media="(max-width: 620px)" srcset="img/store-cover.png">
+        <img src="img/store-hero.png" alt="The map drawn on a round watch face, in the dark theme and the light theme" width="1440" height="720">
+      </picture>
+    </div>
+    <p class="caption">The dark theme and the light theme.</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>How it works</h2>
+    <div class="facts">
+
+      <div class="fact">
+        <h3>You need the internet once</h3>
+        <p>
+          Only to download the city you chose. After that the map works with no
+          phone and no signal, forever. On a plane, in a tunnel, abroad with the
+          phone left at the hotel.
+        </p>
+      </div>
+
+      <div class="fact">
+        <h3>One city at a time</h3>
+        <p>
+          The watch stores a single city. Choosing another one removes the
+          previous one. There is not room for two.
+        </p>
+      </div>
+
+      <div class="fact">
+        <h3>Downloading a city never makes the app bigger</h3>
+        <p>
+          The map lives in the watch's own storage, not in the app binary. The
+          app is the same size whichever city you pick, and whether you have
+          picked one at all.
+        </p>
+      </div>
+
+      <div class="fact">
+        <h3>Open source, and so are the maps</h3>
+        <p>
+          The whole project is open source. The city maps are plain files hosted
+          in the project's own GitHub repository, so you can see exactly what
+          the watch downloads.
+        </p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Getting your city</h2>
+    <p>Either way works, and the two stay in step.</p>
+
+    <h3>On the watch</h3>
+    <ol class="steps">
+      <li>Hold the screen to open the menu.</li>
+      <li>Choose <span class="kbd">Change city</span>.</li>
+      <li>Pick one from the list. It downloads with progress on screen.</li>
+    </ol>
+
+    <h3 style="margin-top:22px">On the phone</h3>
+    <p class="dim">
+      In Garmin Connect, open the settings for this app and type a city name
+      into the <span class="kbd">City</span> field.
+    </p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Cities available now</h2>
+    <p class="dim small">
+      Sizes are what the city occupies in the watch's storage.
+    </p>
+
+    <!--
+      This list mirrors docs/packs/catalogue.json. It is written out statically
+      rather than fetched at runtime, so the page needs no requests at all and
+      works when opened from disk.
+
+      Regenerate it by hand whenever a city is published with:
+        cd tools/mappack
+        python3 -m mappack.publish --city "Name" --out ../../docs/packs
+    -->
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr><th>City</th><th>Size on watch</th><th>Blocks</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Berlin</td><td class="size">71 KB</td><td class="blocks">20</td></tr>
+          <tr><td>Madrid</td><td class="size">56 KB</td><td class="blocks">16</td></tr>
+          <tr><td>Murcia</td><td class="size">38 KB</td><td class="blocks">12</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="limit">
+      <h2>What a downloaded city does not include</h2>
+      <p>
+        A downloaded city is an <strong>orientation map</strong>: major roads,
+        water, rail and parks. It has <strong>no residential streets</strong>.
+      </p>
+      <p>
+        The reason is space. The watch gives the app about 128 KB of storage to
+        hold a city, and street-level detail does not fit in it. Use this to
+        find your bearings and to see where you are against the shape of the
+        city, not to navigate a specific address.
+      </p>
+      <p class="small dim">
+        Street-level detail is possible, but only by compiling a map into a
+        custom build of the app yourself. The
+        <a href="https://github.com/Chemaclass/garmin-offline-maps">repository</a>
+        has the tooling for that.
+      </p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Supported watches</h2>
+    <p class="dim">
+      24 products across four families. The store listing is the authoritative
+      check for your own watch.
+    </p>
+
+    <div class="family">
+      <h3>Venu <span class="dim small">(8)</span></h3>
+      <p class="ids">venu2 venu2plus venu2s venu3 venu3s venu441mm venu445mm venux1</p>
+    </div>
+
+    <div class="family">
+      <h3>Venu Sq <span class="dim small">(2)</span></h3>
+      <p class="ids">venusq2 venusq2m</p>
+    </div>
+
+    <div class="family">
+      <h3>vivoactive <span class="dim small">(2)</span></h3>
+      <p class="ids">vivoactive5 vivoactive6</p>
+    </div>
+
+    <div class="family">
+      <h3>Forerunner <span class="dim small">(12)</span></h3>
+      <p class="ids">fr165 fr165m fr170 fr170m fr265 fr265s fr57042mm fr57047mm fr70 fr955 fr965 fr970</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>
+      Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>
+      contributors, licensed under the ODbL.
+    </p>
+    <p>
+      Code is MIT licensed.
+      <a href="https://github.com/Chemaclass/garmin-offline-maps">github.com/Chemaclass/garmin-offline-maps</a>
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>
