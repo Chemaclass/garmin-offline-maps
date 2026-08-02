@@ -57,7 +57,7 @@ ZOOMS       ?= 12,14,16
 SIMPLIFY    ?= 1.0
 EXTRA       ?=
 
-.PHONY: help doctor key pack demo build sim serve city package test lint clean distclean
+.PHONY: help doctor key pack demo build watch sim serve city package test lint clean distclean
 
 help:
 	@echo "Targets:"
@@ -145,6 +145,11 @@ build: $(KEY)
 	@mkdir -p $(BIN)
 	$(MONKEYC) -f monkey.jungle -o $(PRG) -y $(KEY) -d $(DEVICE) -w
 	@ls -lh $(PRG)
+
+# Build and side-load onto a watch on USB. The fast loop: no store upload, no
+# review, no phone. See tools/push-watch.sh for what it needs.
+watch:
+	@tools/push-watch.sh $(DEVICE)
 
 sim: build
 	@if nc -z 127.0.0.1 $(SIM_PORT) 2>/dev/null; then \
