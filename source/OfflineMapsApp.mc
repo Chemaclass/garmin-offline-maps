@@ -44,10 +44,15 @@ class OfflineMapsApp extends Application.AppBase {
         try {
             _pendingCity = adoptStoredCity();
         } catch (ex) {
-            System.println("stored city unusable: " + ex.getErrorMessage());
+            // Recorded, not just printed: this silently replaces the city the
+            // user chose with the built-in map, and println only reaches a
+            // machine running monkeydo.
+            Diag.record("startup", ex);
             _pendingCity = null;
             Pack.use(null);
-            try { CityStore.clear(); } catch (inner) { }
+            // No guard: `CityStore.clear` handles its own Storage failures and
+            // returns nothing to check.
+            CityStore.clear();
         }
         _camera = new Camera();
         Settings.load(_camera);
@@ -67,9 +72,20 @@ class OfflineMapsApp extends Application.AppBase {
 
     // ---- choosing a city -------------------------------------------------
 
+    //! The city the settings ask for, or null for the built-in map.
+    //!
+    //! Two guards rather than one around both calls. Syncing the phone dropdown
+    //! and reading the city id fail independently, and a failure in the first
+    //! must not discard the second: null here means "run the built-in map", so
+    //! one unreadable dropdown property used to throw away a downloaded city
+    //! that was perfectly readable.
     hidden function wantedCity() {
         try {
             adoptPhoneChoice();
+        } catch (ex) {
+            Diag.record("settings", ex);
+        }
+        try {
             // Normalised because the watch may have written this, and because
             // older builds exposed it as free text: typing "Berlin" would
             // otherwise 404 with nothing to explain why.
@@ -77,6 +93,9 @@ class OfflineMapsApp extends Application.AppBase {
             if (id == null || id.equals(CITY_BUILT_IN)) { return null; }
             return id;
         } catch (ex) {
+            // Silence here is a mystery on the wrist: the chosen city is
+            // ignored and the built-in map appears with nothing said.
+            Diag.record("settings", ex);
             return null;
         }
     }
@@ -92,8 +111,9 @@ class OfflineMapsApp extends Application.AppBase {
     hidden function adoptPhoneChoice() {
         // No null guard: `Properties.getValue` is typed non-null for a declared
         // property and the checker rejects the dead branch. An install from
-        // before these properties existed would throw here instead, which the
-        // caller's try/catch turns into "keep the current map".
+        // before these properties existed throws InvalidKeyException here
+        // instead, which the caller records and steps over -- the city id is
+        // still read, so the map does not change.
         var index = Application.Properties.getValue("cityIndex");
         var seen = Application.Properties.getValue("citySeen");
         if (index.equals(seen)) { return; }
@@ -127,8 +147,11 @@ class OfflineMapsApp extends Application.AppBase {
             Application.Properties.setValue("cityIndex", index);
             Application.Properties.setValue("citySeen", index);
         } catch (ex) {
-            // Not fatal: the download still happens, the phone just disagrees.
-            System.println("could not write cityId");
+            // Not fatal: the download still happens, the phone just disagrees
+            // about which city is active. Printed rather than recorded --
+            // `Diag` has one slot and is drawn on the map, and a cosmetic
+            // phone/watch mismatch is not worth the space a real failure needs.
+            System.println("could not write cityId: " + ex.getErrorMessage());
         }
         if (CityStore.isComplete(slug)) {
             Pack.use(CityStore.meta());
@@ -138,6 +161,12 @@ class OfflineMapsApp extends Application.AppBase {
         startDownload(slug);
     }
 
+    //! Where the catalogue lives, or null when there is nowhere to fetch from.
+    //!
+    //! There is no default in code to fall back on: the working one lives in
+    //! `resources/settings/properties.xml`, so getting null here means the
+    //! setting is missing or blank. Both callers then do nothing at all, and a
+    //! menu entry that does nothing needs to say why -- hence the record.
     hidden function baseUrl() {
         try {
             var url = Application.Properties.getValue("packBaseUrl");
@@ -145,7 +174,7 @@ class OfflineMapsApp extends Application.AppBase {
                 return url;
             }
         } catch (ex) {
-            // fall through to the built-in default
+            Diag.record("catalogue", ex);
         }
         return null;
     }
@@ -174,7 +203,7 @@ class OfflineMapsApp extends Application.AppBase {
             _pendingCity = adoptStoredCity();
             refreshAfterPackChange();
         } catch (ex) {
-            System.println("settings change failed: " + ex.getErrorMessage());
+            Diag.record("settings", ex);
             revertToBuiltIn();
         }
     }
@@ -213,8 +242,7 @@ class OfflineMapsApp extends Application.AppBase {
             refreshAfterPackChange();
             switched = true;
         } catch (ex) {
-            System.println("switch to downloaded city failed: "
-                + ex.getErrorMessage());
+            Diag.record("city", ex);
             revertToBuiltIn();
         }
         if (_downloadView != null) {
@@ -231,11 +259,17 @@ class OfflineMapsApp extends Application.AppBase {
     //! would not load. Leaving it stored would reproduce the failure on every
     //! launch, which is worse than losing the download.
     hidden function revertToBuiltIn() {
+        // `CityStore.clear` handles its own Storage failures, so only the
+        // property write can throw and only it is guarded.
+        CityStore.clear();
         try {
-            CityStore.clear();
             Application.Properties.setValue("cityId", "");
         } catch (ex) {
-            // Nothing further to try.
+            // The failing city stays in the settings and gets adopted again on
+            // the next launch, so this is worth saying. Printed, not recorded:
+            // every caller has already put the cause that brought us here in
+            // `Diag`, and there is only one slot.
+            System.println("could not clear cityId: " + ex.getErrorMessage());
         }
         Pack.use(null);
         if (_store != null) { _store.clear(); }

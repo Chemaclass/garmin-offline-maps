@@ -141,7 +141,7 @@ Both halves have a house style, stated in
 that catch people out:
 
 - **Monkey C here is untyped**, except at Garmin API boundaries that the type
-  checker will not accept untyped, five annotated sites, each with a `//!`
+  checker will not accept untyped, each with a `//!`
   saying why. Do not introduce a partial typing regime beyond those.
 - **The packer is stdlib-only.** Pillow is optional and import-guarded, osmium is
   lazy-imported for `.pbf`. Do not add a dependency, restructure.

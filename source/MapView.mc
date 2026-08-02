@@ -34,6 +34,8 @@ class MapView extends WatchUi.View {
     hidden var _height;
     hidden var _renderMs;
     hidden var _showDebug;
+    //! The diagnostic message this view has actually drawn. See `onShow`.
+    hidden var _diagShown;
 
     function initialize(camera, store, tracker) {
         View.initialize();
@@ -49,6 +51,7 @@ class MapView extends WatchUi.View {
         _dragging = false;
         _renderMs = 0;
         _showDebug = false;
+        _diagShown = null;
     }
 
     function camera() { return _camera; }
@@ -73,17 +76,20 @@ class MapView extends WatchUi.View {
         if (!_useBuffer) {
             createBuffer();
         }
-        // A failure that has been on screen since before the view was hidden
-        // has been seen. Keeping it forever would make a transient fault look
-        // like a permanent one.
-        Diag.clear();
-    }
-
-    //! Drop the buffer and rebuild it -- needed when the palette changes.
-    function rebuild() {
-        _bufferRef = null;
-        createBuffer();
-        _dirty = true;
+        // Clear the diagnostic, but only the one that has been on screen: a
+        // failure the user has seen is done with, and keeping it forever makes
+        // a transient fault look permanent.
+        //
+        // Clearing unconditionally threw away every failure recorded while the
+        // map was *not* the top view, and this view is the only thing that
+        // draws them. A download error is recorded by `CityDownloader` behind
+        // the download screen, and this ran on the way back and erased it
+        // before a single frame could show it. Same for anything `onStart`
+        // records, which happens before the first `onShow`.
+        if (_diagShown != null && _diagShown.equals(Diag.lastError)) {
+            Diag.clear();
+            _diagShown = null;
+        }
     }
 
     hidden function createBuffer() {
@@ -134,10 +140,14 @@ class MapView extends WatchUi.View {
     //!
     //! A throw anywhere in a View's onUpdate takes the app down, and after a
     //! city download that is exactly what a watch showed: black screen, Connect
-    //! IQ error icon. The render is the one path that touches every field of a
-    //! downloaded pack, so it is the likeliest place for a bad value to
-    //! surface. Recording it and dropping back to the built-in map turns a dead
-    //! app into a readable message.
+    //! IQ error icon. Recording the failure and dropping back to the built-in
+    //! map turns a dead app into a readable message.
+    //!
+    //! It does not cover the fault it was written for, and the next reader
+    //! should not assume it does: a Float in a downloaded pack's metadata
+    //! raises a `Lang.Error`, which no `catch` takes. Coercing the metadata in
+    //! `Pack` is what fixed that. What is left here is what the renderer can
+    //! genuinely throw, which is worth catching on its own account.
     function onUpdate(dc) {
         try {
             drawEverything(dc);
@@ -186,11 +196,15 @@ class MapView extends WatchUi.View {
                     dc.clear();
                     dc.drawBitmap(_dragX, _dragY, bitmap);
                 } catch (ex) {
-                    // Name the exception: this catch covers the whole render,
-                    // so swallowing it silently hides real drawing bugs behind
-                    // what looks like a memory fallback.
-                    System.println("MapView: buffered draw failed, drawing direct: "
-                        + ex.getErrorMessage());
+                    // Deliberately wide -- the blit is as likely to run out of
+                    // graphics memory as the render -- so a real drawing bug
+                    // lands here wearing a memory fallback's clothes. That is
+                    // not hypothetical: the paletted buffer threw on every
+                    // frame and the app quietly direct-drew instead, and it
+                    // took a simulator log to notice (docs/RENDERING.md).
+                    // `Diag` puts the reason on the watch; println needs a
+                    // cable, which is no use to whoever is wearing it.
+                    Diag.record("draw", ex);
                     _bufferRef = null;
                     _useBuffer = false;
                     _dirty = true;
@@ -293,6 +307,9 @@ class MapView extends WatchUi.View {
         dc.setColor(colours[Palette.SLOT_MOTORWAY], Graphics.COLOR_TRANSPARENT);
         dc.drawText(_width / 2, (_height * 0.86).toNumber(), Graphics.FONT_XTINY,
                     Diag.lastError, Graphics.TEXT_JUSTIFY_CENTER);
+        // Remembered so `onShow` can tell a failure the user has read from one
+        // recorded while some other view was on top.
+        _diagShown = Diag.lastError;
     }
 
     hidden function drawOverlay(dc, colours as Array<Number>) {

@@ -89,7 +89,10 @@ def build_parser() -> argparse.ArgumentParser:
     # and 110 KB at 6, and the watch has about 128 KB in total.
     parser.add_argument("--radius-km", type=float, default=PUBLISH_RADIUS_KM)
     parser.add_argument("--attribution", default=DEFAULT_ATTRIBUTION)
+    # settings.xml numbers the cities and CityList.mc turns a number back into
+    # a slug, so the two are only correct together. One run writes both.
     parser.add_argument("--settings", help="also write this settings.xml")
+    parser.add_argument("--city-list", help="also write this generated CityList.mc")
     parser.add_argument("--properties", help="also write this properties.xml")
     parser.add_argument("--cache-dir", help="reuse Overpass responses from here")
     parser.add_argument("--overpass-url", default=osmread.DEFAULT_OVERPASS_URL)
@@ -119,15 +122,16 @@ def build_city(entry: str, args, searcher=None, loader=None) -> Optional[dict]:
     options = citypack.download_options(place.name.split(",")[0].strip() or name)
     result = pack(ways, options)
     try:
-        entry = citypack.write_city(result, options, slug, args.out,
-                                    args.attribution, country=country_of(place))
+        published = citypack.write_city(result, options, slug, args.out,
+                                        args.attribution, country=country_of(place))
     except citypack.TooBig as exc:
         print("  %s" % exc, file=sys.stderr)
         return None
     print("  %-22s %2d blocks  %5.1f KB"
-          % (entry["name"], entry["blocks"], entry["storedBytes"] / 1024.0),
+          % (published["name"], published["blocks"],
+             published["storedBytes"] / 1024.0),
           file=sys.stderr)
-    return entry
+    return published
 
 
 def country_of(place) -> str:
@@ -212,6 +216,8 @@ def main(argv=None) -> int:
     if args.settings:
         print("wrote %s" % citypack.write_settings_xml(entries, args.settings,
                                                        args.base_url))
+    if args.city_list:
+        print("wrote %s" % citypack.write_city_list_mc(entries, args.city_list))
     if args.properties:
         print("wrote %s" % citypack.write_properties_xml(args.properties,
                                                          args.base_url))

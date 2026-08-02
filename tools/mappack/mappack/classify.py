@@ -22,19 +22,6 @@ L_MOTORWAY = 9
 
 LAYER_COUNT = 10
 
-LAYER_NAMES = {
-    L_WATER_AREA: "water",
-    L_GREEN_AREA: "green",
-    L_BUILDING: "building",
-    L_WATERWAY: "waterway",
-    L_RAIL: "rail",
-    L_PATH: "path",
-    L_MINOR: "minor",
-    L_TERTIARY: "tertiary",
-    L_PRIMARY: "primary",
-    L_MOTORWAY: "motorway",
-}
-
 GEOM_LINE = 0
 GEOM_POLYGON = 1
 
@@ -73,6 +60,8 @@ _HIGHWAY: Dict[str, Klass] = {
 }
 
 _RAILWAY = {"rail", "light_rail", "subway", "tram", "narrow_gauge", "funicular", "monorail"}
+
+_WATER_NATURAL = {"water", "bay", "strait"}
 
 _GREEN_LEISURE = {"park", "garden", "nature_reserve", "pitch", "golf_course", "common"}
 _GREEN_LANDUSE = {
@@ -118,7 +107,7 @@ def classify(tags: Dict[str, str], include_buildings: bool = False) -> Optional[
         return Klass(L_WATER_AREA, 11, GEOM_POLYGON, 88)
 
     natural = tags.get("natural")
-    if natural in ("water", "bay", "strait"):
+    if natural in _WATER_NATURAL:
         return Klass(L_WATER_AREA, 9, GEOM_POLYGON, 98)
     if natural == "coastline":
         return Klass(L_WATERWAY, 9, GEOM_LINE, 99)
@@ -143,18 +132,31 @@ def classify(tags: Dict[str, str], include_buildings: bool = False) -> Optional[
     return None
 
 
-# Overpass QL filter matching the classifier above. Kept here so the query and
-# the classifier cannot drift apart.
+#: The leisure areas worth fetching as multipolygon relations. A subset of
+#: `_GREEN_LEISURE` on purpose: a park can be a relation, a five-a-side pitch
+#: never is, and relation queries are the expensive half of an Overpass call.
+_RELATION_LEISURE = {"park", "garden", "nature_reserve"}
+
+
+def _any_of(values) -> str:
+    """An Overpass value regex matching exactly `values`, in a stable order."""
+    return "^(%s)$" % "|".join(sorted(values))
+
+
+# Overpass QL filter matching the classifier above. The value lists are built
+# from the sets `classify` matches on rather than re-typed, so the query cannot
+# ask for tags the classifier drops or miss tags it keeps. `way["highway"]` and
+# friends have no list because the classifier takes them all and filters by key.
 OVERPASS_FILTERS = (
     'way["highway"]',
-    'way["railway"~"^(rail|light_rail|subway|tram|narrow_gauge|funicular|monorail)$"]',
+    'way["railway"~"%s"]' % _any_of(_RAILWAY),
     'way["waterway"]',
-    'way["natural"~"^(water|bay|strait|coastline|wood|scrub|heath|grassland|wetland)$"]',
+    'way["natural"~"%s"]' % _any_of(_WATER_NATURAL | {"coastline"} | _GREEN_NATURAL),
     'way["landuse"]',
     'way["leisure"]',
     'relation["natural"="water"]',
     'relation["landuse"]',
-    'relation["leisure"~"^(park|garden|nature_reserve)$"]',
+    'relation["leisure"~"%s"]' % _any_of(_RELATION_LEISURE),
 )
 
 

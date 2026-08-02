@@ -37,6 +37,15 @@ module Diag {
         System.println("Diag " + lastError);
     }
 
+    //! Record a failure that has no exception behind it.
+    //!
+    //! `Lang.Exception` takes no message, so a refusal we detect ourselves
+    //! cannot be dressed up as one just to reuse `record`.
+    function note(where, message) {
+        lastError = where + ": " + message;
+        System.println("Diag " + lastError);
+    }
+
     function clear() {
         lastError = null;
     }

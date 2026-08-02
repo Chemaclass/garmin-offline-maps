@@ -30,7 +30,6 @@ class TileStore {
     hidden var _tick;
     hidden var _bytes;
     hidden var _budget;
-    hidden var _misses;
 
     function initialize(budget) {
         _zoom = [];
@@ -40,7 +39,6 @@ class TileStore {
         _used = [];
         _tick = 0;
         _bytes = 0;
-        _misses = 0;
         _budget = budget == null ? DEFAULT_BUDGET : budget;
     }
 
@@ -69,7 +67,6 @@ class TileStore {
         try {
             var payload = Pack.blockBase64(zoom, blockX, blockY);
             if (payload == null) {
-                _misses += 1;
                 return null;
             }
             // A compiled-in block arrives as the one-element JSON array the
@@ -85,12 +82,10 @@ class TileStore {
             });
         } catch (ex) {
             System.println("TileStore: could not load block " + zoom + "/" + blockX + "/" + blockY);
-            _misses += 1;
             return null;
         }
 
         if (!TileReader.isValid(decoded)) {
-            _misses += 1;
             return null;
         }
 

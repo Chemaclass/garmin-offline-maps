@@ -20,6 +20,7 @@ TESTS = os.path.dirname(HERE)
 ROOT = os.path.dirname(TESTS)
 sys.path.insert(0, ROOT)
 
+from mappack import classify  # noqa: E402
 from mappack.preview import Style  # noqa: E402
 
 # tests/contract -> tests -> mappack -> tools -> repo root
@@ -53,6 +54,19 @@ class TestPaletteContract(unittest.TestCase):
             mc = int(re.search(r"const %s = (\d+);" % slot, palette).group(1))
             py = int(re.search(r"^%s = (\d+)$" % layer, classify, re.M).group(1))
             self.assertEqual(mc, py, "%s and %s disagree" % (slot, layer))
+
+    def test_layer_count_agrees_across_both_languages(self):
+        """classify.LAYER_COUNT and Palette.mc's LAYER_COUNT are one number.
+
+        Both say 10 and nothing checked that they still agreed. They are the
+        length of the shared layer-id range, so a drift makes the packer emit a
+        layer the renderer treats as out of range and skips, silently.
+        """
+        with open(PALETTE_MC, encoding="utf-8") as fh:
+            source = fh.read()
+        match = re.search(r"const LAYER_COUNT = (\d+);", source)
+        self.assertIsNotNone(match, "Palette.mc no longer declares LAYER_COUNT")
+        self.assertEqual(int(match.group(1)), classify.LAYER_COUNT)
 
     def test_pen_width_tables_cover_every_layer(self):
         style = Style(PALETTE_MC)

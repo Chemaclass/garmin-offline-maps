@@ -26,7 +26,9 @@ MONKEYC     := $(if $(SDK_BIN),$(SDK_BIN)/monkeyc,monkeyc)
 MONKEYDO    := $(if $(SDK_BIN),$(SDK_BIN)/monkeydo,monkeydo)
 SIMULATOR   := $(if $(SDK_BIN),$(SDK_BIN)/connectiq,connectiq)
 
-SIM_PORT    ?= 1234          # the simulator's side-load socket
+# The simulator's side-load socket. Kept on its own line: a trailing `#`
+# comment ends the value but leaves the spaces before it inside the variable.
+SIM_PORT    ?= 1234
 
 KEY         ?= developer_key
 BIN         := bin
@@ -47,8 +49,10 @@ CITY_INDEX  ?= 0
 BBOX        ?=
 INPUT       ?=
 # With CITY the packer names the pack after the place it found, so leave it
-# empty and let it decide.
-NAME        ?= $(if $(CITY),,$(if $(BBOX),custom,demo))
+# empty and let it decide. Anything else is "custom" until you say otherwise --
+# it used to be "demo" for INPUT, from before `make demo` was its own target,
+# so a pack built from a local extract shipped labelled as the demo.
+NAME        ?= $(if $(CITY),,custom)
 ZOOMS       ?= 12,14,16
 SIMPLIFY    ?= 1.0
 EXTRA       ?=
@@ -56,8 +60,6 @@ EXTRA       ?=
 .PHONY: help doctor key pack demo build sim serve city package test lint clean distclean
 
 help:
-	@sed -n 's/^## //p' $(MAKEFILE_LIST)
-	@echo ""
 	@echo "Targets:"
 	@echo "  make key         generate a developer signing key (once)"
 	@echo "  make pack        build a map pack   (BBOX=w,s,e,n  or  INPUT=file.osm)"
@@ -68,6 +70,7 @@ help:
 	@echo "  make package     build the .iq bundle for the Connect IQ store"
 	@echo "  make city        build one city's store bundle (CITY=berlin)"
 	@echo "  make test        run the packer test suite"
+	@echo "  make lint        byte-compile the packer"
 	@echo "  make doctor      report which toolchain pieces are missing"
 	@echo "  make clean       remove build output"
 

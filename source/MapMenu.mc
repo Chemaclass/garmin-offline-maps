@@ -53,8 +53,8 @@ class MapMenuDelegate extends WatchUi.Menu2InputDelegate {
             _view.invalidate();
         } else if (id == :night) {
             _camera.night = (item as ToggleMenuItem).isEnabled();
-            // The buffer is no longer paletted, so the theme is just a repaint
-            // -- no need to throw the allocation away and take it again.
+            // The buffer is unpaletted, so a theme change is a repaint: no
+            // need to throw the allocation away and take it again.
             _view.invalidate();
         } else if (id == :city) {
             WatchUi.popView(WatchUi.SLIDE_DOWN);
@@ -100,8 +100,7 @@ class AboutView extends WatchUi.View {
             WatchUi.loadResource(Rez.Strings.SourceRepo) as String
         ];
 
-        // Six lines instead of five, so the spacing tightens to keep the last
-        // one clear of the bottom of a round screen.
+        // Tight pitch: six lines have to clear the bottom of a round screen.
         var top = height * 0.22;
         for (var i = 0; i < lines.size(); i += 1) {
             dc.setColor(i == 0 ? Graphics.COLOR_WHITE : Graphics.COLOR_LT_GRAY,

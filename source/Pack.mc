@@ -16,27 +16,21 @@ import Toybox.Lang;
 //! for the built-in pack and for format constants that never vary.
 module Pack {
 
-    //! The active downloaded city, unpacked into typed fields.
-    //!
-    //! **Everything integral is coerced with `toNumber()` here, and that is the
-    //! whole point of this module.** Values arriving from JSON may be Float,
-    //! and every one of them ends up in a shift:
+    //! The active downloaded city, unpacked into fields `Num` has already
+    //! made safe to compute with. Why that matters is in `Num`; where each
+    //! one lands is here:
     //!
     //!     Mercator.worldSize   1 << zoom          <- dataZooms
     //!     MapRenderer.drawTile tileX >> log2      <- blockLog2
     //!     blockKey             1 << keyShift      <- keyShift
     //!
-    //! A shift with a Float operand raises `UnexpectedTypeError`, which is a
-    //! `Lang.Error` rather than a `Lang.Exception`: no `catch` can stop it, and
-    //! the watch shows the Connect IQ error screen. That is exactly what a
-    //! downloaded city did on hardware, and no amount of guarding fixed it,
-    //! because the error was never catchable.
+    //! Fields rather than dictionary lookups at each use, for two reasons: the
+    //! conversion happens once instead of once per frame, and a city that
+    //! cannot supply one of these is rejected in `use` rather than halfway
+    //! through a render.
     //!
-    //! The compiled-in pack never had this problem: `MapIndex` declares these
-    //! as Monkey C integer literals.
-    //!
-    //! Coercing once here rather than at each use also keeps the dictionary
-    //! lookups out of the render loop.
+    //! The compiled-in pack never needed any of this: `MapIndex` declares the
+    //! same values as Monkey C integer literals.
     //!
     //! Plain `var`: `hidden` is a class modifier and the compiler rejects it
     //! inside a module.
@@ -60,52 +54,63 @@ module Pack {
     var _centerLon = 0.0d;
 
     //! Adopt a downloaded city. Pass null to fall back to the built-in pack.
+    //!
+    //! Null and "not a dictionary" are separated on purpose. Null is how the
+    //! app asks for the built-in map and is not a fault; anything else that is
+    //! not a dictionary is one, and gets said out loud. Both are possible
+    //! because this comes back out of Storage, and subscripting a String would
+    //! throw here, in a path `onCityChosen` does not wrap in a try.
     function use(meta) {
         if (meta == null) {
             _downloaded = false;
             return;
         }
+        if (!(meta instanceof Lang.Dictionary)) {
+            refuse("not a map description");
+            return;
+        }
         var m = meta as Dictionary;
-        _name = m["name"];
-        _attribution = m["attribution"];
-        _minZoom = numberOf(m["minZoom"], 13);
-        _maxZoom = numberOf(m["maxZoom"], 15);
-        _zooms = numbersOf(m["dataZooms"]);
-        _log2s = numbersOf(m["blockLog2"]);
-        _originX = numbersOf(m["originX"]);
-        _originY = numbersOf(m["originY"]);
-        _keyShift = numberOf(m["keyShift"], 10);
-        _west = doubleOf(m["west"]);
-        _south = doubleOf(m["south"]);
-        _east = doubleOf(m["east"]);
-        _north = doubleOf(m["north"]);
-        _centerLat = doubleOf(m["centerLat"]);
-        _centerLon = doubleOf(m["centerLon"]);
-        _dataBytes = numberOf(m["storedBytes"], 0);
-        var keys = m["blocks"] as Array;
-        _blockCount = keys == null ? 0 : keys.size();
+        _name = Num.text(m["name"], "");
+        _attribution = Num.text(m["attribution"], "");
+        _minZoom = Num.integer(m["minZoom"], 13);
+        _maxZoom = Num.integer(m["maxZoom"], 15);
+        _zooms = Num.integers(m["dataZooms"]);
+        _log2s = Num.integers(m["blockLog2"]);
+        _originX = Num.integers(m["originX"]);
+        _originY = Num.integers(m["originY"]);
+        _keyShift = Num.integer(m["keyShift"], 10);
+        _west = Num.decimal(m["west"]);
+        _south = Num.decimal(m["south"]);
+        _east = Num.decimal(m["east"]);
+        _north = Num.decimal(m["north"]);
+        _centerLat = Num.decimal(m["centerLat"]);
+        _centerLon = Num.decimal(m["centerLon"]);
+        _dataBytes = Num.integer(m["storedBytes"], 0);
+        var keys = m["blocks"];
+        _blockCount = (keys instanceof Lang.Array) ? (keys as Array).size() : 0;
+        // The four per-zoom arrays are read by slot, and `dataZoomFor` and
+        // `blockLog2` read element 0 without checking, so a set that is empty
+        // or shorter than dataZooms is an out-of-bounds read later rather than
+        // a bad map now. Later means `Camera.initialize`, which `onStart` runs
+        // outside the try that guards adopting the city -- so refuse it here.
+        if (_zooms.size() == 0 || _log2s.size() < _zooms.size()
+                || _originX.size() < _zooms.size()
+                || _originY.size() < _zooms.size()) {
+            refuse("zoom tables do not line up");
+            return;
+        }
         // Only now, so a malformed meta cannot leave the app half-switched.
         _downloaded = true;
     }
 
-    //! Integer or the fallback. Never returns a Float: see the note above.
-    function numberOf(value, fallback) {
-        if (value == null) { return fallback; }
-        return value.toNumber();
-    }
-
-    function doubleOf(value) {
-        return value == null ? 0.0d : value.toDouble();
-    }
-
-    function numbersOf(value) {
-        var out = [] as Array<Number>;
-        if (value == null) { return out; }
-        var list = value as Array;
-        for (var i = 0; i < list.size(); i += 1) {
-            out.add(list[i].toNumber());
-        }
-        return out;
+    //! Fall back to the built-in map, and say so.
+    //!
+    //! Silence here is the failure this module exists to avoid: the user picked
+    //! a city, waited for it to download, and would otherwise get the sample
+    //! map back with no explanation. `Diag` puts the reason on screen.
+    function refuse(why) {
+        _downloaded = false;
+        Diag.note("city", why);
     }
 
     function isDownloaded() {

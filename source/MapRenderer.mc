@@ -32,17 +32,13 @@ class MapRenderer {
     hidden var _segments;
     hidden var _passSegments;
     hidden var _tilesDrawn;
-    hidden var _truncated;
     hidden var _passTruncated;
-    hidden var _missing;
 
     function initialize() {
         _segments = 0;
         _passSegments = 0;
         _tilesDrawn = 0;
-        _truncated = false;
         _passTruncated = false;
-        _missing = 0;
     }
 
     function segmentsDrawn() { return _segments; }
@@ -52,9 +48,7 @@ class MapRenderer {
         _segments = 0;
         _passSegments = 0;
         _tilesDrawn = 0;
-        _truncated = false;
         _passTruncated = false;
-        _missing = 0;
 
         var colours = Palette.colours(camera.night);
         var background = colours[Palette.SLOT_BACKGROUND];
@@ -106,7 +100,6 @@ class MapRenderer {
                              halfW, halfH, cosT, sinT, width, height, budget);
                 }
             }
-            if (_passTruncated) { _truncated = true; }
         }
     }
 
@@ -118,7 +111,6 @@ class MapRenderer {
                              halfW, halfH, cosT, sinT, width, height, budget) {
         var block = store.block(dataZoom, tileX >> log2, tileY >> log2);
         if (block == null) {
-            if (pass == PASS_AREAS) { _missing += 1; }
             return;
         }
         var offset = store.tileOffset(block, tileX, tileY, log2);
@@ -168,7 +160,7 @@ class MapRenderer {
             for (var f = 0; f < featureCount; f += 1) {
                 var geomType = reader.u8();
                 var pointCount = reader.uvarint();
-                if (geomType == 1) {
+                if (geomType == MapFormat.GEOM_POLYGON) {
                     drawPolygon(dc, reader, pointCount, originX, originY, unitsToPixels,
                                 halfW, halfH, cosT, sinT, rotated);
                 } else {

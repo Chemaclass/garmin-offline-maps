@@ -56,14 +56,6 @@ def read_svarint(buf: bytes, pos: int) -> tuple[int, int]:
     return zigzag_decode(value), pos
 
 
-def uvarint_size(value: int) -> int:
-    n = 1
-    while value >= 0x80:
-        value >>= 7
-        n += 1
-    return n
-
-
 def write_u16(out: bytearray, value: int) -> None:
     if not 0 <= value <= 0xFFFF:
         raise ValueError("u16 out of range: %d" % value)

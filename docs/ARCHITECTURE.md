@@ -14,28 +14,47 @@ They meet at:
   coordinate to a resource id
 - **[FORMAT.md](FORMAT.md)**: the byte contract both sides implement
 
-Everything below the packer's output is compiled into the `.prg`. There is no
-runtime data path: no network, no filesystem, no companion app.
+A map reaches the watch one of two ways, and the app treats them the same
+through `Pack.mc`:
+
+- **Built in.** The packer's output is compiled into the `.prg` as jsonData
+  resources. No network at any point.
+- **Downloaded.** A city is fetched once over the phone from the published
+  catalogue and kept in `Application.Storage`. See [CITIES.md](CITIES.md).
+
+Drawing never touches the network either way. `Communications` appears in
+exactly two files, both of which only run when the user picks a city.
 
 ## Watch-side modules
 
-Roughly in dependency order. Sizes are a hint at where the complexity sits.
+Roughly in dependency order.
 
-| File | Lines | Responsibility |
-|---|---|---|
-| `OfflineMapsApp.mc` | 76 | `AppBase`. Wires everything, owns the compass timer |
-| `Camera.mc` | 109 | Where we are looking: centre, zoom, orientation, follow |
-| `Mercator.mc` | 64 | Spherical Web Mercator (EPSG:3857) in slippy-map pixel space |
-| `MapIndex.mc` *(generated)* | 86 | Pack metadata + tile coordinate → `Rez.JsonData.*` |
-| `TileStore.mc` | 148 | Loads blocks from resources, byte-budgeted LRU cache |
-| `TileReader.mc` | 115 | Cursor over one block's bytes. Mirror of `decode.py` |
-| `MapRenderer.mc` | 256 | Decodes tiles straight into draw calls, two passes |
-| `MapView.mc` | 387 | Off-screen buffer, drag handling, overlay chrome |
-| `MapDelegate.mc` | 113 | Touch and key input |
-| `MapMenu.mc` | 117 | Menu2, plus the About screen that carries attribution |
-| `Palette.mc` | 97 | 16 colours, pen widths. Shared contract with `classify.py` |
-| `LocationTracker.mc` | 114 | GPS fixes and heading |
-| `Settings.mc` | 62 | Six scalars in `Application.Storage` |
+No line counts here on purpose: they went stale on almost every row within a
+week and a number nobody trusts is worse than no number.
+
+| File | Responsibility |
+|---|---|
+| `OfflineMapsApp.mc` | `AppBase`. Wires everything, owns the compass timer and the city download |
+| `Camera.mc` | Where we are looking: centre, zoom, orientation, follow |
+| `Mercator.mc` | Spherical Web Mercator (EPSG:3857) in slippy-map pixel space |
+| `Pack.mc` | The active map, built-in or downloaded. Every other module asks this, not `MapIndex` |
+| `MapIndex.mc` *(generated)* | The built-in pack: metadata and tile coordinate → `Rez.JsonData.*` |
+| `CityStore.mc` | A downloaded city in `Application.Storage`, one base64 block per value |
+| `CityDownloader.mc` | Fetches a city, one block per request, strictly sequential |
+| `CityPicker.mc` | Country then city, from the published catalogue |
+| `CityList.mc` *(generated)* | Maps the phone dropdown's index back to a catalogue slug |
+| `DownloadView.mc` | Download progress, and Back to cancel |
+| `TileStore.mc` | Loads blocks through `Pack`, byte-budgeted LRU cache |
+| `TileReader.mc` | Cursor over one block's bytes. Mirror of `decode.py` |
+| `MapRenderer.mc` | Decodes tiles straight into draw calls, two passes |
+| `MapView.mc` | Off-screen buffer, drag handling, overlay chrome |
+| `MapDelegate.mc` | Touch and key input |
+| `MapMenu.mc` | Menu2, plus the About screen that carries attribution |
+| `Onboarding.mc` | First-run card explaining the built-in map is a sample |
+| `Palette.mc` | 16 colours, pen widths. Shared contract with `classify.py` |
+| `LocationTracker.mc` | GPS fixes and heading |
+| `Settings.mc` | A handful of scalars in `Application.Storage` |
+| `Diag.mc` | The last failure, so the watch can show it |
 
 ### Startup sequence
 
@@ -83,9 +102,9 @@ Details and the fallback paths are in [RENDERING.md](RENDERING.md).
 MapRenderer.drawTile(tileX, tileY)
   └── TileStore.block(zoom, tileX >> log2, tileY >> log2)
         ├── linear scan of the cache (a handful of entries)
-        ├── MapIndex.blockResource(z, bx, by)  -> Rez.JsonData.bZZ_X_Y  or null
+        ├── Pack.hasBlock(z, bx, by)           built-in or downloaded, same answer
         ├── evictFor(RESERVE_BYTES)            make room *before* loading
-        ├── Application.loadResource(...)      -> ["base64..."]
+        ├── Pack.blockBase64(z, bx, by)        loadResource, or a Storage value
         └── StringUtil.convertEncodedString    -> ByteArray, cached
   └── TileStore.tileOffset(block, tileX, tileY, log2)   -> byte offset or -1
   └── new TileReader(block, offset)            -> u8/u16/uvarint/svarint cursor
@@ -107,6 +126,10 @@ but that tile is empty (open water, say). Both are normal, not errors.
 | `emit.py` | 207 | base64 JSON resources, `mapdata.xml`, `MapIndex.mc` |
 | `decode.py` | 95 | Reference reader. Mirror of `TileReader.mc` |
 | `preview.py` | 292 | Re-implementation of `MapRenderer.mc` that renders PNGs |
+| `geocode.py` | | Place name → centre, via Nominatim |
+| `citypack.py` | | Downloadable city packs and the catalogue |
+| `publish.py` | | Builds the whole catalogue from `cities.txt` |
+| `serve.py` | | Drives the preview renderer in a browser |
 
 Full pipeline in [PACKER.md](PACKER.md).
 
@@ -118,9 +141,9 @@ live in [DEVICES.md](DEVICES.md); what each one forced:
 | Limit | Consequence in this codebase |
 |---|---|
 | Watch-app RAM | `TileStore` evicts by **byte budget**, not entry count |
-| `Application.Storage` size, and its transient-heap cost | Only six scalars persist; map data never goes there |
-| No filesystem API | Tiles cannot be side-loaded over USB, they are compiled in |
-| Companion BLE throughput | Streaming a map from the phone is not viable either |
+| `Application.Storage` size, and its transient-heap cost | A downloaded city has to fit ~128 KB at 8 KB per value, which is why it is an orientation map rather than a street map |
+| No filesystem API | Tiles cannot be side-loaded over USB. They are compiled in, or they live in Storage |
+| Companion BLE throughput | A city is fetched once, one small block per request. Streaming a map per frame is not viable |
 
 Plus one performance reality: every drawing call is interpreted, and a full
 redraw has to stay well under a second to feel responsive. The watchdog itself
@@ -135,4 +158,6 @@ objects. Allocation is the other thing that hurts on this heap.
   reasoning is in [FORMAT.md](FORMAT.md).
 - **No tags, strings, or feature ids in the format.** Layer id and geometry only.
 - **No labels.** Text needs a layer the format does not have yet, on the roadmap.
-- **No runtime data loading of any kind.** The absence is the product.
+- **No streaming.** A city is downloaded once, deliberately, and then the
+  network is never touched again. Drawing a map that needs a phone in range is
+  the thing this app exists not to be.

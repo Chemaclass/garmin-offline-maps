@@ -69,7 +69,29 @@ jobs:
             --out ../../site/packs \
             --cache-dir ../../.osmcache \
             --radius-km "${{ inputs.radius_km || '5' }}" \
-            --base-url "https://chemaclass.github.io/garmin-offline-maps/packs"
+            --base-url "https://chemaclass.github.io/garmin-offline-maps/packs" \
+            --settings ../../resources/settings/settings.xml \
+            --properties ../../resources/settings/properties.xml \
+            --city-list ../../source/generated/CityList.mc
+
+      # The phone dropdown stores a number and CityList maps it back to a slug,
+      # so the two only mean anything while they agree on one ordering. They are
+      # generated together above; this proves they still line up rather than
+      # trusting that they do.
+      - name: Check the dropdown and the slug table agree
+        run: |
+          python3 - <<'PY'
+          import re
+          xml = open("resources/settings/settings.xml", encoding="utf-8").read()
+          mc = open("source/generated/CityList.mc", encoding="utf-8").read()
+          labels = re.findall(r'<listEntry value="(\d+)">([^<]+)</listEntry>', xml)
+          slugs = re.findall(r'"([a-z0-9-]+)"', re.search(r"const SLUGS = \[(.*?)\];", mc, re.S).group(1))
+          # Index 0 is the built-in map, so slug N is dropdown entry N+1.
+          if len(labels) != len(slugs) + 1:
+              raise SystemExit("dropdown has %d entries, slug table has %d"
+                               % (len(labels), len(slugs)))
+          print("%d cities, dropdown and slug table agree" % len(slugs))
+          PY
 
       # The site is the landing page plus the packs. The Markdown in docs/ is
       # deliberately left out: it is contributor documentation and is read on

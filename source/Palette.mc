@@ -3,11 +3,12 @@ import Toybox.Lang;
 
 //! Colours and stroke widths.
 //!
-//! A BufferedBitmap is created with a fixed palette, so every colour the
-//! renderer can draw has to appear in the palette array below. Sixteen entries
-//! keeps the buffer at 4 bits per pixel where the device supports it, which on
-//! a 454x454 screen is the difference between ~103 KB and ~206 KB of a 768 KB
-//! heap.
+//! Sixteen entries is the app's whole colour vocabulary: everything the
+//! renderer draws comes from an array below, and slots 0..9 are a contract
+//! with the packer. Sixteen is also what a paletted BufferedBitmap needs to
+//! stay at 4 bits per pixel, but the off-screen buffer carries no palette,
+//! that being the only way it can be drawn to at all, so the count no longer
+//! decides the buffer's bit depth. docs/RENDERING.md has both halves.
 module Palette {
 
     // Slots. Layer ids 0..9 come straight from the packer (see

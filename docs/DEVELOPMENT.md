@@ -138,18 +138,30 @@ code". That is why those tests are kept apart from the rest.
 that explain *why*, `hidden var _name` for private state, untyped `var`, shared
 constants in a `module` when both a class and its statics need them.
 
-Your own logic stays untyped. Do not introduce a partial typing regime. The
-exception is **API boundaries where Garmin types the signature for you**. The
-checker rejects an untyped callback passed to `Position.enableLocationEvents` or
-`Timer.start`, and rejects `item.isEnabled()` when `onSelect` hands you the base
-`MenuItem`. Five sites carry the minimum annotation for that reason, each with a
-`//!` saying so:
+Your own logic stays untyped. Do not introduce a partial typing regime. Two
+exceptions, both forced by the checker rather than chosen:
 
-| Site | Why |
+| Exception | Why the checker forces it |
 |---|---|
-| `LocationTracker.onPosition` ×2 | `Method(loc as Position.Info) as Void` |
-| `OfflineMapsApp.onTick` | `Timer.start` wants `Method() as Void` |
-| `MapMenu` `item as ToggleMenuItem` ×2 | only the subtype has `isEnabled()` |
+| **API boundaries Garmin types for you** | An untyped callback passed to `Position.enableLocationEvents` or `Timer.start` is rejected, as is `item.isEnabled()` when `onSelect` hands you the base `MenuItem`. |
+| **Values you subscript** | `x[i]` on an untyped value warns, and the annotation must sit on every hop from where the container is made to where it is indexed. Miss one and the warning returns. |
+
+Every such site carries a `//!` saying which of the two applies. Annotate the
+container, not the arithmetic around it: counters, offsets and coordinates stay
+untyped.
+
+One case is neither, and is worth knowing because no annotation can help. A
+`Float` reaching `<<` or `>>` raises `UnexpectedTypeError`, which is a
+`Lang.Error` rather than a `Lang.Exception`, so **no `catch` can stop it**;
+`catch (e instanceof Lang.Error)` does not even compile. Values arriving from JSON are therefore
+coerced at the boundary: `source/Num.mc` owns the conversions, and `Pack.use`,
+`CityStore.keyName`, `CityDownloader` and `Settings.load` are the callers.
+
+`toNumber()` on its own is not enough, which is the trap. It is partial: on a
+`String` it returns `null` for anything unparseable, and on a `Boolean` it does
+not exist. A guard that only checks for `null` before calling it can still put a
+`null` in the field it was written to protect, and `1 << null` raises the same
+uncatchable error. Every conversion in `Num` tests the type first.
 
 The alternative was compiling at `-l 0`, which builds clean but disables type
 checking for the whole codebase. Rejected: the checker caught a genuine defect

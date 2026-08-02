@@ -52,8 +52,9 @@ Slots 0–9 are the render layers and must line up index-for-index with
 `classify.py`'s `L_*` constants. Slots 10–15 are chrome: background, text, dim,
 position, panel, accent.
 
-Switching the theme calls `MapView.rebuild()` rather than just repainting, the
-palette is baked into the buffer at creation.
+Switching the theme is a repaint. It used to rebuild the buffer, because a
+paletted one bakes its colours in at creation, but the buffer carries no
+palette any more: see [why the buffer is not paletted](#why-the-buffer-is-not-paletted).
 
 ## Degrading instead of crashing
 
@@ -111,7 +112,7 @@ const MAX_POLYGON_POINTS = 64;    // per polygon
 
 Areas need a separate budget because they are drawn first: a city full of parks
 and buildings could otherwise spend the entire frame before a single road
-appears. When a pass hits its budget it stops and sets `_truncated`.
+appears. When a pass hits its budget it stops and sets `_passTruncated`.
 
 Three more things worth knowing about the inner loop:
 

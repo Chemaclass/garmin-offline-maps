@@ -11,6 +11,10 @@ module MapFormat {
     const HEADER_BYTES = 9;
     const DIRECTORY_ENTRY_BYTES = 4;
 
+    //! Only `GEOM_POLYGON` is tested against: the renderer's `else` branch is
+    //! the polyline case, and is also what an id from a newer packer falls
+    //! into. `GEOM_POLYLINE` is here as the other half of the pair, because
+    //! half a two-value vocabulary reads worse than none of it.
     const GEOM_POLYLINE = 0;
     const GEOM_POLYGON = 1;
 }

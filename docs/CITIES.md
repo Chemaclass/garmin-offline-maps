@@ -12,9 +12,9 @@ Read the trade below before assuming it replaces a packed region.
 **Change city**. The watch fetches the catalogue and lists what is published;
 pick one and it downloads, with progress on screen.
 
-**On the phone**, in Garmin Connect's settings for the app, the **City** field
-takes the same name. It is free text, so it is normalised before use: `Berlin`,
-`berlin` and `New York` all resolve. Leave it empty for the built-in map.
+**On the phone**, Garmin Connect's settings for the app have a **City**
+dropdown listing every city the installed version knows about, as
+"Country: City". Pick one and the watch downloads it.
 
 Either way the built-in map keeps drawing until the download finishes, and the
 two stay in step: choosing on the watch writes the phone setting back.
@@ -79,10 +79,22 @@ it, and isolates a failure to the city that caused it. The catalogue is rebuilt
 from the cities on disk rather than from the ones this run happened to build, so
 an interrupted batch never drops previously published cities.
 
-Adding a city needs no app update. That is why the setting is a text field
-rather than a dropdown: a dropdown is compiled into the app, so every new city
-would mean a new release. (Connect IQ also parses `listEntry` values against the
-property type and rejects a string one, which is how this was found.)
+Adding a city needs no app update **for the watch picker**, which reads the
+live catalogue. The phone dropdown is different: it is compiled into the app, so
+a city published after a release does not appear there until the next one. That
+is the trade for having a picker on the phone at all, and it is why both exist.
+
+Two Connect IQ constraints shaped this. A `settingConfig type="list"` takes only
+static `listEntry` children, and the schema's one dependency mechanism
+(`group enableIfTrue`) gates a group on a boolean, so a country dropdown
+filtering a city dropdown cannot be expressed. And `listEntry` values are parsed
+against the property's type: a string one is rejected outright with
+`For input string: "..."`, which is why the phone stores an index and
+`CityList.mc` maps it back to a slug.
+
+`settings.xml` and `CityList.mc` are generated together by
+`mappack.publish --settings --city-list`, and the publish workflow checks they
+still agree. An index only means a city while the two share one ordering.
 
 ## How it fits together
 

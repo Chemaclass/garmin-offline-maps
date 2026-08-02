@@ -174,6 +174,16 @@ class TestArgumentWiring(unittest.TestCase):
         with self.assertRaises(SystemExit):
             cli.main(["--city", "Madrid", "--bbox", "-3.75,40.38,-3.65,40.45"])
 
+    def test_input_with_city_is_refused(self):
+        # --input used to beat both silently: the file was packed and shipped
+        # named "map", with nothing on stderr.
+        with self.assertRaises(SystemExit):
+            cli.main(["--input", "x.osm", "--city", "Madrid"])
+
+    def test_input_with_bbox_is_refused(self):
+        with self.assertRaises(SystemExit):
+            cli.main(["--input", "x.osm", "--bbox", "-3.75,40.38,-3.65,40.45"])
+
     def test_no_source_at_all_is_refused(self):
         with self.assertRaises(SystemExit):
             cli.main([])

@@ -77,14 +77,20 @@ module CityStore {
         return stored != null && stored["complete"] == true;
     }
 
-    //! `toNumber()` before `toString()` on every key, everywhere.
+    //! Coerced to an integer before `toString()`, on every key, everywhere.
     //!
     //! A key that arrived from JSON as a Float stringifies as "1024.0" while
     //! the renderer computes "1024", and the block is then written under one
-    //! name and looked up under another. Same reason the pack metadata is
-    //! coerced; see Pack.
+    //! name and looked up under another. Same reason the pack metadata goes
+    //! through `Num`.
+    //!
+    //! `Num.integer` rather than a bare `toNumber()`, because that throws on
+    //! null and returns null for an unparseable String -- and one caller is
+    //! `clear()`, which is the recovery path and the last place that should be
+    //! able to die. A real key is `(rx << keyShift) | ry` and so never
+    //! negative, which makes -1 a sentinel that cannot collide with one.
     function keyName(key) {
-        return KEY_BLOCK + key.toNumber().toString();
+        return KEY_BLOCK + Num.integer(key, -1).toString();
     }
 
     function blockBase64(key) {
@@ -140,8 +146,12 @@ module CityStore {
     function clear() {
         try {
             var stored = meta();
-            if (stored != null && stored["blocks"] != null) {
-                var keys = stored["blocks"] as Array<Number>;
+            if (stored != null && stored["blocks"] instanceof Lang.Array) {
+                // `Array`, not `Array<Number>`: these come straight back out of
+                // the stored JSON and the elements may be Floats. Claiming
+                // Number here would be a claim nothing checks; `keyName`
+                // coerces instead.
+                var keys = stored["blocks"] as Array;
                 for (var i = 0; i < keys.size(); i += 1) {
                     Application.Storage.deleteValue(keyName(keys[i]));
                 }

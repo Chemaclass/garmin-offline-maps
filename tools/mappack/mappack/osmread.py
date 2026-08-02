@@ -15,11 +15,12 @@ import os
 import sys
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
-from typing import Dict, Iterator, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from .classify import build_overpass_query
-
-Point = Tuple[float, float]
+# (lon, lat) degrees here, world pixels once `geom.project` has run. Same pair
+# either way, and these coordinates go straight into it, so the alias is geom's.
+from .geom import Point
 
 DEFAULT_OVERPASS_URL = "https://overpass-api.de/api/interpreter"
 USER_AGENT = "garmin-offline-maps mappack (+https://github.com/Chemaclass/garmin-offline-maps)"
@@ -95,7 +96,6 @@ def read_osm_xml(stream) -> List[Way]:
             cur_tags = None
             elem.clear()
 
-    node_refs: Dict[int, List[int]] = {}
     for way_id, tags, refs in raw_ways:
         coords = [nodes[r] for r in refs if r in nodes]
         if len(coords) < 2:
@@ -104,7 +104,6 @@ def read_osm_xml(stream) -> List[Way]:
         way_by_id[way_id] = way
         if tags:
             ways.append(way)
-        node_refs[way_id] = refs
 
     # Multipolygon relations: emit each outer member as its own polygon and
     # inherit the relation's tags. Holes are ignored on purpose -- at watch
@@ -189,8 +188,3 @@ def load(path: Optional[str], bbox: Optional[Tuple[float, float, float, float]] 
     if bbox is None:
         raise SystemExit("Need either --input or --bbox")
     return fetch_overpass(bbox, overpass_url, cache_path)
-
-
-def iter_features(ways: Iterator[Way]):
-    for way in ways:
-        yield way

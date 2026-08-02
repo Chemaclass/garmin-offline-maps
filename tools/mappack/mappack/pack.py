@@ -44,6 +44,7 @@ from typing import Dict, List, Optional, Sequence, Tuple
 
 from . import geom
 from .classify import GEOM_POLYGON, L_BUILDING, Klass, classify
+from .decode import decode_tile
 from .varint import encode_points, write_u16, write_uvarint
 
 FORMAT_VERSION = 1
@@ -318,7 +319,7 @@ def encode_block(zoom: int, block_log2: int, block_x: int, block_y: int,
     write_u16(header, block_y)
     header.append(len(keys))
 
-    directory_size = len(keys) * 4
+    directory_size = len(keys) * DIRECTORY_ENTRY_BYTES
     payload_start = len(header) + directory_size
 
     directory = bytearray()
@@ -345,6 +346,24 @@ def block_size(tiles: Dict[Tuple[int, int], bytes]) -> int:
         + sum(len(payload) for payload in tiles.values())
 
 
+def group_into_blocks(
+    encoded: Dict[Tuple[int, int], bytes], log2: int
+) -> Dict[Tuple[int, int], Dict[Tuple[int, int], bytes]]:
+    """Group tile payloads by block: {(block_x, block_y): {(local_x, local_y): payload}}.
+
+    Which block a tile lands in, and where inside it, is decided here and
+    nowhere else. `choose_block_log2` sizes candidate groupings and `pack`
+    encodes the winning one; if those two disagreed by so much as a shift, the
+    log2 that was measured as fitting would not be the one that gets written.
+    """
+    grouped: Dict[Tuple[int, int], Dict[Tuple[int, int], bytes]] = {}
+    for (tile_x, tile_y), payload in encoded.items():
+        block_x, block_y = tile_x >> log2, tile_y >> log2
+        local = (tile_x - (block_x << log2), tile_y - (block_y << log2))
+        grouped.setdefault((block_x, block_y), {})[local] = payload
+    return grouped
+
+
 #: Blocks below this size are worth merging: fewer resource ids, fewer loads.
 SOFT_BLOCK_TARGET = 24000
 
@@ -358,17 +377,12 @@ def choose_block_log2(encoded: Dict[Tuple[int, int], bytes], budget: int,
     one while panning does not blow the heap. log2 caps at 3 because the block
     directory stores at most 255 tiles (8x8 = 64 fits, 16x16 = 256 does not).
     """
-    feasible: List[Tuple[int, int, int]] = []
+    feasible: List[Tuple[int, int]] = []       # (log2, size of its largest block)
     for log2 in range(0, 4):
-        sizes: Dict[Tuple[int, int], int] = {}
-        for (tile_x, tile_y), payload in encoded.items():
-            key = (tile_x >> log2, tile_y >> log2)
-            sizes[key] = sizes.get(key, HEADER_BYTES) + len(payload) \
-                + DIRECTORY_ENTRY_BYTES
-        count = len(sizes)
-        largest = max(sizes.values()) if sizes else 0
-        if count <= budget and largest <= MAX_BLOCK_BYTES:
-            feasible.append((log2, count, largest))
+        blocks = group_into_blocks(encoded, log2)
+        largest = max((block_size(tiles) for tiles in blocks.values()), default=0)
+        if len(blocks) <= budget and largest <= MAX_BLOCK_BYTES:
+            feasible.append((log2, largest))
     if not feasible:
         # Nothing fits: use the *smallest* grouping. It gives the smallest
         # blocks, which is the only direction that can help, and it leaves the
@@ -377,10 +391,10 @@ def choose_block_log2(encoded: Dict[Tuple[int, int], bytes], budget: int,
         # dense data -- a crash instead of a warning.
         return 0
     target = soft_target if soft_target > 0 else SOFT_BLOCK_TARGET
-    roomy = [f for f in feasible if f[2] <= target]
+    roomy = [log2 for log2, largest in feasible if largest <= target]
     if roomy:
-        return max(roomy, key=lambda f: f[0])[0]
-    return min(feasible, key=lambda f: f[0])[0]
+        return max(roomy)
+    return min(log2 for log2, _largest in feasible)
 
 
 def pack(ways, options: PackOptions) -> PackResult:
@@ -414,13 +428,7 @@ def pack(ways, options: PackOptions) -> PackResult:
         log2 = choose_block_log2(encoded, budget, options.block_target_bytes)
         block_log2[zoom] = log2
 
-        grouped: Dict[Tuple[int, int], Dict[Tuple[int, int], bytes]] = {}
-        for (tile_x, tile_y), payload in encoded.items():
-            block_key = (tile_x >> log2, tile_y >> log2)
-            local = (tile_x - (block_key[0] << log2), tile_y - (block_key[1] << log2))
-            grouped.setdefault(block_key, {})[local] = payload
-
-        for (block_x, block_y), tile_map in grouped.items():
+        for (block_x, block_y), tile_map in group_into_blocks(encoded, log2).items():
             # Size the block *before* encoding it. `encode_block` writes u16
             # payload offsets, so an oversized block raises on the way out and
             # never reaches a size check made after the fact.
@@ -461,8 +469,6 @@ def _shrink_block(zoom, log2, block_x, block_y, tile_map) -> bytes:
 
 def _drop_last_layer(payload: bytes) -> bytes:
     """Re-encode a tile payload without its highest-id (last drawn) layer."""
-    from .decode import decode_tile  # local import: avoids a cycle at import time
-
     layers = decode_tile(payload)
     if len(layers) <= 1:
         return payload

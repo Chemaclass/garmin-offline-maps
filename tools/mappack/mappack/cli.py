@@ -124,11 +124,18 @@ def resolve_city(args, parser, searcher=None) -> None:
 def main(argv=None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
-    if not args.input and not args.bbox and not args.city:
+    # Exactly one of the three sets the region. Only --city with --bbox used to
+    # be refused; --input silently beat both, so `--input x.osm --city Madrid`
+    # packed the file and shipped it named "map" with nothing on stderr.
+    given = [flag for flag, value in (("--input", args.input),
+                                      ("--bbox", args.bbox),
+                                      ("--city", args.city)) if value]
+    if not given:
         parser.error("give --input FILE, --bbox west,south,east,north, or --city NAME")
-    if args.city and args.bbox:
-        parser.error("--city and --bbox both set a region; pass one")
-    if args.city and not args.input:
+    if len(given) > 1:
+        parser.error("%s and %s each set the region; pass one"
+                     % (", ".join(given[:-1]), given[-1]))
+    if args.city:
         resolve_city(args, parser)
 
     zooms = args.zooms
@@ -158,11 +165,11 @@ def main(argv=None) -> int:
     print("packing tiles ...", file=sys.stderr)
     result = pack(ways, options)
     manifest = write_pack(result, options, args.out, args.index, args.attribution)
-    report(manifest, result, args, time.time() - started)
+    report(manifest, result, options, args, time.time() - started)
     return 0
 
 
-def report(manifest, result, args, elapsed: float) -> None:
+def report(manifest, result, options, args, elapsed: float) -> None:
     west, south, east, north = result.bounds
     binary = manifest["binary_bytes"]
     base64_bytes = manifest["base64_bytes"]
@@ -170,10 +177,11 @@ def report(manifest, result, args, elapsed: float) -> None:
     print("")
     print("  pack        %s" % manifest["name"])
     print("  bounds      %.5f,%.5f .. %.5f,%.5f" % (west, south, east, north))
+    # From options, not re-derived from args: main already resolved the
+    # defaults, and a second copy of that rule is a second thing to get wrong.
     print("  zoom data   %s   display %d..%d"
           % (", ".join("z%d" % z for z in manifest["data_zooms"]),
-             manifest["data_zooms"][0] - 1 if args.min_zoom is None else args.min_zoom,
-             manifest["data_zooms"][-1] + 1 if args.max_zoom is None else args.max_zoom))
+             options.min_display_zoom, options.max_display_zoom))
     print("")
     print("  %-6s %8s %10s %10s" % ("zoom", "tiles", "blocks", "block sz"))
     for zoom in manifest["data_zooms"]:
@@ -182,7 +190,8 @@ def report(manifest, result, args, elapsed: float) -> None:
         print("  z%-5d %8d %10d %10s"
               % (zoom, result.tile_counts.get(zoom, 0), len(blocks), size))
     print("")
-    print("  resources   %d jsonData ids (budget %d)" % (manifest["block_count"], args.resource_budget))
+    print("  resources   %d jsonData ids (budget %d)"
+          % (manifest["block_count"], options.resource_budget))
     print("  binary      %s" % human(binary))
     print("  in-app      %s  (base64, this is what lands in the .prg)" % human(base64_bytes))
     print("  points      %d kept, %d dropped by the per-tile budget"

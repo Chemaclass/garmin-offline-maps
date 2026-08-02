@@ -35,9 +35,6 @@ from typing import Dict, List, Sequence, Tuple
 from .emit import KEY_MAX, KEY_SHIFT, block_origins
 from .pack import FORMAT_VERSION, PackOptions, PackResult
 
-#: The `cityId` value meaning "use the pack compiled into the app".
-BUILT_IN = "builtin"
-
 #: Cap on one stored value. Conservative on purpose, see the module docstring.
 MAX_STORAGE_VALUE = 8000
 
@@ -164,14 +161,31 @@ def write_city(result: PackResult, options: PackOptions, slug: str,
     with open(os.path.join(city_dir, "meta.json"), "w", encoding="utf-8") as fh:
         json.dump(meta, fh, separators=(",", ":"), sort_keys=True)
 
+    return entry_from_meta(meta, slug)
+
+
+def entry_from_meta(meta: Dict[str, object], slug: str) -> Dict[str, object]:
+    """The catalogue's view of one city, derived from its `meta.json`.
+
+    The only producer of a catalogue entry. There were two, and they had
+    already drifted: `write_city` rounded the centre to 5 decimals while
+    `scan_published` passed through the 7 that `meta.json` carries. Since the
+    catalogue is built from `scan_published`, the published file has seven and
+    the rounding never meant anything. Deriving both from the meta is what
+    stops an entry disagreeing with the file it describes.
+
+    `slug` is the directory the city was found in. It stands in for a key a
+    truncated `meta.json` is missing, and it is the right value to stand in
+    with: the watch builds every block URL from it.
+    """
     return {
-        "slug": slug,
-        "name": options.name,
-        "country": country,
-        "lat": round(center_lat, 5),
-        "lon": round(center_lon, 5),
-        "blocks": len(keys),
-        "storedBytes": total_stored,
+        "slug": meta.get("slug", slug),
+        "name": meta.get("name", slug),
+        "country": meta.get("country", "Other"),
+        "lat": meta.get("centerLat"),
+        "lon": meta.get("centerLon"),
+        "blocks": len(meta.get("blocks", [])),
+        "storedBytes": meta.get("storedBytes", 0),
     }
 
 
@@ -192,15 +206,7 @@ def scan_published(out_dir: str) -> List[Dict[str, object]]:
             continue
         with open(meta_path, encoding="utf-8") as fh:
             meta = json.load(fh)
-        entries.append({
-            "slug": meta.get("slug", slug),
-            "name": meta.get("name", slug),
-            "country": meta.get("country", "Other"),
-            "lat": meta.get("centerLat"),
-            "lon": meta.get("centerLon"),
-            "blocks": len(meta.get("blocks", [])),
-            "storedBytes": meta.get("storedBytes", 0),
-        })
+        entries.append(entry_from_meta(meta, slug))
     return entries
 
 
@@ -214,7 +220,9 @@ def write_catalogue(entries: Sequence[Dict[str, object]], out_dir: str,
         "baseUrl": base_url.rstrip("/"),
         # Sorted by country then name so the watch can build its two-level
         # picker by walking the list once, with no sorting on a 768 KB heap.
-        "cities": sorted(entries, key=lambda c: (str(c.get("country", "")), c["name"])),
+        # `_ordered` is that order, and the settings dropdown reads it too: a
+        # second copy here would let the two drift and mis-map every index.
+        "cities": _ordered(entries),
     }
     with open(path, "w", encoding="utf-8") as fh:
         json.dump(payload, fh, indent=1, sort_keys=True)
@@ -287,7 +295,12 @@ def site_of(base_url: str) -> str:
 
 
 def _ordered(entries: Sequence[Dict[str, object]]) -> List[Dict[str, object]]:
-    """Country then city, matching the order the catalogue and picker use."""
+    """The one order: country, then city.
+
+    The catalogue, the settings dropdown and `CityList` all sort through here.
+    The dropdown stores a number, so an index only means a city while the three
+    agree; a second copy of this key function is how they would stop agreeing.
+    """
     return sorted(entries, key=lambda c: (str(c.get("country", "")), str(c["name"])))
 
 
