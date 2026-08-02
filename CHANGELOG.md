@@ -9,6 +9,32 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Nothing yet.
 
+## [0.3.11] - 2026-08-02
+
+### Fixed
+
+- **Downloaded cities work.** Opening one, and then panning around it, ended in
+  a black screen and the Connect IQ error icon. This is the fault that has been
+  there since downloading was added, and it was four separate things stacked on
+  each other, the largest being that the drawing budget counted only the lines
+  it managed to draw. With the map off centre nothing was drawn, so nothing was
+  counted, so the budget never applied and the app kept working until the watch
+  cut it off. Berlin now draws in well under a tenth of a second and survives
+  panning between Alexanderplatz and Wedding at every zoom.
+- **Your map opens where you left it, or at the city centre.** A single bad GPS
+  reading used to be saved as your position and restored on every launch, so a
+  downloaded city would open on blank space for good. A stored position outside
+  the current map is now ignored.
+- **Your position appears immediately.** The app waited for a fresh satellite
+  fix and ignored the one the watch already had, so it could sit on "Searching
+  for GPS" for a minute with the answer already available.
+
+### Changed
+
+- **Dense maps draw the most important detail first rather than all of it.**
+  A crowded view is cut short to keep the app responsive, so a busy city shows
+  slightly less at the lowest zoom than it did. Zoom in for the rest.
+
 ## [0.3.10] - 2026-08-02
 
 The store build of the watchdog fix. No behaviour changes over 0.3.9: this
@@ -272,7 +298,8 @@ simulator.
 - **Preview renderer**: render a pack to PNG and see what the watch will draw
   before spending time flashing it.
 
-[Unreleased]: https://github.com/Chemaclass/garmin-offline-maps/compare/v0.3.10...HEAD
+[Unreleased]: https://github.com/Chemaclass/garmin-offline-maps/compare/v0.3.11...HEAD
+[0.3.11]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.11
 [0.3.10]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.10
 [0.3.9]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.9
 [0.3.8]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.8
