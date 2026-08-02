@@ -130,6 +130,28 @@ class MapRenderer {
         if (centreX - radius < 0) { minTileX -= 1; }
         if (centreY - radius < 0) { minTileY -= 1; }
 
+        // Clip the scan to the tiles the pack actually covers.
+        //
+        // Zooming out does not show more map, it shows more emptiness around
+        // it, and every empty tile still costs a cache scan and a key lookup.
+        // A pack a few kilometres across sits inside a handful of tiles while
+        // the viewport at the widest zoom asks about thirty-six, so most of
+        // that loop is spent proving there is nothing there. Cheap on a laptop
+        // and not on a watch, which is the gap this closes.
+        var packMinX = (Mercator.lonToWorldX(Pack.west(), dataZoom)
+                        / Mercator.TILE_SIZE).toNumber();
+        var packMaxX = (Mercator.lonToWorldX(Pack.east(), dataZoom)
+                        / Mercator.TILE_SIZE).toNumber();
+        // Latitude runs the other way: north is the smaller world Y.
+        var packMinY = (Mercator.latToWorldY(Pack.north(), dataZoom)
+                        / Mercator.TILE_SIZE).toNumber();
+        var packMaxY = (Mercator.latToWorldY(Pack.south(), dataZoom)
+                        / Mercator.TILE_SIZE).toNumber();
+        if (minTileX < packMinX) { minTileX = packMinX; }
+        if (maxTileX > packMaxX) { maxTileX = packMaxX; }
+        if (minTileY < packMinY) { minTileY = packMinY; }
+        if (maxTileY > packMaxY) { maxTileY = packMaxY; }
+
         var theta = camera.rotation();
         var cosT = 1.0;
         var sinT = 0.0;

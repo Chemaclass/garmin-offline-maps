@@ -9,7 +9,22 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Nothing yet.
 
-## [0.3.13] - 2026-08-02
+## [0.3.14] - 2026-08-02
+
+### Fixed
+
+- **Zooming out no longer costs more than it draws.** The map asked about
+  every tile the screen could hold, including all the empty space around a
+  city, and proving each one empty took as long on a slow watch as drawing a
+  full one. It now looks only where the map actually reaches. At the widest
+  zoom a downloaded city draws about half again as much detail in the same
+  time, and the widest zoom was where the app was most likely to be cut off.
+
+### Changed
+
+- **Tidy-up across the app and the packer** with no change in behaviour:
+  duplicated drawing collapsed into one place, dead code removed, and
+  comments rewritten to explain the code rather than narrate its history.
 
 ### Fixed
 
@@ -320,7 +335,8 @@ simulator.
 - **Preview renderer**: render a pack to PNG and see what the watch will draw
   before spending time flashing it.
 
-[Unreleased]: https://github.com/Chemaclass/garmin-offline-maps/compare/v0.3.13...HEAD
+[Unreleased]: https://github.com/Chemaclass/garmin-offline-maps/compare/v0.3.14...HEAD
+[0.3.14]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.14
 [0.3.13]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.13
 [0.3.12]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.12
 [0.3.11]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.11
