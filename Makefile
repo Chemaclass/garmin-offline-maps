@@ -24,15 +24,22 @@ SDK_BIN     ?= $(CASK_SDK)
 
 MONKEYC     := $(if $(SDK_BIN),$(SDK_BIN)/monkeyc,monkeyc)
 MONKEYDO    := $(if $(SDK_BIN),$(SDK_BIN)/monkeydo,monkeydo)
-# The binary inside the SDK's own app bundle, not the `connectiq` launcher
-# beside it. That launcher runs `open -a .../ConnectIQ.app`, and `open -a`
-# hands the path to LaunchServices, which resolves it by bundle id: if a copy
-# of ConnectIQ.app has ever been registered from /Applications, that stale one
-# starts instead. It then reports "SDK Version 4.2.0.beta2 or greater is
-# required to run this device" against a 9.2.0 SDK, and cannot find its own
-# version.txt, because it is looking beside itself in /Applications rather than
-# in the SDK. Running the binary keeps its home directory inside the SDK.
-SIMULATOR   := $(if $(SDK_BIN),$(SDK_BIN)/ConnectIQ.app/Contents/MacOS/simulator,connectiq)
+# `open` with the bundle's full path, and both halves of that matter.
+#
+# Not the `connectiq` launcher beside it: that runs `open -a ConnectIQ.app`,
+# and `-a` resolves through LaunchServices by bundle id, so a copy registered
+# from /Applications can start instead. The simulator works out where the SDK
+# is from its own location, so the wrong one finds no version.txt and no device
+# definitions, and then rejects a device with "SDK Version 4.2.0.beta2 or
+# greater is required" against a 9.2.0 SDK. Giving `open` a concrete path
+# pins which bundle runs.
+#
+# And `open`, not the binary inside the bundle: launching that straight from a
+# shell gives a process with a window that never draws. It answers on the
+# side-load port and runs the app, so everything looks fine from the terminal
+# while the simulator sits there blank.
+SIM_APP     := $(if $(SDK_BIN),$(SDK_BIN)/ConnectIQ.app,)
+SIMULATOR   := $(if $(SIM_APP),open $(SIM_APP),connectiq)
 
 # The simulator's side-load socket. Kept on its own line: a trailing `#`
 # comment ends the value but leaves the spaces before it inside the variable.
@@ -97,8 +104,8 @@ doctor:
 		if java -version >/dev/null 2>&1; then java -version 2>&1 | head -1; \
 		else echo "MISSING   brew install --cask temurin@21"; fi
 	@printf '  %-20s' "simulator"; \
-		if [ -x "$(SIMULATOR)" ] || command -v "$(SIMULATOR)" >/dev/null 2>&1; then \
-			echo "$(SIMULATOR)"; \
+		if [ -d "$(SIM_APP)" ] || command -v connectiq >/dev/null 2>&1; then \
+			echo "$(if $(SIM_APP),$(SIM_APP),connectiq)"; \
 		else echo "MISSING   in the connectiq cask, but not linked onto PATH"; fi
 	@printf '  %-20s' "devices"; \
 		d="$$HOME/Library/Application Support/Garmin/ConnectIQ/Devices"; \
