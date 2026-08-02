@@ -40,10 +40,22 @@ module Settings {
             // currently compiled in -- otherwise we would start off the map.
             var pack = Application.Storage.getValue(KEY_PACK);
             if (pack != null && pack.equals(Pack.name())) {
-                var lat = Application.Storage.getValue(KEY_LAT);
-                var lon = Application.Storage.getValue(KEY_LON);
-                if (lat != null && lon != null) {
-                    camera.centreOn(lat.toDouble(), lon.toDouble());
+                var lat = Num.decimal(Application.Storage.getValue(KEY_LAT));
+                var lon = Num.decimal(Application.Storage.getValue(KEY_LON));
+                // Inside the pack, not merely saved under its name.
+                //
+                // Matching the name only says the centre belongs to this map.
+                // It does not say the value is usable, and a bad one is sticky:
+                // whatever the camera held gets saved on exit and restored on
+                // the next launch, so one implausible GPS fix parks the map off
+                // the packed area for good and the city opens blank every time.
+                // Out of range, keep the pack centre `Camera` already chose.
+                if (lat >= Pack.south() && lat <= Pack.north()
+                    && lon >= Pack.west() && lon <= Pack.east()) {
+                    camera.centreOn(lat, lon);
+                } else {
+                    System.println("Settings: stored centre " + lat + "," + lon
+                        + " is outside " + Pack.name() + ", using pack centre");
                 }
             }
         } catch (ex) {

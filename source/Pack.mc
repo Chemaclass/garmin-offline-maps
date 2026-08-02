@@ -45,6 +45,9 @@ module Pack {
     var _originY as Array<Number> = [];
     var _keyShift = 10;
     var _blockCount = 0;
+    //! The keys this pack actually holds. Kept, not just counted: see
+    //! `hasBlock`.
+    var _blocks = [] as Array<Number>;
     var _dataBytes = 0;
     var _west = 0.0d;
     var _south = 0.0d;
@@ -87,7 +90,8 @@ module Pack {
         _centerLon = Num.decimal(m["centerLon"]);
         _dataBytes = Num.integer(m["storedBytes"], 0);
         var keys = m["blocks"];
-        _blockCount = (keys instanceof Lang.Array) ? (keys as Array).size() : 0;
+        _blocks = Num.integers(keys);
+        _blockCount = _blocks.size();
         // The four per-zoom arrays are read by slot, and `dataZoomFor` and
         // `blockLog2` read element 0 without checking, so a set that is empty
         // or shorter than dataZooms is an out-of-bounds read later rather than
@@ -204,11 +208,36 @@ module Pack {
 
     //! Is anything packed here? Cheap, and separate from `blockBase64` so the
     //! tile cache can make room *before* paying for the load rather than after.
+    //! Is anything packed here?
+    //!
+    //! Membership in the pack's own list, not just a key in range, and the
+    //! difference is the bug that killed every downloaded city.
+    //!
+    //! `blockKey` only checks that the block falls inside the `keyShift` grid,
+    //! which is 1024x1024 keys. Berlin holds 20. So this answered "yes" for a
+    //! million blocks that do not exist, and each phantom cost `TileStore` a
+    //! load slot from its per-frame budget before `blockBase64` returned null.
+    //! With the budget spent on nothing, the store reported itself throttled,
+    //! `MapView` stayed dirty and asked to be drawn again, and the next frame
+    //! did exactly the same. The app spun without ever yielding, which is what
+    //! the watchdog kills: "Code Executed Too Long", every frame quick, the
+    //! loop endless. Only downloaded packs were affected; the built-in path
+    //! asks `MapIndex` for a resource and gets a truthful null.
     function hasBlock(z, blockX, blockY) {
         if (!_downloaded) {
             return MapIndex.blockResource(z, blockX, blockY) != null;
         }
-        return blockKey(z, blockX, blockY) >= 0;
+        var key = blockKey(z, blockX, blockY);
+        if (key < 0) { return false; }
+        // Annotated on the local: a `module` variable does not carry its
+        // declared type to the subscript below, so the cast has to sit on the
+        // hop that indexes it. Same rule as the other container roots in
+        // docs/DEVELOPMENT.md.
+        var blocks = _blocks as Array<Number>;
+        for (var i = 0; i < blocks.size(); i += 1) {
+            if (blocks[i] == key) { return true; }
+        }
+        return false;
     }
 
     //! (relX << keyShift) | relY, matching what the packer wrote. -1 when the

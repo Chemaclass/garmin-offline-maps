@@ -46,7 +46,10 @@ module Num {
     //! All or nothing on purpose. The arrays this reads are paired by slot
     //! index, so skipping a bad element would marry a zoom to another zoom's
     //! origin, which draws the wrong part of the world rather than failing.
-    function integers(value) {
+    //! Typed return, because every caller assigns this to a container that then
+    //! gets subscripted. Without it the annotation on the field is erased by
+    //! the assignment and the warning comes back at the `[i]`.
+    function integers(value) as Array<Number> {
         var out = [] as Array<Number>;
         if (!(value instanceof Lang.Array)) { return out; }
         var list = value as Array;

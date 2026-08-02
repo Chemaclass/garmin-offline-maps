@@ -90,11 +90,24 @@ class TestPaletteContract(unittest.TestCase):
         self.assertEqual(Style(PALETTE_MC).area_layers, 3)
 
     def test_renderer_caps_work_per_frame(self):
+        """The cap counts points *processed*, not lines drawn.
+
+        It used to count drawn lines, which could not bound anything: with the
+        geometry off screen nothing was drawn, so nothing incremented, so the
+        cap never fired and the renderer walked every feature of every tile
+        until the watchdog killed the app. Decoding is the cost; a point off
+        screen costs nearly as much as one on it.
+        """
         with open(RENDERER_MC, encoding="utf-8") as fh:
             source = fh.read()
         cap = int(re.search(r"MAX_SEGMENTS = (\d+)", source).group(1))
-        self.assertGreater(cap, 500)
-        self.assertLess(cap, 6000, "too many primitives per frame will trip the watchdog")
+        self.assertGreater(cap, 200)
+        self.assertLessEqual(
+            cap, 800,
+            "measured on a Venu 3 simulator: a downloaded Berlin renders at 400 "
+            "(223 segments, 68 ms) and trips the watchdog at 1200")
+        self.assertIn("_passWork += 1;", source,
+                      "every point must count towards the budget, drawn or not")
 
     def test_areas_cannot_starve_the_road_pass(self):
         """Areas are drawn first; they need their own, smaller budget."""
@@ -103,16 +116,29 @@ class TestPaletteContract(unittest.TestCase):
         total = int(re.search(r"MAX_SEGMENTS = (\d+)", source).group(1))
         areas = int(re.search(r"AREA_SEGMENTS = (\d+)", source).group(1))
         self.assertLess(areas, total)
-        self.assertIn("_passSegments = 0;", source, "the budget must reset per pass")
+        self.assertIn("_passWork = 0;", source, "the budget must reset per pass")
 
-    def test_packer_tile_budget_fits_a_screenful_of_tiles(self):
-        """Four visible tiles at the packer default must fit the frame cap."""
+    def test_a_screenful_of_tiles_exceeds_the_frame_cap(self):
+        """A full screen of packed detail does *not* fit one frame, on purpose.
+
+        This used to assert the opposite, and the assertion was wrong rather
+        than the code: a screenful at the packer's default is 4400 points
+        against a cap the watchdog holds near 400. Raising the cap to match the
+        packer is what killed the app.
+
+        So the renderer truncates by design, and the packer's job is to keep the
+        *first* points of a tile the ones worth drawing. What must not happen is
+        the cap quietly growing back to a screenful, so this pins the direction
+        of the inequality rather than pretending it fits.
+        """
         with open(RENDERER_MC, encoding="utf-8") as fh:
             cap = int(re.search(r"MAX_SEGMENTS = (\d+)", fh.read()).group(1))
         from mappack.pack import PackOptions
 
-        self.assertLessEqual(PackOptions().max_points_per_tile * 4, cap * 2,
-                             "lower --max-points-per-tile or raise MAX_SEGMENTS")
+        self.assertGreater(
+            PackOptions().max_points_per_tile * 4, cap,
+            "if a screenful now fits the frame, re-measure on hardware before "
+            "trusting it: this held at 400 and crashed at 1200")
 
 
 if __name__ == "__main__":

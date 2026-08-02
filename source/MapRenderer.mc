@@ -20,11 +20,11 @@ import Toybox.System;
 class MapRenderer {
 
     //! Hard ceiling on primitives per render, to stay clear of the watchdog.
-    const MAX_SEGMENTS = 2600;
+    const MAX_SEGMENTS = 400;
     //! Areas get their own, smaller budget. They are drawn first, and without
     //! a separate allowance a city full of parks and buildings could spend the
     //! whole frame before a single road is drawn.
-    const AREA_SEGMENTS = 900;
+    const AREA_SEGMENTS = 150;
     const MAX_POLYGON_POINTS = 64;
 
     //! Milliseconds a single render may spend before it gives up and draws
@@ -41,17 +41,26 @@ class MapRenderer {
     //! Time is what the watchdog actually measures, so measure the same thing.
     //! It fires around 5 s (docs/DEVICES.md); this leaves room for the blit and
     //! everything else in the frame.
-    const FRAME_BUDGET_MS = 1200;
+    //! 1200 was not enough of a cut: the watchdog still fired inside
+    //! `drawPolyline`. A frame this long is wrong anyway. The design target in
+    //! docs/RENDERING.md is a redraw well under a second, and the map is
+    //! re-rendered until the store has fed in every block, so a slow frame is
+    //! not paid once but on every pass.
+    const FRAME_BUDGET_MS = 250;
 
-    //! Checked every 32 points rather than every point: `getTimer` in the inner
-    //! loop of the hot path would itself cost more than it saves.
-    const TIME_CHECK_MASK = 0x1F;
+    //! Checked every 16 points rather than every point: `getTimer` in the inner
+    //! loop of the hot path would itself cost more than it saves. Each point is
+    //! a `drawLine`, so 16 of them is already real work.
+    const TIME_CHECK_MASK = 0x0F;
 
     const PASS_AREAS = 0;
     const PASS_LINES = 1;
 
     hidden var _segments;
     hidden var _passSegments;
+    //! Points processed this pass, drawn or not. This is what the budget
+    //! actually limits; see the note in `drawPolyline`.
+    hidden var _passWork;
     hidden var _tilesDrawn;
     hidden var _passTruncated;
     //! `System.getTimer()` value past which this render stops.
@@ -62,6 +71,7 @@ class MapRenderer {
     function initialize() {
         _segments = 0;
         _passSegments = 0;
+        _passWork = 0;
         _tilesDrawn = 0;
         _passTruncated = false;
     }
@@ -87,6 +97,7 @@ class MapRenderer {
     function render(dc, camera, store) {
         _segments = 0;
         _passSegments = 0;
+        _passWork = 0;
         _tilesDrawn = 0;
         _passTruncated = false;
         _deadline = System.getTimer() + FRAME_BUDGET_MS;
@@ -127,6 +138,7 @@ class MapRenderer {
         if (centreX - radius < 0) { minTileX -= 1; }
         if (centreY - radius < 0) { minTileY -= 1; }
 
+
         var theta = camera.rotation();
         var cosT = 1.0;
         var sinT = 0.0;
@@ -142,6 +154,7 @@ class MapRenderer {
         for (var pass = PASS_AREAS; pass <= PASS_LINES; pass += 1) {
             var budget = (pass == PASS_AREAS) ? AREA_SEGMENTS : MAX_SEGMENTS;
             _passSegments = 0;
+            _passWork = 0;
             _passTruncated = false;
             for (var tileY = minTileY; tileY <= maxTileY && !_passTruncated; tileY += 1) {
                 for (var tileX = minTileX; tileX <= maxTileX && !_passTruncated; tileX += 1) {
@@ -210,6 +223,16 @@ class MapRenderer {
             for (var f = 0; f < featureCount; f += 1) {
                 var geomType = reader.u8();
                 var pointCount = reader.uvarint();
+                // A count this size did not come from the packer, which caps
+                // points per tile in the hundreds. It came from reading at an
+                // offset that is not a feature boundary, and the loop below
+                // would spend the frame on it. Abandon the tile: the rest of
+                // this payload cannot be trusted either.
+                if (pointCount < 0 || pointCount > MapFormat.MAX_FEATURE_POINTS
+                        || reader.pos > layerEnd) {
+                    Diag.note("tile", "bad feature at " + tileX + "/" + tileY);
+                    return;
+                }
                 if (geomType == MapFormat.GEOM_POLYGON) {
                     drawPolygon(dc, reader, pointCount, originX, originY, unitsToPixels,
                                 halfW, halfH, cosT, sinT, rotated);
@@ -217,7 +240,7 @@ class MapRenderer {
                     drawPolyline(dc, reader, pointCount, originX, originY, unitsToPixels,
                                  halfW, halfH, cosT, sinT, rotated, width, height);
                 }
-                if (_passSegments > budget || outOfTime()) {
+                if (_passWork > budget || outOfTime()) {
                     _passTruncated = true;
                     return;
                 }
@@ -263,6 +286,17 @@ class MapRenderer {
             }
             var inside = sx >= -8 && sy >= -8 && sx <= width + 8 && sy <= height + 8;
 
+            // Every point costs, drawn or not: decoding the varints and
+            // projecting is most of the work, and `drawLine` only happens when
+            // something is on screen.
+            //
+            // Counting drawn lines alone left the budget unable to fire at all
+            // when the geometry was off screen. Nothing was inside, so nothing
+            // incremented, so the cap was never reached, and the renderer
+            // walked every feature of every tile drawing nothing until the
+            // watchdog killed the app. A map that is merely off centre must not
+            // be more expensive than one that is not.
+            _passWork += 1;
             if (i > 0 && (inside || prevInside)) {
                 dc.drawLine(prevSx.toNumber(), prevSy.toNumber(), sx.toNumber(), sy.toNumber());
                 _segments += 1;
@@ -287,6 +321,9 @@ class MapRenderer {
                 _passTruncated = true;
                 return;
             }
+            // Counted here for the same reason as in `drawPolyline`: the
+            // decode is the cost, and a polygon off screen still pays it.
+            _passWork += 1;
             x += reader.svarint();
             y += reader.svarint();
             if (at >= keep) {

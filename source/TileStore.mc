@@ -137,6 +137,15 @@ class TileStore {
         if (!TileReader.isValid(decoded)) {
             return null;
         }
+        // Truncated blocks are worse than missing ones: the renderer decodes
+        // whatever is at the offset and can loop on it, and the watchdog then
+        // kills the app rather than leaving a gap in the map.
+        if (!TileReader.isComplete(decoded)) {
+            System.println("TileStore: block " + zoom + "/" + blockX + "/" + blockY
+                + " is truncated, have " + decoded.size() + " bytes");
+            Diag.note("block", zoom + "/" + blockX + "/" + blockY + " truncated");
+            return null;
+        }
 
         evictFor(decoded.size());
         _zoom.add(zoom);

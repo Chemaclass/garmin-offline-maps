@@ -17,6 +17,15 @@ module MapFormat {
     //! half a two-value vocabulary reads worse than none of it.
     const GEOM_POLYLINE = 0;
     const GEOM_POLYGON = 1;
+
+    //! A 32-bit LEB128 value cannot need more than five bytes. Anything longer
+    //! is a stream that has gone wrong, not a big number.
+    const MAX_VARINT_BYTES = 5;
+
+    //! No tile the packer writes comes close: it caps points per tile in the
+    //! hundreds. This exists to reject a count decoded from a bad offset before
+    //! the renderer loops on it.
+    const MAX_FEATURE_POINTS = 4096;
 }
 
 //! Cursor over a MapPack block.
@@ -70,16 +79,26 @@ class TileReader {
     //! Written with the continuation bit as the loop condition rather than a
     //! `while (true)` with an inner return: the compiler cannot prove the latter
     //! ever returns, and rejects it.
+    //!
+    //! **Bounded, and that is not belt and braces.** Unbounded, this loop is
+    //! the app's one way to hang: it trusts the stream to end, so a reader that
+    //! has drifted out of step runs through every byte with the high bit set
+    //! and never returns. The watchdog then kills the app with "Code Executed
+    //! Too Long" -- a black screen and the Connect IQ error icon, from a single
+    //! bad byte offset. A five-byte cap costs nothing and turns that into a
+    //! wrong number, which `drawTile` can see and reject.
     function uvarint() {
         var result = 0;
         var shift = 0;
         var more = true;
-        while (more) {
+        var read = 0;
+        while (more && read < MapFormat.MAX_VARINT_BYTES && pos < bytes.size()) {
             var b = bytes[pos];
             pos += 1;
             result = result | ((b & 0x7F) << shift);
             more = (b & 0x80) != 0;
             shift += 7;
+            read += 1;
         }
         return result;
     }
@@ -97,6 +116,29 @@ class TileReader {
             && block.size() > MapFormat.HEADER_BYTES
             && block[0] == MapFormat.MAGIC
             && block[1] == MapFormat.VERSION;
+    }
+
+    //! Does the directory agree with the bytes we actually hold?
+    //!
+    //! `isValid` only reads the first two bytes, so it passes a block that
+    //! arrived truncated: right magic, right version, missing tail. The
+    //! renderer then starts a tile at an offset past the end, or inside the
+    //! wrong feature, and decodes noise. A downloaded block goes through
+    //! `Application.Storage` and a base64 round trip on the way in, which is
+    //! more opportunity to lose the end of it than a compiled-in resource has.
+    //!
+    //! Every payload offset has to sit after the directory and inside the
+    //! block. Cheap: one pass over at most 256 entries, once per load.
+    static function isComplete(block as ByteArray) {
+        var count = block[8];
+        var dirEnd = MapFormat.HEADER_BYTES + count * MapFormat.DIRECTORY_ENTRY_BYTES;
+        if (dirEnd > block.size()) { return false; }
+        for (var i = 0; i < count; i += 1) {
+            var at = MapFormat.HEADER_BYTES + i * MapFormat.DIRECTORY_ENTRY_BYTES;
+            var offset = block[at + 2] | (block[at + 3] << 8);
+            if (offset < dirEnd || offset >= block.size()) { return false; }
+        }
+        return true;
     }
 
     static function blockZoom(block as ByteArray) {

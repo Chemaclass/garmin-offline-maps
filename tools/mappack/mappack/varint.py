@@ -37,7 +37,16 @@ def write_svarint(out: bytearray, value: int) -> None:
 
 
 def read_uvarint(buf: bytes, pos: int) -> tuple[int, int]:
-    """Return (value, new_pos)."""
+    """Return (value, new_pos).
+
+    The `shift > 35` cap is five payload bytes, which is `MapFormat`'s
+    `MAX_VARINT_BYTES` in ``source/TileReader.mc``. Both sides bound the loop;
+    they differ only in what they do at the limit, and they have to. Here a
+    corrupt stream should stop the tool loudly. On the watch it cannot raise:
+    this runs inside the render, and an unbounded loop there is not a wrong
+    picture but a hung app that the watchdog kills outright. So the reader
+    returns a wrong number and lets `drawTile` reject it.
+    """
     result = 0
     shift = 0
     while True:

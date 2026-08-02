@@ -49,6 +49,46 @@ class LocationTracker {
         } catch (ex) {
             System.println("LocationTracker: positioning unavailable");
         }
+        seedFromLastKnown();
+    }
+
+    //! Take the fix the watch already has, before waiting for a new one.
+    //!
+    //! `enableLocationEvents` only calls back when the receiver produces a
+    //! *fresh* fix, which from cold is tens of seconds. The watch is almost
+    //! always holding a recent one from another app or the last activity, and
+    //! `getInfo` hands it over immediately. Without this the map sits on
+    //! "Searching for GPS" for a minute on every launch while the answer was
+    //! available the whole time.
+    //!
+    //! It is routed through `onPosition` rather than assigning the fields here,
+    //! so a cached fix and a live one cannot drift apart in how they are
+    //! handled.
+    hidden function seedFromLastKnown() {
+        try {
+            var info = Position.getInfo();
+            // QUALITY_NOT_AVAILABLE means the fields are unset rather than
+            // stale, and would put the marker on null island.
+            if (info != null && info.position != null
+                && info.accuracy != Position.QUALITY_NOT_AVAILABLE) {
+                var degrees = info.position.toDegrees();
+                // Sanity-check before believing it. A watch with no usable fix
+                // can still hand back a position: the simulator returns one out
+                // at the corner of the world, and feeding that in recentred the
+                // map off the packed area, so a downloaded city opened blank.
+                // Latitude beyond the Mercator limit is not somewhere anyone is
+                // standing.
+                if (degrees[0] > Mercator.MAX_LAT || degrees[0] < -Mercator.MAX_LAT) {
+                    System.println("LocationTracker: ignoring implausible cached fix "
+                        + degrees[0] + "," + degrees[1]);
+                    return;
+                }
+                onPosition(info);
+            }
+        } catch (ex) {
+            // No positioning on this device, or none granted. The live
+            // callback is still the main path.
+        }
     }
 
     function stop() {

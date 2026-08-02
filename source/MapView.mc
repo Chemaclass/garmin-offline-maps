@@ -209,7 +209,13 @@ class MapView extends WatchUi.View {
                         // Stay dirty while the store is still feeding blocks in
                         // a few at a time, so the map finishes over the next
                         // frames instead of in one that the watchdog kills.
-                        _dirty = _store.throttled();
+                        // Only come back for more if the store still has
+                        // blocks to hand over. A render that ran out of time
+                        // would otherwise ask to be run again immediately, and
+                        // redraw exactly the same thing, so the app would spin
+                        // at full tilt without ever finishing a map, which is
+                        // its own way of upsetting the watchdog.
+                        _dirty = _store.throttled() && !_renderer.timedOut();
                         if (_dirty) { WatchUi.requestUpdate(); }
                     }
                     dc.setColor(background, background);
