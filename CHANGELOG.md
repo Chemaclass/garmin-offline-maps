@@ -9,6 +9,15 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Nothing yet.
 
+## [0.3.10] - 2026-08-02
+
+The store build of the watchdog fix. No behaviour changes over 0.3.9: this
+carries its own version number so the build on a watch can be told apart from
+the one before it, which the About screen now shows.
+
+If you are coming from 0.3.8 or earlier, the release worth reading is
+[0.3.8](#038---2026-08-02): downloaded cities no longer crash.
+
 ## [0.3.9] - 2026-08-02
 
 ### Added
@@ -263,7 +272,8 @@ simulator.
 - **Preview renderer**: render a pack to PNG and see what the watch will draw
   before spending time flashing it.
 
-[Unreleased]: https://github.com/Chemaclass/garmin-offline-maps/compare/v0.3.9...HEAD
+[Unreleased]: https://github.com/Chemaclass/garmin-offline-maps/compare/v0.3.10...HEAD
+[0.3.10]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.10
 [0.3.9]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.9
 [0.3.8]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.8
 [0.3.7]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.7
