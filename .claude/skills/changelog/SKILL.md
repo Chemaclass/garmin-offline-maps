@@ -69,6 +69,10 @@ second: several commits often add up to one user-visible change.
 2. Rename `## [Unreleased]` to `## [x.y.z] - YYYY-MM-DD` using today's real date.
 3. Add a fresh, empty `## [Unreleased]` above it.
 4. Update the link definitions at the bottom of the file.
+4b. Bump `const APP` in `source/Version.mc` to the same version. That string is
+   what the About screen shows, and it is the only way to tell which build is on
+   a watch. `tests/contract/test_version.py` fails if the two disagree, so
+   `make test` catches a forgotten bump.
 5. Sanity-check the section against `git log` since the last tag. A
    user-visible change that never got an entry is the usual miss. Read the
    diff, not just the subjects: a commit labelled `ref:` has carried

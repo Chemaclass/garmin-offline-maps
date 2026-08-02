@@ -93,6 +93,9 @@ class AboutView extends WatchUi.View {
         var height = dc.getHeight();
         var lines = [
             WatchUi.loadResource(Rez.Strings.AppName) as String,
+            // Directly under the name, because this is the line someone came
+            // here to read: which build is actually on the watch.
+            "v" + Version.APP,
             Pack.name(),
             Pack.blockCount() + " blocks, " + (Pack.dataBytes() / 1024) + " KB",
             "zoom " + Pack.minZoom() + "-" + Pack.maxZoom(),
@@ -100,7 +103,7 @@ class AboutView extends WatchUi.View {
             WatchUi.loadResource(Rez.Strings.SourceRepo) as String
         ];
 
-        // Tight pitch: six lines have to clear the bottom of a round screen.
+        // Tight pitch: seven lines have to clear the bottom of a round screen.
         var top = height * 0.22;
         for (var i = 0; i < lines.size(); i += 1) {
             dc.setColor(i == 0 ? Graphics.COLOR_WHITE : Graphics.COLOR_LT_GRAY,
