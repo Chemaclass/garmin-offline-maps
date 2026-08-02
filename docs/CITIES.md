@@ -8,11 +8,16 @@ Read the trade below before assuming it replaces a packed region.
 
 ## What the user does
 
-1. Garmin Connect, the app's Settings, **City**: type a slug such as `berlin`.
-2. The watch downloads it the next time the app runs, showing progress.
-3. The built-in map keeps drawing until the download completes.
+**On the watch**, which is the easy way: hold the screen to open the menu, then
+**Change city**. The watch fetches the catalogue and lists what is published;
+pick one and it downloads, with progress on screen.
 
-`City` empty, or `builtin`, means the map compiled into the app.
+**On the phone**, in Garmin Connect's settings for the app, the **City** field
+takes the same name. It is free text, so it is normalised before use: `Berlin`,
+`berlin` and `New York` all resolve. Leave it empty for the built-in map.
+
+Either way the built-in map keeps drawing until the download finishes, and the
+two stay in step: choosing on the watch writes the phone setting back.
 
 ## What it costs
 
@@ -26,7 +31,7 @@ Measured against Berlin at one data zoom:
 |---|---|---|
 | simplify 2.0, 1100 pts | 328 KB | 3x over |
 | simplify 4.0, 300 pts | 103 KB | no headroom |
-| **simplify 4.0, 260 pts** | **93 KB** | the profile |
+| **simplify 4.0, 260 pts** | **71 KB** | the profile, 5 km radius |
 | simplify 6.0, 200 pts | 71 KB | too sparse to read |
 | add z16, street level | 1.62 MB | 13x over |
 
@@ -36,8 +41,10 @@ the packer spends its points on the highest-priority layers first (see
 `classify.py`), and residential does not survive. Street-level detail can only
 be compiled in, which is what `make pack` and a per-listing build are for.
 
-Berlin is 30 blocks and 93 KB, roughly 90 seconds over a link that manages
-under 1 KB/s.
+Berlin is 20 blocks and 71 KB, roughly 70 seconds over a link that manages
+under 1 KB/s. The radius is the other half of that number: the same city at
+6 km comes to 110 KB, which is too close to the ceiling to be comfortable, so
+`--radius-km` defaults to 5.
 
 ## Publishing a city
 
@@ -56,6 +63,12 @@ Add one with:
 cd tools/mappack
 python3 -m mappack.publish --city "Madrid" --out ../../docs/packs
 ```
+
+Overpass is a shared free service and will return 429 to a batch that hammers
+it. The publisher paces its fetches, waits out a rate limit rather than dying
+on it, and keeps going when one city fails. The catalogue is rebuilt from the
+cities on disk rather than from the ones this run happened to build, so an
+interrupted batch never drops previously published cities.
 
 That geocodes the name, fetches from Overpass, packs at the download profile,
 and rewrites the catalogue. A city that will not fit is **reported and skipped**

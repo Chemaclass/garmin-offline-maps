@@ -15,6 +15,8 @@
     <string id="MenuNightSub">Easier on an AMOLED battery</string>
     <string id="MenuStats">Show stats</string>
     <string id="MenuAbout">About this pack</string>
+    <string id="MenuCity">Change city</string>
+    <string id="CatalogueFailed">No cities found</string>
 
     <!-- Where the app comes from, shown on the About screen. A repo slug, not
          prose: leave it alone when translating. -->
@@ -22,8 +24,10 @@
 
     <!-- Phone-side settings, shown in Garmin Connect. -->
     <string id="SettingCity">City</string>
+    <string id="SettingCityPrompt">Easier on the watch: hold the screen, then Change city. Or type a name from the catalogue, such as berlin. Leave empty for the built-in map.</string>
     <string id="SettingCityBuiltIn">Built-in map</string>
     <string id="SettingBaseUrl">Catalogue URL</string>
+    <string id="SettingBaseUrlPrompt">Where city maps are published. Change this only if you host your own.</string>
 
     <!-- Downloading a city. -->
     <string id="Downloading">Downloading</string>

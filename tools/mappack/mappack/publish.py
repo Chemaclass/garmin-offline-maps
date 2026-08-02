@@ -19,9 +19,11 @@ import os
 import re
 import sys
 import time
+import urllib.error
 from typing import List, Optional
 
 from . import citypack, geocode, osmread
+from .osmread import Way
 from .pack import pack
 
 DEFAULT_BASE_URL = "https://chemaclass.github.io/garmin-offline-maps/packs"
@@ -29,6 +31,17 @@ DEFAULT_ATTRIBUTION = "(c) OpenStreetMap contributors"
 
 #: Nominatim asks for no more than one request a second.
 GEOCODE_INTERVAL = 1.1
+
+#: Overpass is a shared free service and will hand out 429s to a batch that
+#: hammers it. Pace the fetches and back off when it complains: a rate limit is
+#: a request to wait, not an error to give up on.
+#: https://dev.overpass-api.de/overpass-doc/en/preface/commons.html
+OVERPASS_INTERVAL = 8.0
+OVERPASS_RETRIES = 4
+OVERPASS_BACKOFF = 20.0
+
+#: Half-width of a published city, in km. See --radius-km.
+PUBLISH_RADIUS_KM = 5.0
 
 
 def slugify(name: str) -> str:
@@ -56,7 +69,9 @@ def build_parser() -> argparse.ArgumentParser:
                         help="a single city; repeatable")
     parser.add_argument("--out", default="site", help="directory to write")
     parser.add_argument("--base-url", default=DEFAULT_BASE_URL)
-    parser.add_argument("--radius-km", type=float, default=geocode.DEFAULT_RADIUS_KM)
+    # 5 km rather than the geocoder default of 6: Berlin is 71 KB at 5 km
+    # and 110 KB at 6, and the watch has about 128 KB in total.
+    parser.add_argument("--radius-km", type=float, default=PUBLISH_RADIUS_KM)
     parser.add_argument("--attribution", default=DEFAULT_ATTRIBUTION)
     parser.add_argument("--settings", help="also write this settings.xml")
     parser.add_argument("--properties", help="also write this properties.xml")
@@ -82,7 +97,7 @@ def build_city(name: str, args, searcher=None, loader=None) -> Optional[dict]:
         cache = os.path.join(args.cache_dir, slug + ".osm")
 
     load = loader if loader is not None else osmread.load
-    ways = load(None, bbox, args.overpass_url, cache)
+    ways = crop(load_with_retry(load, bbox, args, cache), bbox)
 
     options = citypack.download_options(place.name.split(",")[0].strip() or name)
     result = pack(ways, options)
@@ -97,6 +112,41 @@ def build_city(name: str, args, searcher=None, loader=None) -> Optional[dict]:
     return entry
 
 
+def crop(ways, bbox):
+    """Keep only the geometry inside `bbox`.
+
+    Overpass returns whole ways that merely touch the query box, and a cached
+    response was fetched for whatever radius was in force that day. Cropping
+    here makes `--radius-km` mean the same thing on a cache hit as on a fresh
+    fetch, which is what stops a re-run quietly producing a bigger pack.
+    """
+    west, south, east, north = bbox
+    out = []
+    for way in ways:
+        inside = [p for p in way.coords
+                  if west <= p[0] <= east and south <= p[1] <= north]
+        if len(inside) >= 2:
+            out.append(Way(tags=way.tags, coords=inside, closed=way.closed))
+    return out
+
+
+def load_with_retry(load, bbox, args, cache):
+    """Fetch from Overpass, waiting out a rate limit rather than dying on it."""
+    delay = OVERPASS_BACKOFF
+    for attempt in range(OVERPASS_RETRIES):
+        try:
+            return load(None, bbox, args.overpass_url, cache)
+        except urllib.error.HTTPError as exc:
+            retryable = exc.code in (429, 502, 503, 504)
+            if not retryable or attempt == OVERPASS_RETRIES - 1:
+                raise
+            print("  Overpass returned %d, waiting %.0fs" % (exc.code, delay),
+                  file=sys.stderr)
+            time.sleep(delay)
+            delay *= 2
+    return None
+
+
 def main(argv=None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -107,18 +157,27 @@ def main(argv=None) -> int:
     if not names:
         parser.error("give --city NAME (repeatable) or --cities FILE")
 
-    entries = []
+    built = 0
     for i, name in enumerate(names):
         print("packing %s ..." % name, file=sys.stderr)
         if i:
-            time.sleep(GEOCODE_INTERVAL)
-        entry = build_city(name, args)
-        if entry is not None:
-            entries.append(entry)
+            time.sleep(max(GEOCODE_INTERVAL, OVERPASS_INTERVAL))
+        try:
+            if build_city(name, args) is not None:
+                built += 1
+        except Exception as exc:
+            # One city failing must not discard the ones already fetched:
+            # Overpass minutes are expensive and a batch is long.
+            print("  %s failed: %s" % (name, exc), file=sys.stderr)
 
+    # The catalogue lists what is published, not what this run managed to
+    # build, so an interrupted batch still leaves earlier cities discoverable.
+    entries = citypack.scan_published(args.out)
     if not entries:
-        print("nothing packed", file=sys.stderr)
+        print("nothing published", file=sys.stderr)
         return 1
+    print("\nbuilt %d this run, %d published in total" % (built, len(entries)),
+          file=sys.stderr)
 
     path = citypack.write_catalogue(entries, args.out, args.base_url)
     print("\nwrote %s with %d cities" % (path, len(entries)))

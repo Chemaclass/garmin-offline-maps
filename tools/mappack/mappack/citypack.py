@@ -172,6 +172,34 @@ def write_city(result: PackResult, options: PackOptions, slug: str,
     }
 
 
+def scan_published(out_dir: str) -> List[Dict[str, object]]:
+    """Catalogue entries for every city already written under `out_dir`.
+
+    The catalogue is derived from what is on disk rather than from what this
+    run happened to build. A batch that dies halfway through (Overpass rate
+    limits are a fact of life) must not publish a catalogue that forgets the
+    cities from previous runs.
+    """
+    entries: List[Dict[str, object]] = []
+    if not os.path.isdir(out_dir):
+        return entries
+    for slug in sorted(os.listdir(out_dir)):
+        meta_path = os.path.join(out_dir, slug, "meta.json")
+        if not os.path.isfile(meta_path):
+            continue
+        with open(meta_path, encoding="utf-8") as fh:
+            meta = json.load(fh)
+        entries.append({
+            "slug": meta.get("slug", slug),
+            "name": meta.get("name", slug),
+            "lat": meta.get("centerLat"),
+            "lon": meta.get("centerLon"),
+            "blocks": len(meta.get("blocks", [])),
+            "storedBytes": meta.get("storedBytes", 0),
+        })
+    return entries
+
+
 def write_catalogue(entries: Sequence[Dict[str, object]], out_dir: str,
                     base_url: str) -> str:
     """The index the settings page and the watch both read."""
@@ -209,10 +237,12 @@ def write_settings_xml(entries: Sequence[Dict[str, object]], path: str,
         '<settings xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"',
         '          xsi:noNamespaceSchemaLocation='
         '"https://developer.garmin.com/downloads/connect-iq/resources.xsd">',
-        '    <setting propertyKey="@Properties.cityId" title="@Strings.SettingCity">',
+        '    <setting propertyKey="@Properties.cityId" title="@Strings.SettingCity"',
+        '             prompt="@Strings.SettingCityPrompt">',
         '        <settingConfig type="alphaNumeric" maxLength="40" required="false" />',
         '    </setting>',
-        '    <setting propertyKey="@Properties.packBaseUrl" title="@Strings.SettingBaseUrl">',
+        '    <setting propertyKey="@Properties.packBaseUrl" title="@Strings.SettingBaseUrl"',
+        '             prompt="@Strings.SettingBaseUrlPrompt">',
         '        <settingConfig type="alphaNumeric" maxLength="120" required="false" />',
         '    </setting>',
         '</settings>',

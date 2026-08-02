@@ -20,6 +20,9 @@ module MapMenu {
             Rez.Strings.MenuNight, Rez.Strings.MenuNightSub,
             :night, camera.night, null));
 
+        menu.addItem(new WatchUi.MenuItem(
+            Rez.Strings.MenuCity, Pack.name(), :city, null));
+
         menu.addItem(new WatchUi.MenuItem(Rez.Strings.MenuStats, null, :stats, null));
 
         menu.addItem(new WatchUi.MenuItem(
@@ -53,6 +56,11 @@ class MapMenuDelegate extends WatchUi.Menu2InputDelegate {
             // The buffer is no longer paletted, so the theme is just a repaint
             // -- no need to throw the allocation away and take it again.
             _view.invalidate();
+        } else if (id == :city) {
+            WatchUi.popView(WatchUi.SLIDE_DOWN);
+            // The app owns the downloader and the pack, so it drives this.
+            (Application.getApp() as OfflineMapsApp).pickCity();
+            return;
         } else if (id == :stats) {
             _view.toggleDebug();
             WatchUi.popView(WatchUi.SLIDE_DOWN);

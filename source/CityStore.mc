@@ -20,6 +20,35 @@ module CityStore {
     //! Prefix for block values: `cb<key>`.
     const KEY_BLOCK = "cb";
 
+    //! Turn whatever was typed into a catalogue slug.
+    //!
+    //! The published files are lowercase and hyphenated, and GitHub Pages is
+    //! case-sensitive: "Berlin" 404s where "berlin" does not. Typing a capital
+    //! is the obvious thing to do, so it must not be the thing that fails.
+    function normalize(text) {
+        if (text == null || !(text instanceof Lang.String)) { return null; }
+        var raw = (text as String).toLower();
+        var out = "";
+        var lastWasDash = true;         // also trims a leading separator
+        for (var i = 0; i < raw.length(); i += 1) {
+            var ch = raw.substring(i, i + 1);
+            if (ch.equals(" ") || ch.equals("_") || ch.equals("-")) {
+                if (!lastWasDash) {
+                    out += "-";
+                    lastWasDash = true;
+                }
+            } else {
+                out += ch;
+                lastWasDash = false;
+            }
+        }
+        // Trim a trailing separator.
+        if (out.length() > 0 && out.substring(out.length() - 1, out.length()).equals("-")) {
+            out = out.substring(0, out.length() - 1);
+        }
+        return out.length() == 0 ? null : out;
+    }
+
     //! Slug of the stored city, or null when none has been downloaded.
     function slug() {
         try {

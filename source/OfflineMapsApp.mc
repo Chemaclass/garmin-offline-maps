@@ -58,16 +58,41 @@ class OfflineMapsApp extends Application.AppBase {
 
     hidden function wantedCity() {
         try {
-            var id = Application.Properties.getValue("cityId");
-            if (id == null || !(id instanceof Lang.String)) { return null; }
-            var trimmed = id as String;
-            if (trimmed.length() == 0 || trimmed.equals(CITY_BUILT_IN)) {
-                return null;
-            }
-            return trimmed;
+            // Normalised, because the settings field is free text and the
+            // published slugs are lowercase: typing "Berlin" would otherwise
+            // 404 with nothing to explain why.
+            var id = CityStore.normalize(Application.Properties.getValue("cityId"));
+            if (id == null || id.equals(CITY_BUILT_IN)) { return null; }
+            return id;
         } catch (ex) {
             return null;
         }
+    }
+
+    //! Offer the published catalogue on the watch.
+    function pickCity() {
+        var url = baseUrl();
+        if (url == null) { return; }
+        var picker = new CityPicker(url, method(:onCityChosen));
+        picker.start();
+    }
+
+    //! A city was chosen from the on-watch picker.
+    function onCityChosen(slug) {
+        // Keep the phone settings in step, so Garmin Connect shows what the
+        // watch is actually using.
+        try {
+            Application.Properties.setValue("cityId", slug);
+        } catch (ex) {
+            // Not fatal: the download still happens, the phone just disagrees.
+            System.println("could not write cityId");
+        }
+        if (CityStore.isComplete(slug)) {
+            Pack.use(CityStore.meta());
+            refreshAfterPackChange();
+            return;
+        }
+        startDownload(slug);
     }
 
     hidden function baseUrl() {

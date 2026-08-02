@@ -2,12 +2,28 @@
  "baseUrl": "https://chemaclass.github.io/garmin-offline-maps/packs",
  "cities": [
   {
-   "blocks": 30,
-   "lat": 52.51221,
-   "lon": 13.36317,
+   "blocks": 20,
+   "lat": 52.5173884,
+   "lon": 13.3951305,
    "name": "Berlin",
    "slug": "berlin",
-   "storedBytes": 92620
+   "storedBytes": 73180
+  },
+  {
+   "blocks": 16,
+   "lat": 40.4167822,
+   "lon": -3.7035068,
+   "name": "Madrid",
+   "slug": "madrid",
+   "storedBytes": 57108
+  },
+  {
+   "blocks": 12,
+   "lat": 37.9347521,
+   "lon": -1.1131037,
+   "name": "Murcia",
+   "slug": "murcia",
+   "storedBytes": 39100
   }
  ],
  "format": 1
