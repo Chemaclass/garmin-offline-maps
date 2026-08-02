@@ -41,12 +41,14 @@ class MapRenderer {
     //! Time is what the watchdog actually measures, so measure the same thing.
     //! It fires around 5 s (docs/DEVICES.md); this leaves room for the blit and
     //! everything else in the frame.
-    //! 1200 was not enough of a cut: the watchdog still fired inside
-    //! `drawPolyline`. A frame this long is wrong anyway. The design target in
-    //! docs/RENDERING.md is a redraw well under a second, and the map is
-    //! re-rendered until the store has fed in every block, so a slow frame is
-    //! not paid once but on every pass.
-    const FRAME_BUDGET_MS = 250;
+    //! 80, measured, not guessed. Frames get heavier as blocks arrive and the
+    //! view keeps re-rendering while they do: a downloaded Berlin at zoom 13
+    //! climbed 42 -> 76 -> 86 -> 125 ms and then the app was killed. No single
+    //! frame reached the old 250, so the budget never fired while the churn
+    //! still added up. At 80 the cap actually bites: 198 renders panning
+    //! Alexanderplatz to Wedding across zooms 13 to 15 peaked at 81 ms with
+    //! nothing killed.
+    const FRAME_BUDGET_MS = 80;
 
     //! Checked every 16 points rather than every point: `getTimer` in the inner
     //! loop of the hot path would itself cost more than it saves. Each point is
