@@ -9,6 +9,29 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Nothing yet.
 
+## [0.3.5] - 2026-08-02
+
+### Fixed
+
+- **A download that goes wrong now says so.** The reason was recorded while the
+  download screen was still in front, and wiped on the way back to the map, so
+  a failed download ended in silence and the sample map. Whatever went wrong
+  now reaches the screen.
+- **A city that arrives incomplete is refused rather than drawn.** A download
+  that returned no map blocks, or a block that was not map data, was stored
+  anyway and then drawn as a blank map for as long as that city stayed on the
+  watch.
+- **A downloaded city survives an unreadable setting.** The city dropdown from
+  the phone and the city currently active were read under one guard, so a
+  problem reading the first threw away the second and dropped you back to the
+  sample map with your city still on the watch.
+- **A map description that does not add up is refused before it can take the
+  app down.** Missing or mismatched zoom tables used to reach the code that
+  sets up the view, where nothing could catch them.
+- **`make city` builds a per-city listing again.** It failed to start at all
+  under the shell macOS ships. A listing can also name the watches it covers
+  now, which is what keeps a street-level city under the store's size limit.
+
 ## [0.3.4] - 2026-08-02
 
 ### Changed
@@ -179,7 +202,8 @@ simulator.
 - **Preview renderer**: render a pack to PNG and see what the watch will draw
   before spending time flashing it.
 
-[Unreleased]: https://github.com/Chemaclass/garmin-offline-maps/compare/v0.3.4...HEAD
+[Unreleased]: https://github.com/Chemaclass/garmin-offline-maps/compare/v0.3.5...HEAD
+[0.3.5]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.5
 [0.3.4]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.4
 [0.3.3]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.3
 [0.3.2]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.2
