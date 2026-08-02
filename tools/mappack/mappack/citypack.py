@@ -94,7 +94,8 @@ class TooBig(Exception):
 
 
 def write_city(result: PackResult, options: PackOptions, slug: str,
-               out_dir: str, attribution: str) -> Dict[str, object]:
+               out_dir: str, attribution: str,
+               country: str = "Other") -> Dict[str, object]:
     """Write `<out_dir>/<slug>/` and return its catalogue entry.
 
     Raises `TooBig` rather than writing something the watch will refuse
@@ -158,6 +159,7 @@ def write_city(result: PackResult, options: PackOptions, slug: str,
         "centerLon": round(center_lon, 7), "centerLat": round(center_lat, 7),
         "blocks": keys,
         "storedBytes": total_stored,
+        "country": country,
     }
     with open(os.path.join(city_dir, "meta.json"), "w", encoding="utf-8") as fh:
         json.dump(meta, fh, separators=(",", ":"), sort_keys=True)
@@ -165,6 +167,7 @@ def write_city(result: PackResult, options: PackOptions, slug: str,
     return {
         "slug": slug,
         "name": options.name,
+        "country": country,
         "lat": round(center_lat, 5),
         "lon": round(center_lon, 5),
         "blocks": len(keys),
@@ -192,6 +195,7 @@ def scan_published(out_dir: str) -> List[Dict[str, object]]:
         entries.append({
             "slug": meta.get("slug", slug),
             "name": meta.get("name", slug),
+            "country": meta.get("country", "Other"),
             "lat": meta.get("centerLat"),
             "lon": meta.get("centerLon"),
             "blocks": len(meta.get("blocks", [])),
@@ -208,7 +212,9 @@ def write_catalogue(entries: Sequence[Dict[str, object]], out_dir: str,
     payload = {
         "format": FORMAT_VERSION,
         "baseUrl": base_url.rstrip("/"),
-        "cities": sorted(entries, key=lambda c: c["name"]),
+        # Sorted by country then name so the watch can build its two-level
+        # picker by walking the list once, with no sorting on a 768 KB heap.
+        "cities": sorted(entries, key=lambda c: (str(c.get("country", "")), c["name"])),
     }
     with open(path, "w", encoding="utf-8") as fh:
         json.dump(payload, fh, indent=1, sort_keys=True)
@@ -238,7 +244,11 @@ def write_settings_xml(entries: Sequence[Dict[str, object]], path: str,
         '          xsi:noNamespaceSchemaLocation='
         '"https://developer.garmin.com/downloads/connect-iq/resources.xsd">',
         '    <setting propertyKey="@Properties.cityId" title="@Strings.SettingCity"',
-        '             prompt="@Strings.SettingCityPrompt">',
+        '             prompt="@Strings.SettingCityPrompt"',
+        # helpUrl is in the settings schema and is the only way to point at a
+        # list that grows without an app release. The picker on the watch is
+        # still the better route; this is for people who start on the phone.
+        '             helpUrl="%s">' % _escape(base_url.rstrip("/").rsplit("/", 1)[0]),
         '        <settingConfig type="alphaNumeric" maxLength="40" required="false" />',
         '    </setting>',
         '    <setting propertyKey="@Properties.packBaseUrl" title="@Strings.SettingBaseUrl"',

@@ -32,6 +32,7 @@
     <string id="MenuStats">Show stats</string>
     <string id="MenuAbout">About this pack</string>
     <string id="MenuCity">Change city</string>
+    <string id="MenuCountry">Country</string>
     <string id="CatalogueFailed">No cities found</string>
 
     <!-- Where the app comes from, shown on the About screen. A repo slug, not

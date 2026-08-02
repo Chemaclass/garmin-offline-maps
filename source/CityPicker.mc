@@ -5,13 +5,21 @@ import Toybox.WatchUi;
 
 //! Choose a city on the watch, from the published catalogue.
 //!
-//! The phone settings also take a city, but typing a slug means knowing the
-//! slug, and getting the case wrong silently 404s. This fetches
-//! `<baseUrl>/catalogue.json` and offers what is actually published, so the
-//! list grows by publishing a pack rather than by shipping an app update.
+//! Two levels, country then city, because a catalogue meant to reach every
+//! capital is far too long to scroll flat.
+//!
+//! This has to live on the watch rather than in the phone settings, and that is
+//! a platform limit rather than a preference. Connect IQ settings are compiled
+//! into the app: `settingConfig type="list"` takes only static `listEntry`
+//! children, and the single dependency mechanism in the schema
+//! (`group enableIfTrue`) gates a group on a boolean. There is no way to fill a
+//! list at runtime, and no way to make one list depend on another's value. A
+//! compiled-in list would also mean an app release per city, which is exactly
+//! what publishing from CI removes.
 //!
 //! The catalogue is a couple of hundred bytes per city, so unlike the blocks it
-//! is fine to hold as one parsed response.
+//! is fine to hold as one parsed response. It arrives sorted by country then
+//! name, so the grouping below is one walk with no sorting on a 768 KB heap.
 class CityPicker {
 
     hidden var _baseUrl;
@@ -58,9 +66,34 @@ class CityPicker {
             showError();
             return;
         }
+        WatchUi.pushView(countryMenu(), new CountryDelegate(self), WatchUi.SLIDE_UP);
+    }
 
-        var menu = new WatchUi.Menu2({ :title => Rez.Strings.MenuCity });
-        for (var i = 0; i < _cities.size(); i += 1) {
+    //! One entry per country, with how many cities it has.
+    //!
+    //! The id is the index of that country's first city, so picking a country
+    //! needs no second lookup and no map from country to list.
+    hidden function countryMenu() {
+        var menu = new WatchUi.Menu2({ :title => Rez.Strings.MenuCountry });
+        var at = 0;
+        while (at < _cities.size()) {
+            var country = countryAt(at);
+            var count = 0;
+            while (at + count < _cities.size() && countryAt(at + count).equals(country)) {
+                count += 1;
+            }
+            menu.addItem(new WatchUi.MenuItem(country, count.toString(), at, null));
+            at += count;
+        }
+        return menu;
+    }
+
+    //! The cities of the country that starts at `first`.
+    function cityMenu(first) {
+        var country = countryAt(first);
+        var menu = new WatchUi.Menu2({ :title => country });
+        for (var i = first; i < _cities.size(); i += 1) {
+            if (!countryAt(i).equals(country)) { break; }
             var city = _cities[i] as Dictionary;
             var stored = city["storedBytes"];
             var subtitle = stored == null
@@ -70,7 +103,13 @@ class CityPicker {
             // slug is only needed once something is chosen.
             menu.addItem(new WatchUi.MenuItem(city["name"], subtitle, i, null));
         }
-        WatchUi.pushView(menu, new CityPickerDelegate(self), WatchUi.SLIDE_UP);
+        return menu;
+    }
+
+    hidden function countryAt(index) {
+        var city = _cities[index] as Dictionary;
+        var country = city["country"];
+        return country == null ? "Other" : country;
     }
 
     //! Slug for the menu item at `index`, or null.
@@ -95,6 +134,27 @@ class CityPicker {
     }
 }
 
+//! Picking a country opens its cities. Back returns to the country list, which
+//! is why this pushes rather than replaces.
+class CountryDelegate extends WatchUi.Menu2InputDelegate {
+
+    hidden var _picker;
+
+    function initialize(picker) {
+        Menu2InputDelegate.initialize();
+        _picker = picker;
+    }
+
+    function onSelect(item) {
+        WatchUi.pushView(_picker.cityMenu(item.getId()),
+                         new CityPickerDelegate(_picker), WatchUi.SLIDE_LEFT);
+    }
+
+    function onBack() {
+        WatchUi.popView(WatchUi.SLIDE_DOWN);
+    }
+}
+
 class CityPickerDelegate extends WatchUi.Menu2InputDelegate {
 
     hidden var _picker;
@@ -106,8 +166,9 @@ class CityPickerDelegate extends WatchUi.Menu2InputDelegate {
 
     function onSelect(item) {
         var index = item.getId();
-        // Pop the picker and the map menu underneath it, so choosing a city
-        // returns to the map rather than to the menu it came from.
+        // Take down the city list and the country list under it, so choosing a
+        // city lands on the map rather than back in the menus it came from.
+        WatchUi.popView(WatchUi.SLIDE_DOWN);
         WatchUi.popView(WatchUi.SLIDE_DOWN);
         _picker.choose(index);
     }

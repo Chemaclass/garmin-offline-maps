@@ -2,7 +2,8 @@
 <settings xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
           xsi:noNamespaceSchemaLocation="https://developer.garmin.com/downloads/connect-iq/resources.xsd">
     <setting propertyKey="@Properties.cityId" title="@Strings.SettingCity"
-             prompt="@Strings.SettingCityPrompt">
+             prompt="@Strings.SettingCityPrompt"
+             helpUrl="https://chemaclass.github.io/garmin-offline-maps">
         <settingConfig type="alphaNumeric" maxLength="40" required="false" />
     </setting>
     <setting propertyKey="@Properties.packBaseUrl" title="@Strings.SettingBaseUrl"

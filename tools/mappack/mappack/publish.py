@@ -119,7 +119,8 @@ def build_city(entry: str, args, searcher=None, loader=None) -> Optional[dict]:
     options = citypack.download_options(place.name.split(",")[0].strip() or name)
     result = pack(ways, options)
     try:
-        entry = citypack.write_city(result, options, slug, args.out, args.attribution)
+        entry = citypack.write_city(result, options, slug, args.out,
+                                    args.attribution, country=country_of(place))
     except citypack.TooBig as exc:
         print("  %s" % exc, file=sys.stderr)
         return None
@@ -127,6 +128,16 @@ def build_city(entry: str, args, searcher=None, loader=None) -> Optional[dict]:
           % (entry["name"], entry["blocks"], entry["storedBytes"] / 1024.0),
           file=sys.stderr)
     return entry
+
+
+def country_of(place) -> str:
+    """Last component of a Nominatim display_name, which is the country.
+
+    Used only to group the picker on the watch. Asking Nominatim for English
+    keeps this one spelling per country; see geocode.search.
+    """
+    parts = [p.strip() for p in place.name.split(",") if p.strip()]
+    return parts[-1] if parts else "Other"
 
 
 def crop(ways, bbox):

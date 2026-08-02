@@ -119,6 +119,10 @@ def search(query: str, url: str = DEFAULT_NOMINATIM_URL, limit: int = 8,
         # Cities and towns, not shops called "Madrid". Nominatim still ranks
         # within this, so an exact city name stays first.
         "featureType": "settlement",
+        # English, so the country component is one spelling per country rather
+        # than "Espana" beside "Spain" depending on who asked. The catalogue
+        # groups by it, so it has to be stable.
+        "accept-language": "en",
     })
     request = urllib.request.Request(
         url + "?" + params,
