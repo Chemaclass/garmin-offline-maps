@@ -63,6 +63,14 @@ class TileStore {
         // cache is how you get a mid-pan out-of-memory.
         evictFor(RESERVE_BYTES);
 
+        // The breadcrumb goes here rather than after the load, because the load
+        // is the step that can kill the app outright: base64 decode needs the
+        // String and the ByteArray alive together, and running out of memory
+        // doing it is a Lang.Error that no catch below will see.
+        if (Diag.tracing) {
+            Diag.trace("block " + zoom + "/" + blockX + "/" + blockY);
+        }
+
         var decoded = null;
         try {
             var payload = Pack.blockBase64(zoom, blockX, blockY);

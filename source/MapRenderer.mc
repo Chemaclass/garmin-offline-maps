@@ -63,6 +63,12 @@ class MapRenderer {
         var dataZoom = Pack.dataZoomFor(camera.zoom);
         var scale = Mercator.pow2(camera.zoom - dataZoom);
         var log2 = Pack.blockLog2(dataZoom);
+        // Guarded at the call site, not inside `trace`: the concatenation
+        // happens before the call either way, and this is once per frame.
+        if (Diag.tracing) {
+            Diag.trace("render z" + camera.zoom + " data" + dataZoom
+                       + " log2:" + log2);
+        }
 
         var centreX = Mercator.lonToWorldX(camera.lon, dataZoom);
         var centreY = Mercator.latToWorldY(camera.lat, dataZoom);

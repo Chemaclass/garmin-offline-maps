@@ -9,6 +9,28 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Nothing yet.
 
+## [0.3.6] - 2026-08-02
+
+### Added
+
+- **The watch now tells you where it died.** When the app is killed outright,
+  the black screen with the Connect IQ icon, nothing can run afterwards to
+  report it. The step it was about to take is now saved beforehand, and the
+  next launch shows it in red across the bottom of the map: which block, which
+  stage, which city. If you hit the black screen, reopen the app and read that
+  line back. It is the one way to find out what actually failed.
+
+### Fixed
+
+- **A downloaded city is adopted a moment after the download ends, instead of
+  inside it.** The switch used to run in the network callback, while the last
+  response and the download screen were both still held, and the first draw of
+  a new map is the largest allocation the app ever makes. Running out of memory
+  there ends the app instantly, with no chance to recover or explain. It now
+  waits for the download to be let go of first.
+- **An error on the map is readable.** It was a single small line, which cut
+  off exactly the part that named the fault. It now wraps onto its own panel.
+
 ## [0.3.5] - 2026-08-02
 
 ### Fixed
@@ -202,7 +224,8 @@ simulator.
 - **Preview renderer**: render a pack to PNG and see what the watch will draw
   before spending time flashing it.
 
-[Unreleased]: https://github.com/Chemaclass/garmin-offline-maps/compare/v0.3.5...HEAD
+[Unreleased]: https://github.com/Chemaclass/garmin-offline-maps/compare/v0.3.6...HEAD
+[0.3.6]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.6
 [0.3.5]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.5
 [0.3.4]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.4
 [0.3.3]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.3

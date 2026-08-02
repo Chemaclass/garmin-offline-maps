@@ -99,6 +99,8 @@ module Pack {
             refuse("zoom tables do not line up");
             return;
         }
+        Diag.trace("pack.use " + _name + " z" + _zooms.size()
+                   + " blocks:" + _blockCount);
         // Only now, so a malformed meta cannot leave the app half-switched.
         _downloaded = true;
     }

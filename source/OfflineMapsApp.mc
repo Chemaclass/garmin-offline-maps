@@ -15,6 +15,10 @@ class OfflineMapsApp extends Application.AppBase {
     //! How often to re-read the compass while in heading-up mode.
     const HEADING_POLL_MS = 1000;
 
+    //! Long enough to leave the web-request callback and let its response go,
+    //! short enough that the map appears to come back straight away.
+    const SWITCH_DELAY_MS = 150;
+
     //! `cityId` values meaning "use the map compiled into the app".
     const CITY_BUILT_IN = "builtin";
 
@@ -29,12 +33,23 @@ class OfflineMapsApp extends Application.AppBase {
     //! from `onTick` rather than `getInitialView`, because a view cannot be
     //! pushed before the initial one exists.
     hidden var _pendingCity;
+    //! A downloaded city waiting to be adopted on the next tick. See
+    //! `onDownloadDone` for why it is not adopted in the callback.
+    hidden var _pendingAdopt;
+    hidden var _switchTimer;
 
     function initialize() {
         AppBase.initialize();
     }
 
     function onStart(state) {
+        // First, before anything that could fail again: if the previous run
+        // died, its breadcrumb is still in storage and names the step. Reading
+        // it here is the only chance to, because `Diag.arm` below starts
+        // overwriting it.
+        Diag.recoverCrash();
+        Diag.arm();
+        Diag.trace("startup.adopt");
         // Choose the pack before the camera: `Camera.initialize` reads the
         // pack's centre and zoom range.
         //
@@ -54,6 +69,8 @@ class OfflineMapsApp extends Application.AppBase {
             // returns nothing to check.
             CityStore.clear();
         }
+        _pendingAdopt = false;
+        Diag.trace("startup.camera");
         _camera = new Camera();
         Settings.load(_camera);
         _store = new TileStore(null);
@@ -212,6 +229,11 @@ class OfflineMapsApp extends Application.AppBase {
         var url = baseUrl();
         if (url == null || _downloader != null) { return; }
 
+        // Crumbs from here until a frame is drawn: this is the stretch every
+        // reported crash has fallen inside.
+        Diag.arm();
+        Diag.trace("dl.start " + city);
+
         _downloadView = new DownloadView(city);
         _downloader = new CityDownloader(url, city, method(:onDownloadProgress),
                                          method(:onDownloadDone));
@@ -230,28 +252,47 @@ class OfflineMapsApp extends Application.AppBase {
             if (_downloadView != null) { _downloadView.onFailed(); }
             return;
         }
-        // Everything from here runs inside a web-request callback and swaps the
-        // map out from under a live view. An exception escaping a callback is
-        // not caught by anything above it: the app dies and the watch shows the
-        // Connect IQ error screen, which is what a first download did on real
-        // hardware. Falling back to the built-in map is always survivable, so
-        // prefer that to taking the whole app down.
-        var switched = false;
+        // Deferred out of this callback rather than done in it.
+        //
+        // This runs inside the web-request callback that delivered the last
+        // block, so the HTTP response, that block's base64 string and the
+        // download view are all still referenced. Adopting the city allocates
+        // the metadata, and the render straight after allocates the off-screen
+        // buffer plus every visible block at once. That is the heaviest moment
+        // in the app's life, and doing it here stacks it on top of the
+        // download's own peak.
+        //
+        // `docs/DEVICES.md` records a 90 KB store needing roughly 400 KB free,
+        // so the headroom this costs is not a rounding error. An
+        // `OutOfMemoryError` is a `Lang.Error`: no catch sees it, and the watch
+        // shows the Connect IQ error screen. Popping the view first and
+        // switching on a short timer lets the response and the view go before
+        // any of it is asked for.
+        if (_downloadView != null) {
+            WatchUi.popView(WatchUi.SLIDE_DOWN);
+            _downloadView = null;
+        }
+        _pendingAdopt = true;
+        _switchTimer = new Timer.Timer();
+        _switchTimer.start(method(:onSwitchTick), SWITCH_DELAY_MS, false);
+    }
+
+    //! Adopt the freshly downloaded city, one tick after the download callback.
+    //!
+    //! Annotated because `Timer.start` requires a `Method() as Void`.
+    function onSwitchTick() as Void {
+        _switchTimer = null;
+        if (!_pendingAdopt) { return; }
+        _pendingAdopt = false;
+        Diag.trace("switch.adopt");
         try {
             adoptStoredCity();
             refreshAfterPackChange();
-            switched = true;
         } catch (ex) {
+            // The download view is already gone, so the message goes on the map
+            // rather than on the download screen.
             Diag.record("city", ex);
             revertToBuiltIn();
-        }
-        if (_downloadView != null) {
-            if (switched) {
-                WatchUi.popView(WatchUi.SLIDE_DOWN);
-                _downloadView = null;
-            } else {
-                _downloadView.onFailed();
-            }
         }
     }
 
@@ -320,6 +361,13 @@ class OfflineMapsApp extends Application.AppBase {
     }
 
     function onStop(state) {
+        // A clean shutdown is not a crash: drop the breadcrumb so the next
+        // launch does not report one.
+        Diag.disarm();
+        if (_switchTimer != null) {
+            _switchTimer.stop();
+            _switchTimer = null;
+        }
         if (_timer != null) {
             _timer.stop();
             _timer = null;

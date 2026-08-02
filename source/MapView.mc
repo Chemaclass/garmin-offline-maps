@@ -86,7 +86,7 @@ class MapView extends WatchUi.View {
         // the download screen, and this ran on the way back and erased it
         // before a single frame could show it. Same for anything `onStart`
         // records, which happens before the first `onShow`.
-        if (_diagShown != null && _diagShown.equals(Diag.lastError)) {
+        if (_diagShown != null && _diagShown.equals(Diag.message())) {
             Diag.clear();
             _diagShown = null;
         }
@@ -151,6 +151,9 @@ class MapView extends WatchUi.View {
     function onUpdate(dc) {
         try {
             drawEverything(dc);
+            // Got a whole frame out of this pack. Whatever the breadcrumb was
+            // tracking, we survived it, so stop writing them.
+            Diag.disarm();
         } catch (ex) {
             Diag.record("render", ex);
             // The pack that failed to draw must not be drawn again, or this
@@ -302,14 +305,54 @@ class MapView extends WatchUi.View {
     //! Without this a caught exception is invisible: the map silently reverts
     //! to the built-in one and nobody can say why. Shown until the app is
     //! restarted, because a fault worth catching is worth reporting.
+    //! The failure, wrapped, on a panel, over however many lines it takes.
+    //!
+    //! One `FONT_XTINY` line used to hold this, which clipped away the part
+    //! that names the fault -- and the whole reason it is on screen is so it
+    //! can be read off the watch and repeated back. A message reaching here has
+    //! already cost the user a failed download; the map can spare four lines.
     hidden function drawDiagnostic(dc, colours as Array<Number>) {
-        if (!Diag.hasError()) { return; }
+        var text = Diag.message();
+        if (text == null) { return; }
+
+        var font = Graphics.FONT_XTINY;
+        var lineHeight = dc.getFontHeight(font);
+        var lines = wrapText(dc, text, font, _width * 0.90);
+        var top = _height - lineHeight * lines.size() - lineHeight / 2;
+
+        // A panel behind it: red on a rendered map is not reliably legible, and
+        // this text only appears when something is already wrong.
+        dc.setColor(colours[Palette.SLOT_PANEL], colours[Palette.SLOT_PANEL]);
+        dc.fillRectangle(0, top - 2, _width, lineHeight * lines.size() + 4);
+
         dc.setColor(colours[Palette.SLOT_MOTORWAY], Graphics.COLOR_TRANSPARENT);
-        dc.drawText(_width / 2, (_height * 0.86).toNumber(), Graphics.FONT_XTINY,
-                    Diag.lastError, Graphics.TEXT_JUSTIFY_CENTER);
+        for (var i = 0; i < lines.size(); i += 1) {
+            dc.drawText(_width / 2, top + i * lineHeight, font,
+                        lines[i], Graphics.TEXT_JUSTIFY_CENTER);
+        }
         // Remembered so `onShow` can tell a failure the user has read from one
         // recorded while some other view was on top.
-        _diagShown = Diag.lastError;
+        _diagShown = text;
+    }
+
+    //! Greedy character wrap, capped at four lines.
+    //!
+    //! By character rather than by word on purpose: these messages are mostly
+    //! unspaced ("render.block 14/4400/2686", "UnexpectedTypeError"), and a
+    //! word wrapper would leave most of each line empty.
+    hidden function wrapText(dc, text, font, maxWidth) as Array<String> {
+        var lines = [] as Array<String>;
+        var start = 0;
+        while (start < text.length() && lines.size() < 4) {
+            var end = text.length();
+            while (end > start + 1
+                   && dc.getTextWidthInPixels(text.substring(start, end), font) > maxWidth) {
+                end -= 1;
+            }
+            lines.add(text.substring(start, end));
+            start = end;
+        }
+        return lines;
     }
 
     hidden function drawOverlay(dc, colours as Array<Number>) {

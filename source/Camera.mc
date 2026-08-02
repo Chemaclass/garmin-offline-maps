@@ -34,6 +34,11 @@ class Camera {
     //! getting your bearings when the app opens.
     static function defaultZoom() {
         var zooms = Pack.dataZooms();
+        // Empty would be an out-of-range read, which is a Lang.Error and so
+        // takes the app down rather than throwing something catchable. `Pack`
+        // refuses a downloaded map with no zooms, so this only guards against a
+        // future caller reaching here before that check.
+        if (zooms.size() == 0) { return Pack.minZoom(); }
         var mid = zooms[zooms.size() / 2];
         if (mid > Pack.maxZoom()) { mid = Pack.maxZoom(); }
         if (mid < Pack.minZoom()) { mid = Pack.minZoom(); }

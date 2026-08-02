@@ -144,6 +144,8 @@ class CityDownloader {
             fail("block " + _keys[_at] + " was not a string");
             return;
         }
+        Diag.trace("dl.store " + (_at + 1) + "/" + _keys.size()
+                   + " key:" + _keys[_at]);
         if (!CityStore.putBlock(_keys[_at], encoded)) {
             fail("storage full");
             return;
