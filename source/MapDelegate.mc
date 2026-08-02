@@ -105,12 +105,18 @@ class MapDelegate extends WatchUi.InputDelegate {
         return false;
     }
 
+    //! The crosshair: go to me, or failing that go to the map.
+    //!
+    //! "Failing that" covers being off the map as well as having no fix.
+    //! Centring on a position the pack does not cover empties the screen, and
+    //! the button that is meant to rescue a lost view would be the thing that
+    //! lost it. Following stays on either way, so the map catches up on its own
+    //! once you walk into it.
     hidden function recentre() {
-        if (_tracker.hasFix()) {
-            _camera.follow = true;
+        _camera.follow = true;
+        if (_tracker.hasFix() && Camera.contains(_tracker.lat(), _tracker.lon())) {
             _camera.centreOn(_tracker.lat(), _tracker.lon());
         } else {
-            // No fix yet: at least put the packed region back on screen.
             _camera.jumpToPackCentre();
         }
         refresh();

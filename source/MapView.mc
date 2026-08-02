@@ -55,6 +55,19 @@ class MapView extends WatchUi.View {
     }
 
     function invalidate() { _dirty = true; }
+
+    //! Give the off-screen buffer back.
+    //!
+    //! It is the largest thing this app holds, roughly a byte per pixel of the
+    //! screen, and it lives in the graphics pool rather than the heap. Dropping
+    //! the reference on the way out means the next app to run is not waiting on
+    //! a collector to notice. `onShow` takes a new one, so the view still works
+    //! if it comes back.
+    function release() {
+        _bufferRef = null;
+        _useBuffer = false;
+        _dirty = true;
+    }
     function toggleDebug() { _showDebug = !_showDebug; WatchUi.requestUpdate(); }
 
     function onLayout(dc) {

@@ -363,13 +363,21 @@ class OfflineMapsApp extends Application.AppBase {
     }
 
     //! A new GPS fix arrived.
+    //! A new GPS fix arrived.
+    //!
+    //! Following it only while it is on the map. Otherwise downloading a city
+    //! you are not standing in gives you a blank screen: the first fix drags
+    //! the camera hundreds of kilometres off the packed area, and with the dark
+    //! theme that is a black screen with one dim line of explanation on it. The
+    //! map you asked for is right there, so show it. `drawPositionStatus` still
+    //! says the marker is elsewhere.
     function onFix() {
         if (_camera == null || _view == null) { return; }
-        if (_camera.follow && _tracker.hasFix()) {
-            _camera.centreOn(_tracker.lat(), _tracker.lon());
-            _view.invalidate();
-            WatchUi.requestUpdate();
-        }
+        if (!_camera.follow || !_tracker.hasFix()) { return; }
+        if (!Camera.contains(_tracker.lat(), _tracker.lon())) { return; }
+        _camera.centreOn(_tracker.lat(), _tracker.lon());
+        _view.invalidate();
+        WatchUi.requestUpdate();
     }
 
     //! Annotated because `Timer.start` requires a `Method() as Void`.
@@ -400,11 +408,32 @@ class OfflineMapsApp extends Application.AppBase {
             _timer.stop();
             _timer = null;
         }
+        // The GPS receiver is the one that costs real battery, so it goes off
+        // first and unconditionally.
         if (_tracker != null) {
             _tracker.stop();
         }
+        // A download still in flight holds a web request and its callbacks
+        // open. Cancelling also clears the half-written city, which is what we
+        // want: an incomplete pack must never be adopted on the next launch.
+        if (_downloader != null) {
+            _downloader.cancel();
+            _downloader = null;
+        }
+        // Before releasing anything the camera needs, and while it still holds
+        // where you were looking.
         if (_camera != null) {
             Settings.save(_camera);
         }
+        // Decoded blocks and the off-screen buffer, in that order. Neither
+        // survives the app, but letting go explicitly means the next thing to
+        // run is not waiting on a collector to work that out.
+        if (_store != null) {
+            _store.clear();
+        }
+        if (_view != null) {
+            _view.release();
+        }
+        _downloadView = null;
     }
 }

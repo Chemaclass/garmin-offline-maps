@@ -9,6 +9,25 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Nothing yet.
 
+## [0.3.16] - 2026-08-02
+
+### Fixed
+
+- **A city you are not standing in still shows you the city.** The map followed
+  your position even when it was hundreds of kilometres off the downloaded
+  area, so it centred on empty space and the screen went dark. It now stays on
+  the map you asked for and tells you the marker is elsewhere. Walk into the
+  area and it picks you up. The crosshair button behaves the same way: it takes
+  you to your position when that is on the map, and to the map when it is not.
+
+### Changed
+
+- **Closing the app puts everything down.** The GPS receiver was already
+  switched off; now a download still in progress is cancelled, and the map
+  buffer and the decoded map pieces are handed back rather than left for the
+  system to collect. Where you were looking, your zoom, and your theme are
+  saved as before, so reopening puts you back where you left off.
+
 ## [0.3.15] - 2026-08-02
 
 ### Added
@@ -345,7 +364,8 @@ simulator.
 - **Preview renderer**: render a pack to PNG and see what the watch will draw
   before spending time flashing it.
 
-[Unreleased]: https://github.com/Chemaclass/garmin-offline-maps/compare/v0.3.15...HEAD
+[Unreleased]: https://github.com/Chemaclass/garmin-offline-maps/compare/v0.3.16...HEAD
+[0.3.16]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.16
 [0.3.15]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.15
 [0.3.14]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.14
 [0.3.13]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.13
