@@ -9,6 +9,17 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Nothing yet.
 
+## [0.3.13] - 2026-08-02
+
+### Fixed
+
+- **A map now loads one piece per frame instead of three.** Reading a piece of
+  map out of storage and unpacking it is the one part of drawing that cannot be
+  stopped half way, so however long it takes is time the app has no choice but
+  to spend. Three of them in a single frame was the last place a slow watch
+  could still be cut off. A city takes a few more frames to fill in and no
+  single frame has a cliff in it.
+
 ## [0.3.12] - 2026-08-02
 
 ### Fixed
@@ -309,7 +320,8 @@ simulator.
 - **Preview renderer**: render a pack to PNG and see what the watch will draw
   before spending time flashing it.
 
-[Unreleased]: https://github.com/Chemaclass/garmin-offline-maps/compare/v0.3.12...HEAD
+[Unreleased]: https://github.com/Chemaclass/garmin-offline-maps/compare/v0.3.13...HEAD
+[0.3.13]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.13
 [0.3.12]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.12
 [0.3.11]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.11
 [0.3.10]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.10

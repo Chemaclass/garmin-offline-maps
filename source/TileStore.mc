@@ -33,7 +33,15 @@ class TileStore {
     //! frame. So a render loads a few and draws what it has; `throttled` then
     //! tells the view to come straight back for another pass. The map arrives
     //! over several frames instead of not arriving at all.
-    const LOADS_PER_RENDER = 3;
+    //!
+    //! One, not three, because this is the longest thing in a frame that cannot
+    //! be interrupted. Every other budget in the renderer is checked between
+    //! points or between tiles, but a Storage read and a base64 decode run to
+    //! completion once started, so however far over the clock they take us is
+    //! taken. On a watch that is a good deal slower than the simulator, and it
+    //! is the one part of a frame no check can shorten. Filling a screen takes
+    //! a few more frames; the frames themselves stop having a cliff in them.
+    const LOADS_PER_RENDER = 1;
 
     //! Five parallel arrays, one cache entry per index. Typed because the hot
     //! paths below subscript them, and the checker will not index an untyped
