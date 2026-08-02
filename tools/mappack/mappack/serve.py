@@ -321,7 +321,18 @@ def main(argv=None) -> int:
         "palette": args.palette, "size": args.size,
     }
     server = ThreadingHTTPServer((args.host, args.port), _Handler)
-    index = MapIndexFile(args.index)
+    # Read the index before serving, and say so plainly if it will not parse.
+    #
+    # `MapIndexFile` now raises on a missing constant rather than quietly
+    # assuming everything is inside the pack, which is right: a wrong answer
+    # about where the map is costs more than a stopped server. But an
+    # unhandled traceback at startup reads like a bug in the tool rather than
+    # a bad file, and the file is generated, so the fix is to regenerate it.
+    try:
+        index = MapIndexFile(args.index)
+    except (OSError, ValueError) as exc:
+        parser.error("could not read %s: %s\nRegenerate it with `make demo`."
+                     % (args.index, exc))
     print("serving %s on http://%s:%d  (Ctrl-C to stop)"
           % (index.pack_name, args.host, args.port))
     try:
