@@ -121,10 +121,10 @@ class TestCatalogueAndSettings(unittest.TestCase):
         self.dir = tempfile.mkdtemp()
         self.addCleanup(shutil.rmtree, self.dir)
         self.entries = [
-            {"slug": "madrid", "name": "Madrid", "lat": 40.4, "lon": -3.7,
-             "blocks": 9, "storedBytes": 40000},
-            {"slug": "berlin", "name": "Berlin", "lat": 52.5, "lon": 13.4,
-             "blocks": 12, "storedBytes": 50000},
+            {"slug": "madrid", "name": "Madrid", "country": "Spain",
+             "lat": 40.4, "lon": -3.7, "blocks": 9, "storedBytes": 40000},
+            {"slug": "berlin", "name": "Berlin", "country": "Germany",
+             "lat": 52.5, "lon": 13.4, "blocks": 12, "storedBytes": 50000},
         ]
 
     def test_catalogue_is_sorted_by_name(self):
@@ -134,15 +134,49 @@ class TestCatalogueAndSettings(unittest.TestCase):
         self.assertEqual([c["name"] for c in payload["cities"]], ["Berlin", "Madrid"])
         self.assertEqual(payload["baseUrl"], "https://example.test")
 
-    def test_settings_xml_offers_a_text_field_not_a_baked_in_list(self):
-        # A dropdown would need an app update to add a city, which defeats the
-        # point; it would also have to be numeric, see write_settings_xml.
+    def test_settings_xml_is_a_numbered_dropdown(self):
+        # Connect IQ parses a listEntry value against the property type and a
+        # list wants a number, so the phone stores an index and CityList maps
+        # it back to a slug.
         path = os.path.join(self.dir, "settings.xml")
         citypack.write_settings_xml(self.entries, path, "https://example.test")
         xml = open(path, encoding="utf-8").read()
-        self.assertIn("@Properties.cityId", xml)
-        self.assertIn('type="alphaNumeric"', xml)
-        self.assertNotIn("listEntry", xml)
+        self.assertIn("@Properties.cityIndex", xml)
+        self.assertIn('type="list"', xml)
+        self.assertIn('<listEntry value="0">', xml)
+
+    def test_dropdown_labels_carry_the_country(self):
+        # There is no cascading list in the schema, so one control does the
+        # work of two.
+        path = os.path.join(self.dir, "settings.xml")
+        citypack.write_settings_xml(
+            [{"slug": "berlin", "name": "Berlin", "country": "Germany",
+              "lat": 0, "lon": 0, "blocks": 1, "storedBytes": 1}],
+            path, "https://example.test")
+        self.assertIn("Germany: Berlin", open(path, encoding="utf-8").read())
+
+    def test_the_catalogue_url_is_not_exposed(self):
+        # It has a working default and a wrong value breaks every download.
+        path = os.path.join(self.dir, "settings.xml")
+        citypack.write_settings_xml(self.entries, path, "https://example.test")
+        self.assertNotIn("packBaseUrl", open(path, encoding="utf-8").read())
+
+    def test_help_url_survives_a_base_url_with_no_packs_segment(self):
+        # rsplit turned "https://example.test" into "https:/".
+        self.assertEqual(citypack.site_of("https://example.test"),
+                         "https://example.test")
+        self.assertEqual(citypack.site_of("https://x.test/repo/packs/"),
+                         "https://x.test/repo")
+
+    def test_city_list_mc_maps_indexes_back_to_slugs(self):
+        path = os.path.join(self.dir, "CityList.mc")
+        citypack.write_city_list_mc(self.entries, path)
+        src = open(path, encoding="utf-8").read()
+        # Sorted by country then name, same order as the dropdown, so index 1
+        # is the first entry of the first country.
+        self.assertIn('const SLUGS = ["berlin", "madrid"];', src)
+        self.assertIn("function slugAt(index)", src)
+        self.assertIn("function indexOf(slug)", src)
 
     def test_properties_xml_carries_the_base_url(self):
         path = os.path.join(self.dir, "properties.xml")

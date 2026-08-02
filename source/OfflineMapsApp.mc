@@ -37,7 +37,18 @@ class OfflineMapsApp extends Application.AppBase {
     function onStart(state) {
         // Choose the pack before the camera: `Camera.initialize` reads the
         // pack's centre and zoom range.
-        _pendingCity = adoptStoredCity();
+        //
+        // Guarded for the same reason as `onDownloadDone`: a stored city that
+        // cannot be adopted must not stop the app starting. Without this, one
+        // bad download bricks every launch until the app is reinstalled.
+        try {
+            _pendingCity = adoptStoredCity();
+        } catch (ex) {
+            System.println("stored city unusable: " + ex.getErrorMessage());
+            _pendingCity = null;
+            Pack.use(null);
+            try { CityStore.clear(); } catch (inner) { }
+        }
         _camera = new Camera();
         Settings.load(_camera);
         _store = new TileStore(null);
@@ -58,15 +69,38 @@ class OfflineMapsApp extends Application.AppBase {
 
     hidden function wantedCity() {
         try {
-            // Normalised, because the settings field is free text and the
-            // published slugs are lowercase: typing "Berlin" would otherwise
-            // 404 with nothing to explain why.
+            adoptPhoneChoice();
+            // Normalised because the watch may have written this, and because
+            // older builds exposed it as free text: typing "Berlin" would
+            // otherwise 404 with nothing to explain why.
             var id = CityStore.normalize(Application.Properties.getValue("cityId"));
             if (id == null || id.equals(CITY_BUILT_IN)) { return null; }
             return id;
         } catch (ex) {
             return null;
         }
+    }
+
+    //! Turn the phone's dropdown selection into the slug the app runs on.
+    //!
+    //! Connect IQ list settings store a number, so the dropdown gives an index
+    //! into `CityList`. `citySeen` records the last index acted on, which is
+    //! what distinguishes "the phone changed it" from "the watch picked a city
+    //! that happens not to be in this build's dropdown". Without it, a city
+    //! chosen on the watch would be reverted by the stale dropdown value on the
+    //! next settings read.
+    hidden function adoptPhoneChoice() {
+        // No null guard: `Properties.getValue` is typed non-null for a declared
+        // property and the checker rejects the dead branch. An install from
+        // before these properties existed would throw here instead, which the
+        // caller's try/catch turns into "keep the current map".
+        var index = Application.Properties.getValue("cityIndex");
+        var seen = Application.Properties.getValue("citySeen");
+        if (index.equals(seen)) { return; }
+
+        var slug = CityList.slugAt(index);
+        Application.Properties.setValue("cityId", slug == null ? "" : slug);
+        Application.Properties.setValue("citySeen", index);
     }
 
     //! Offer the published catalogue on the watch.
@@ -83,6 +117,15 @@ class OfflineMapsApp extends Application.AppBase {
         // watch is actually using.
         try {
             Application.Properties.setValue("cityId", slug);
+            // Keep the dropdown in step, and mark the index as already acted
+            // on so `adoptPhoneChoice` does not undo this on the next read.
+            // A city published since this build was made is not in the
+            // dropdown, and indexOf gives 0 for it: the phone then shows the
+            // built-in entry while the watch runs the downloaded city, which
+            // is the least wrong of the available answers.
+            var index = CityList.indexOf(slug);
+            Application.Properties.setValue("cityIndex", index);
+            Application.Properties.setValue("citySeen", index);
         } catch (ex) {
             // Not fatal: the download still happens, the phone just disagrees.
             System.println("could not write cityId");
@@ -127,8 +170,13 @@ class OfflineMapsApp extends Application.AppBase {
 
     //! Garmin Connect wrote new settings. The city may have changed.
     function onSettingsChanged() {
-        _pendingCity = adoptStoredCity();
-        refreshAfterPackChange();
+        try {
+            _pendingCity = adoptStoredCity();
+            refreshAfterPackChange();
+        } catch (ex) {
+            System.println("settings change failed: " + ex.getErrorMessage());
+            revertToBuiltIn();
+        }
     }
 
     hidden function startDownload(city) {
@@ -149,16 +197,53 @@ class OfflineMapsApp extends Application.AppBase {
 
     function onDownloadDone(ok) {
         _downloader = null;
-        if (ok) {
+        if (!ok) {
+            if (_downloadView != null) { _downloadView.onFailed(); }
+            return;
+        }
+        // Everything from here runs inside a web-request callback and swaps the
+        // map out from under a live view. An exception escaping a callback is
+        // not caught by anything above it: the app dies and the watch shows the
+        // Connect IQ error screen, which is what a first download did on real
+        // hardware. Falling back to the built-in map is always survivable, so
+        // prefer that to taking the whole app down.
+        var switched = false;
+        try {
             adoptStoredCity();
             refreshAfterPackChange();
-            if (_downloadView != null) {
+            switched = true;
+        } catch (ex) {
+            System.println("switch to downloaded city failed: "
+                + ex.getErrorMessage());
+            revertToBuiltIn();
+        }
+        if (_downloadView != null) {
+            if (switched) {
                 WatchUi.popView(WatchUi.SLIDE_DOWN);
                 _downloadView = null;
+            } else {
+                _downloadView.onFailed();
             }
-        } else if (_downloadView != null) {
-            _downloadView.onFailed();
         }
+    }
+
+    //! Go back to the map compiled into the app, and forget the city that
+    //! would not load. Leaving it stored would reproduce the failure on every
+    //! launch, which is worse than losing the download.
+    hidden function revertToBuiltIn() {
+        try {
+            CityStore.clear();
+            Application.Properties.setValue("cityId", "");
+        } catch (ex) {
+            // Nothing further to try.
+        }
+        Pack.use(null);
+        if (_store != null) { _store.clear(); }
+        if (_camera != null) {
+            _camera.zoom = Camera.defaultZoom();
+            _camera.jumpToPackCentre();
+        }
+        if (_view != null) { _view.invalidate(); }
     }
 
     //! The map underneath changed, so nothing cached still applies.
