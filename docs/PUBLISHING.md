@@ -5,10 +5,18 @@
 Beta, first published 2026-08-02:
 **https://apps.garmin.com/apps/296a0177-3634-4515-9da2-7336d5dce3c3**
 
-Garmin's listing UUID is `296a0177-3634-4515-9da2-7336d5dce3c3`, which is not
-either app id tracked in this repo. Whatever id sits inside the uploaded `.iq`
-is the one every future upload must keep, so record it in `cities.json` before
-the next release: a changed id publishes a second listing rather than an update.
+Three ids are in play and they are **not** three versions of the same thing.
+Confusing them is how you publish a second listing by accident.
+
+| Id | What it is |
+|---|---|
+| `846d5a3e7f114f88b1387ee15adb2afd` | `manifest.xml`. The identity of the app above, the one `make package` builds and the one on the store. **Never change this.** |
+| `296a0177-3634-4515-9da2-7336d5dce3c3` | Garmin's own listing UUID, visible in the store URL. Assigned by Garmin, not by us, and not settable. |
+| `ffc1e2d055e342408fba8916d21ac79d` | `cities.json`'s berlin. A **different** app: the street-level Berlin listing, which has never been published. |
+
+The third is meant to differ. A per-city listing is its own app with its own
+users and ratings, so it needs its own id. It only becomes wrong if it is
+changed after that listing goes live.
 
 ## One listing per city, and why
 
@@ -17,18 +25,20 @@ offers no alternative, and [DEVICES.md](DEVICES.md) has the receipts: there is
 no `File`, `FileSystem` or `IO` module in Toybox at all, `Application.Storage`
 is ~128 KB against a 2.7 MB pack, and BLE moves under 1 KB/s.
 
-So an app cannot download a region, and cannot free one. Users choose their
-coverage the only way the platform allows: **by installing and uninstalling
-apps**. The Connect IQ store *is* the delivery mechanism.
+An app *can* download a region now, into `Application.Storage`, and that is what
+the main listing does: see [CITIES.md](CITIES.md). But ~128 KB buys an
+orientation map, not a street map. Street-level detail is 2.7 MB for one city,
+so it can only ever be compiled in.
 
-That falls out of the architecture rather than fighting it. The packer already
-emits exactly one pack per build, so a per-city listing needs no watch-side code
-at all.
+That is the whole reason both models exist, and why deleting this one would
+delete the street-level product:
 
-The alternative, several packs inside one app with a settings picker, is
-possible but caps near **two dense cities**: Berlin alone is 106 of the ~255
-jsonData resource ids, every user downloads every city, and selecting one frees
-nothing. Worth it only for genuinely adjacent regions.
+| | Downloaded city | Per-city listing |
+|---|---|---|
+| Detail | major roads, water, rail, parks | full street network |
+| Size | ~70 KB | ~2.7 MB |
+| Zooms | one | three |
+| Getting another | pick it on the watch | install another app |
 
 ## Adding a city
 
@@ -42,9 +52,13 @@ nothing. Worth it only for genuinely adjacent regions.
   "bbox": "13.30,52.47,13.48,52.56",
   "zooms": "12,14,16",
   "simplify": "2.0",
-  "extra": "--max-points-per-tile 700 --cache berlin.osm"
+  "extra": "--max-points-per-tile 700 --cache berlin.osm",
+  "products": ["venu3", "venu3s", "venu2"]
 }
 ```
+
+`products` is optional, and omitting it means every product in `manifest.xml`.
+For a dense city that is not a real option: see the measured table below.
 
 Generate the id once and never change it:
 
@@ -68,10 +82,10 @@ make city                 # list configured cities
 make city CITY=berlin     # -> bin/offline-maps-berlin.iq
 ```
 
-`tools/build-city.sh` swaps that city's id and name into the tracked
-`manifest.xml` and `resources/strings/strings.xml`, packs the region, builds
-every product, then puts everything back, including the demo pack, so the repo
-never keeps another city's identity and CI's `make demo` check stays green. The
+`tools/build-city.sh` swaps that city's id, name and product list into the
+tracked `manifest.xml` and `resources/strings/strings.xml`, packs the region,
+builds it, then puts everything back, including the demo pack, so the repo never
+keeps another city's identity and CI's `make demo` check stays green. The
 restore runs on failure and on interrupt, not just on success.
 
 It fails the build if the packer warns. An over-budget pack does not install, or
@@ -90,9 +104,20 @@ Two ways out, and the second is usually the right one for a dense city:
 
 - Shrink the pack with `SIMPLIFY`, `--max-points-per-tile`, or fewer zooms
   ([PACKER.md](PACKER.md#budgets)).
-- **Cut the product list for that listing.** Nothing requires every listing to
-  cover every watch. A city listing built for one screen family is a smaller
-  `.iq` and a sharper pack, and a second listing can cover the rest.
+- **Cut the product list for that listing**, with a `products` array in
+  `cities.json`. Nothing requires every listing to cover every watch, and a
+  listing built for a few screen families keeps the sharper pack.
+
+Berlin, measured rather than estimated:
+
+| Products | `.iq` | |
+|---|---|---|
+| 24 (the whole manifest) | far over | refused |
+| 5 | 20 MB | refused |
+| **3** (`venu3`, `venu3s`, `venu2`) | **12 MB** | fits |
+
+So a street-level city costs about 4 MB per watch it supports. Adding a fourth
+product means shrinking the pack.
 
 ## Uploading
 

@@ -37,10 +37,14 @@ fi
 CITY="${1:-}"
 [ -n "$CITY" ] || die "usage: tools/build-city.sh <city>   (or --list)"
 
-# Read and validate the entry before touching anything. Assign first so a
-# failed validation aborts here, rather than eval'ing nothing and tripping over
-# an unset variable further down.
-CITY_VARS="$(python3 - "$CITIES" "$CITY" <<'PY'
+# Read and validate the entry before touching anything. Written to a file and
+# sourced rather than captured with $( ), because macOS ships bash 3.2 and it
+# cannot parse a heredoc inside a command substitution: the script dies with
+# "unexpected EOF" before a line of it runs. Validation still aborts here
+# rather than sourcing nothing and tripping over an unset variable later.
+CITY_ENV="$(mktemp)"
+trap 'rm -f "$CITY_ENV"' EXIT
+python3 - "$CITIES" "$CITY" > "$CITY_ENV" <<'PY'
 import json, re, sys, shlex
 path, slug = sys.argv[1], sys.argv[2]
 data = json.load(open(path))["cities"]
@@ -60,9 +64,11 @@ for key in ("app_name", "pack_name", "app_id", "bbox"):
     print("%s=%s" % (key.upper(), shlex.quote(c[key])))
 for key, default in (("zooms", "12,14,16"), ("simplify", "1.0"), ("extra", "")):
     print("%s=%s" % (key.upper(), shlex.quote(str(c.get(key, default)))))
+# Optional: the products this listing covers. The map is compiled into every
+# one of them, so a dense city that fits five watches does not fit twenty-four.
+print("PRODUCTS=%s" % shlex.quote(" ".join(c.get("products", []))))
 PY
-)"
-eval "$CITY_VARS"
+. "$CITY_ENV"
 
 say "building $APP_NAME  (id $APP_ID)"
 
@@ -82,14 +88,31 @@ trap restore EXIT
 
 # python3 rather than sed -i: BSD and GNU sed disagree on -i, and these are
 # structured files where a blind regex over the whole document is a bad idea.
-python3 - "$MANIFEST" "$STRINGS" "$APP_ID" "$APP_NAME" <<'PY'
+python3 - "$MANIFEST" "$STRINGS" "$APP_ID" "$APP_NAME" "$PRODUCTS" <<'PY'
 import re, sys
-manifest, strings, app_id, app_name = sys.argv[1:5]
+manifest, strings, app_id, app_name, products = sys.argv[1:6]
 
 src = open(manifest, encoding="utf-8").read()
 src, n = re.subn(r'(?<=\bid=")[0-9a-f]{32}(?=")', app_id, src, count=1)
 if n != 1:
     sys.exit("error: could not find the application id in manifest.xml")
+
+# A listing may cover fewer products than the tracked manifest. The store caps
+# a .iq at 15 MB and the map is compiled into every product, so the usable pack
+# is 15 MB divided by however many there are. Berlin at full detail fits five
+# watches and not twenty-four.
+wanted = products.split()
+if wanted:
+    known = set(re.findall(r'iq:product id="([^"]+)"', src))
+    unknown = [p for p in wanted if p not in known]
+    if unknown:
+        sys.exit("error: products not in manifest.xml: %s" % ", ".join(unknown))
+    block = "\n".join('            <iq:product id="%s"/>' % p for p in wanted)
+    src, n = re.subn(r"<iq:products>.*?</iq:products>",
+                     "<iq:products>\n%s\n        </iq:products>" % block,
+                     src, count=1, flags=re.S)
+    if n != 1:
+        sys.exit("error: could not find the product list in manifest.xml")
 open(manifest, "w", encoding="utf-8").write(src)
 
 src = open(strings, encoding="utf-8").read()
@@ -101,7 +124,11 @@ open(strings, "w", encoding="utf-8").write(src)
 PY
 
 say "packing $PACK_NAME  ($BBOX)"
-make -C "$ROOT" pack \
+# CITY= on purpose. `make city CITY=berlin` exports CITY to this sub-make, and
+# the pack target reads CITY as "a place name to geocode", so it would add
+# --city berlin beside the --bbox below and the packer would refuse both. The
+# two CITYs mean different things: a listing slug here, a search term there.
+make -C "$ROOT" pack CITY= \
     BBOX="$BBOX" NAME="$PACK_NAME" ZOOMS="$ZOOMS" SIMPLIFY="$SIMPLIFY" \
     EXTRA="$EXTRA" | tee "$BACKUP/pack.log"
 

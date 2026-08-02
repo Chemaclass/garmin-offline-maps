@@ -1,14 +1,22 @@
 {
   "_comment": [
     "One entry per Connect IQ store listing. The map is compiled into the app,",
-    "so a listing covers exactly one region -- see docs/PUBLISHING.md.",
+    "so a listing covers exactly one region and carries street-level detail the",
+    "downloadable catalogue cannot: see docs/CITIES.md for that trade.",
     "",
-    "app_id is the listing's identity in the store and MUST NOT change once the",
-    "app is published: a new id is a new listing with no users and no ratings.",
-    "Generate one with: python3 -c 'import uuid; print(uuid.uuid4().hex)'",
+    "app_id is THIS LISTING's identity and MUST NOT change once published: a new",
+    "id is a new listing with no users and no ratings. It is deliberately not",
+    "the id in manifest.xml, which belongs to the one-app-many-cities build that",
+    "is already on the store. Generate one with:",
+    "  python3 -c 'import uuid; print(uuid.uuid4().hex)'",
     "",
-    "bbox is west,south,east,north. Keep the pack inside the budgets in",
-    "docs/PACKER.md -- tools/build-city.sh fails the build if the packer warns."
+    "products is the watches this listing covers, and it is not optional for a",
+    "dense city. The store rejects a .iq over 15 MB and the map is compiled into",
+    "every product, so the usable pack is 15 MB divided by their number. Berlin",
+    "at street level is ~2.7 MB per watch: five fit, twenty-four do not.",
+    "",
+    "bbox is west,south,east,north. tools/build-city.sh fails the build if the",
+    "packer warns or the .iq overruns."
   ],
   "cities": {
     "berlin": {
@@ -19,7 +27,12 @@
       "zooms": "12,14,16",
       "simplify": "2.0",
       "extra": "--max-points-per-tile 700 --cache berlin.osm",
-      "note": "Inside the Ringbahn. Dense: needs the tighter point budget to keep the renderer from truncating before it covers the screen."
+      "note": "Inside the Ringbahn. Dense: needs the tighter point budget to keep the renderer from truncating before it covers the screen.",
+      "products": [
+        "venu3",
+        "venu3s",
+        "venu2"
+      ]
     }
   }
 }
