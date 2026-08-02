@@ -116,7 +116,39 @@ class MapView extends WatchUi.View {
         }
     }
 
+    //! Guarded end to end.
+    //!
+    //! A throw anywhere in a View's onUpdate takes the app down, and after a
+    //! city download that is exactly what a watch showed: black screen, Connect
+    //! IQ error icon. The render is the one path that touches every field of a
+    //! downloaded pack, so it is the likeliest place for a bad value to
+    //! surface. Recording it and dropping back to the built-in map turns a dead
+    //! app into a readable message.
     function onUpdate(dc) {
+        try {
+            drawEverything(dc);
+        } catch (ex) {
+            Diag.record("render", ex);
+            // The pack that failed to draw must not be drawn again, or this
+            // repeats every frame.
+            Pack.use(null);
+            _store.clear();
+            _camera.zoom = Camera.defaultZoom();
+            _camera.jumpToPackCentre();
+            _dirty = true;
+            try {
+                drawEverything(dc);
+            } catch (fatal) {
+                // The built-in map cannot draw either. Nothing left but a
+                // blank screen with the reason on it.
+                dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
+                dc.clear();
+                drawDiagnostic(dc, Palette.colours(true));
+            }
+        }
+    }
+
+    hidden function drawEverything(dc) {
         if (_width == null) {
             _width = dc.getWidth();
             _height = dc.getHeight();
@@ -237,7 +269,20 @@ class MapView extends WatchUi.View {
     //! whole way down from `Palette.colours()`. A parameter defaults to
     //! `Object?`, which the checker cannot index, and an unannotated hop
     //! anywhere in the chain puts the warning back.
+    //! The last recorded failure, drawn small at the bottom.
+    //!
+    //! Without this a caught exception is invisible: the map silently reverts
+    //! to the built-in one and nobody can say why. Shown until the app is
+    //! restarted, because a fault worth catching is worth reporting.
+    hidden function drawDiagnostic(dc, colours as Array<Number>) {
+        if (!Diag.hasError()) { return; }
+        dc.setColor(colours[Palette.SLOT_MOTORWAY], Graphics.COLOR_TRANSPARENT);
+        dc.drawText(_width / 2, (_height * 0.86).toNumber(), Graphics.FONT_XTINY,
+                    Diag.lastError, Graphics.TEXT_JUSTIFY_CENTER);
+    }
+
     hidden function drawOverlay(dc, colours as Array<Number>) {
+        drawDiagnostic(dc, colours);
         if (Onboarding.shouldShow()) {
             // The card and nothing else. It covers the button orbit, so the
             // usual chrome would only survive as slivers along its edges.

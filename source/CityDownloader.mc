@@ -65,6 +65,15 @@ class CityDownloader {
     //! exactly; an untyped signature is rejected. See the note on API-boundary
     //! annotations in docs/DEVELOPMENT.md.
     function onMeta(responseCode as Number, data as Dictionary or String or Null) as Void {
+        try {
+            handleMeta(responseCode, data);
+        } catch (ex) {
+            Diag.record("download", ex);
+            fail("meta handling threw");
+        }
+    }
+
+    hidden function handleMeta(responseCode, data) {
         if (_cancelled) { return; }
         if (responseCode != 200 || !(data instanceof Lang.Dictionary)) {
             fail("meta " + responseCode);
@@ -98,6 +107,16 @@ class CityDownloader {
 
     //! Same annotation rule as `onMeta`.
     function onBlock(responseCode as Number, data as Dictionary or String or Null) as Void {
+        try {
+            handleBlock(responseCode, data);
+        } catch (ex) {
+            // A throw out of a web callback is not caught by anything above it.
+            Diag.record("download", ex);
+            fail("block handling threw");
+        }
+    }
+
+    hidden function handleBlock(responseCode, data) {
         if (_cancelled) { return; }
         if (responseCode != 200) {
             fail("block " + _keys[_at] + ": " + responseCode);
