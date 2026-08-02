@@ -63,6 +63,20 @@ class MapView extends WatchUi.View {
 
     function onShow() {
         _dirty = true;
+        // Try the off-screen buffer again if we are drawing direct.
+        //
+        // Losing the buffer is survivable but permanent otherwise: the app
+        // flickers while panning for the rest of the session even once memory
+        // frees up. Coming back to the map is the natural moment to retry,
+        // because whatever pushed us over (a menu, a download, another app's
+        // graphics) has usually just gone away.
+        if (!_useBuffer) {
+            createBuffer();
+        }
+        // A failure that has been on screen since before the view was hidden
+        // has been seen. Keeping it forever would make a transient fault look
+        // like a permanent one.
+        Diag.clear();
     }
 
     //! Drop the buffer and rebuild it -- needed when the palette changes.

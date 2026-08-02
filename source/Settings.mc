@@ -25,9 +25,15 @@ module Settings {
             var headingUp = Application.Storage.getValue(KEY_HEADING_UP);
             if (headingUp != null) { camera.headingUp = headingUp; }
 
+            // toNumber(), because zoom reaches `1 << zoom` in Mercator and a
+            // Float operand there raises an uncatchable UnexpectedTypeError.
+            // Versions 0.3.0 to 0.3.2 could persist a Float here: defaultZoom
+            // read it from a downloaded pack's JSON before Pack coerced its
+            // fields. Upgrading from one of those would otherwise reproduce the
+            // crash from a value already in storage.
             var zoom = Application.Storage.getValue(KEY_ZOOM);
             if (zoom != null && zoom >= Pack.minZoom() && zoom <= Pack.maxZoom()) {
-                camera.zoom = zoom;
+                camera.zoom = zoom.toNumber();
             }
 
             // Only restore the centre if it belongs to the pack that is

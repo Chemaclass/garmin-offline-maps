@@ -33,10 +33,14 @@ class Camera {
     //! the highest zoom is the slowest to render and the least useful for
     //! getting your bearings when the app opens.
     static function defaultZoom() {
-        var mid = Pack.dataZooms()[Pack.dataZooms().size() / 2];
+        var zooms = Pack.dataZooms();
+        var mid = zooms[zooms.size() / 2];
         if (mid > Pack.maxZoom()) { mid = Pack.maxZoom(); }
         if (mid < Pack.minZoom()) { mid = Pack.minZoom(); }
-        return mid;
+        // Belt and braces: zoom ends up in `1 << zoom`, and a Float there is
+        // an uncatchable error rather than a wrong number. Pack already
+        // coerces, so this only matters if a future caller does not.
+        return mid.toNumber();
     }
 
     //! Effective rotation applied to the map, in radians.

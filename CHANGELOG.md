@@ -7,7 +7,15 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-Nothing yet.
+### Fixed
+
+- **Upgrading from 0.3.0 to 0.3.2 could keep crashing even after the fix.**
+  Those versions could save a fractional zoom level, and reading it back
+  reproduced the same fault from a value already on the watch. It is now
+  converted as it is read.
+- **The map recovers its smooth panning.** If the watch was short of memory the
+  app fell back to a slower, flickering redraw and stayed there for the rest of
+  the session. It now tries again whenever you come back to the map.
 
 ## [0.3.3] - 2026-08-02
 
