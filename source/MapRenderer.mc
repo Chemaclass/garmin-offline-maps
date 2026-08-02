@@ -30,24 +30,19 @@ class MapRenderer {
     //! Milliseconds a single render may spend before it gives up and draws
     //! what it has.
     //!
-    //! The segment counts above are a proxy for time, and on a downloaded city
-    //! the proxy broke: the watchdog killed the app inside `drawPolyline`,
-    //! decoding varints, with the segment budget not yet spent. Two reasons it
-    //! could not save us. The budget is only tested between features, so one
-    //! dense feature runs to its end whatever the cost; and a segment is not a
-    //! fixed amount of work, so 2600 of them is a different length of frame in
-    //! Berlin than in the demo pack.
+    //! Time, not the segment counts above, because time is what the watchdog
+    //! measures. The counts are a poor proxy for it twice over: they are only
+    //! tested between features, so one dense feature runs to its end whatever
+    //! the cost, and a segment is not a fixed amount of work, so 2600 of them
+    //! is a different length of frame in Berlin than in the demo pack.
     //!
-    //! Time is what the watchdog actually measures, so measure the same thing.
-    //! It fires around 5 s (docs/DEVICES.md); this leaves room for the blit and
-    //! everything else in the frame.
-    //! 80, measured, not guessed. Frames get heavier as blocks arrive and the
-    //! view keeps re-rendering while they do: a downloaded Berlin at zoom 13
-    //! climbed 42 -> 76 -> 86 -> 125 ms and then the app was killed. No single
-    //! frame reached the old 250, so the budget never fired while the churn
-    //! still added up. At 80 the cap actually bites: 198 renders panning
-    //! Alexanderplatz to Wedding across zooms 13 to 15 peaked at 81 ms with
-    //! nothing killed.
+    //! 80 is measured. Frames get heavier as blocks arrive and the view keeps
+    //! re-rendering while they do: a downloaded Berlin at zoom 13 climbed
+    //! 42 -> 76 -> 86 -> 125 ms before the app was killed, so a cap much above
+    //! 100 never bites while the churn still adds up. At 80 it does: 198
+    //! renders panning Alexanderplatz to Wedding across zooms 13 to 15 peaked
+    //! at 81 ms with nothing killed. The watchdog fires around 5 s
+    //! (docs/DEVICES.md); the rest of that is the blit and the overlay.
     const FRAME_BUDGET_MS = 80;
 
     //! Checked every 16 points rather than every point: `getTimer` in the inner
@@ -59,7 +54,6 @@ class MapRenderer {
     const PASS_LINES = 1;
 
     hidden var _segments;
-    hidden var _passSegments;
     //! Points processed this pass, drawn or not. This is what the budget
     //! actually limits; see the note in `drawPolyline`.
     hidden var _passWork;
@@ -72,7 +66,6 @@ class MapRenderer {
 
     function initialize() {
         _segments = 0;
-        _passSegments = 0;
         _passWork = 0;
         _tilesDrawn = 0;
         _passTruncated = false;
@@ -98,7 +91,6 @@ class MapRenderer {
 
     function render(dc, camera, store) {
         _segments = 0;
-        _passSegments = 0;
         _passWork = 0;
         _tilesDrawn = 0;
         _passTruncated = false;
@@ -108,9 +100,7 @@ class MapRenderer {
         store.beginFrame();
 
         var colours = Palette.colours(camera.night);
-        var background = colours[Palette.SLOT_BACKGROUND];
-        dc.setColor(background, background);
-        dc.clear();
+        Ui.clear(dc, colours);
 
         var width = dc.getWidth();
         var height = dc.getHeight();
@@ -140,7 +130,6 @@ class MapRenderer {
         if (centreX - radius < 0) { minTileX -= 1; }
         if (centreY - radius < 0) { minTileY -= 1; }
 
-
         var theta = camera.rotation();
         var cosT = 1.0;
         var sinT = 0.0;
@@ -155,7 +144,6 @@ class MapRenderer {
 
         for (var pass = PASS_AREAS; pass <= PASS_LINES; pass += 1) {
             var budget = (pass == PASS_AREAS) ? AREA_SEGMENTS : MAX_SEGMENTS;
-            _passSegments = 0;
             _passWork = 0;
             _passTruncated = false;
             for (var tileY = minTileY; tileY <= maxTileY && !_passTruncated; tileY += 1) {
@@ -224,8 +212,11 @@ class MapRenderer {
                 continue;
             }
 
-            if (layerId < 0 || layerId >= Palette.LAYER_COUNT) {
+            if (layerId >= Palette.LAYER_COUNT) {
                 // A pack built by a newer packer than this app knows about.
+                // No `< 0` half: `u8` reads a ByteArray element, which cannot
+                // be negative. `pointCount` below can, because a five-byte
+                // varint overflows into the sign bit, and is checked for it.
                 reader.pos = layerEnd;
                 continue;
             }
@@ -275,9 +266,9 @@ class MapRenderer {
         var prevInside = false;
 
         for (var i = 0; i < pointCount; i += 1) {
-            // Inside the point loop, not just around it. This is the frame the
-            // watchdog killed: one polyline long enough to run out the clock on
-            // its own, with the caller's budget check never reached.
+            // Inside the point loop, not just around it: one polyline can be
+            // long enough to run out the clock on its own, and the caller's
+            // budget check is not reached until the whole feature is done.
             //
             // No need to consume the remaining varints to keep the reader in
             // step: `drawTile` builds a fresh one per tile and returns as soon
@@ -305,19 +296,16 @@ class MapRenderer {
 
             // Every point costs, drawn or not: decoding the varints and
             // projecting is most of the work, and `drawLine` only happens when
-            // something is on screen.
-            //
-            // Counting drawn lines alone left the budget unable to fire at all
-            // when the geometry was off screen. Nothing was inside, so nothing
-            // incremented, so the cap was never reached, and the renderer
-            // walked every feature of every tile drawing nothing until the
-            // watchdog killed the app. A map that is merely off centre must not
-            // be more expensive than one that is not.
+            // something is on screen. Count drawn lines instead and the budget
+            // cannot fire at all with the geometry off screen -- nothing is
+            // inside, so nothing increments, and the renderer walks every
+            // feature of every tile drawing nothing until the watchdog kills
+            // the app. A map that is merely off centre must not cost more than
+            // one that is not.
             _passWork += 1;
             if (i > 0 && (inside || prevInside)) {
                 dc.drawLine(prevSx.toNumber(), prevSy.toNumber(), sx.toNumber(), sy.toNumber());
                 _segments += 1;
-                _passSegments += 1;
             }
             prevSx = sx;
             prevSy = sy;
@@ -365,7 +353,6 @@ class MapRenderer {
             }
             dc.fillPolygon(points);
             _segments += at;
-            _passSegments += at;
         }
     }
 }

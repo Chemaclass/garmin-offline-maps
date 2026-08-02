@@ -50,11 +50,11 @@ module Num {
     //! gets subscripted. Without it the annotation on the field is erased by
     //! the assignment and the warning comes back at the `[i]`.
     function integers(value) as Array<Number> {
-        var out = [] as Array<Number>;
+        var out = [];
         if (!(value instanceof Lang.Array)) { return out; }
         var list = value as Array;
         for (var i = 0; i < list.size(); i += 1) {
-            if (!isNumeric(list[i])) { return [] as Array<Number>; }
+            if (!isNumeric(list[i])) { return []; }
             out.add(list[i].toNumber());
         }
         return out;

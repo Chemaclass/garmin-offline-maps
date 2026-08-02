@@ -94,7 +94,7 @@ class CityPicker {
         var menu = new WatchUi.Menu2({ :title => country });
         for (var i = first; i < _cities.size(); i += 1) {
             if (!countryAt(i).equals(country)) { break; }
-            var city = _cities[i] as Dictionary;
+            var city = _cities[i];
             var stored = city["storedBytes"];
             var subtitle = stored == null
                 ? null
@@ -107,7 +107,7 @@ class CityPicker {
     }
 
     hidden function countryAt(index) {
-        var city = _cities[index] as Dictionary;
+        var city = _cities[index];
         var country = city["country"];
         return country == null ? "Other" : country;
     }
@@ -117,7 +117,7 @@ class CityPicker {
         if (_cities == null || index < 0 || index >= _cities.size()) {
             return null;
         }
-        var city = _cities[index] as Dictionary;
+        var city = _cities[index];
         return city["slug"];
     }
 
@@ -190,19 +190,13 @@ class MessageView extends WatchUi.View {
 
     function onUpdate(dc) {
         var colours = Palette.colours(true);
-        var background = colours[Palette.SLOT_BACKGROUND];
-        dc.setColor(background, background);
-        dc.clear();
-        dc.setColor(colours[Palette.SLOT_TEXT], Graphics.COLOR_TRANSPARENT);
-        dc.drawText(dc.getWidth() / 2, (dc.getHeight() * 0.42).toNumber(),
-                    Graphics.FONT_SMALL,
-                    WatchUi.loadResource(_message) as String,
-                    Graphics.TEXT_JUSTIFY_CENTER);
-        dc.setColor(colours[Palette.SLOT_DIM], Graphics.COLOR_TRANSPARENT);
-        dc.drawText(dc.getWidth() / 2, (dc.getHeight() * 0.58).toNumber(),
-                    Graphics.FONT_XTINY,
-                    WatchUi.loadResource(Rez.Strings.DownloadKeepPhone) as String,
-                    Graphics.TEXT_JUSTIFY_CENTER);
+        Ui.clear(dc, colours);
+        var width = dc.getWidth();
+        var height = dc.getHeight();
+        Ui.resourceLine(dc, colours[Palette.SLOT_TEXT], width, height, 0.42,
+                        Graphics.FONT_SMALL, _message);
+        Ui.resourceLine(dc, colours[Palette.SLOT_DIM], width, height, 0.58,
+                        Graphics.FONT_XTINY, Rez.Strings.DownloadKeepPhone);
     }
 }
 

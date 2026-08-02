@@ -11,6 +11,10 @@ from typing import Dict, List, NamedTuple, Tuple
 
 from .varint import read_svarint, read_u16, read_uvarint
 
+#: One decoded tile: layers in draw order, each
+#: ``(layer_id, [(geom_type, [(x, y), ...]), ...])`` with absolute points.
+Tile = List[Tuple[int, List[Tuple[int, List[Tuple[int, int]]]]]]
+
 MAGIC = 0x4D
 
 
@@ -52,9 +56,9 @@ def decode_directory(data: bytes) -> Dict[Tuple[int, int], int]:
     return out
 
 
-def decode_tile(payload: bytes, pos: int = 0) -> List[Tuple[int, List[Tuple[int, List[Tuple[int, int]]]]]]:
+def decode_tile(payload: bytes, pos: int = 0) -> Tile:
     """Return [(layer_id, [(geom_type, [(x, y), ...]), ...]), ...]."""
-    layers: List[Tuple[int, List[Tuple[int, List[Tuple[int, int]]]]]] = []
+    layers: Tile = []
     layer_count = payload[pos]
     pos += 1
     for _ in range(layer_count):
@@ -86,7 +90,7 @@ def decode_tile(payload: bytes, pos: int = 0) -> List[Tuple[int, List[Tuple[int,
     return layers
 
 
-def decode_block(data: bytes):
+def decode_block(data: bytes) -> Tuple[BlockHeader, Dict[Tuple[int, int], Tile]]:
     """Return (header, {(local_x, local_y): decoded_tile})."""
     header = decode_block_header(data)
     tiles = {}

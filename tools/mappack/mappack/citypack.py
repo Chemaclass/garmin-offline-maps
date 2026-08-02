@@ -30,10 +30,16 @@ from __future__ import annotations
 import base64
 import json
 import os
-from typing import Dict, List, Sequence, Tuple
+from typing import Dict, List, Sequence
 
-from .emit import KEY_MAX, KEY_SHIFT, block_origins
+from .emit import KEY_MAX, KEY_SHIFT, block_origins, write_lines
 from .pack import FORMAT_VERSION, PackOptions, PackResult
+
+#: One city as the catalogue describes it -- the shape `entry_from_meta`
+#: builds and everything downstream consumes. Distinct from the `meta.json`
+#: dict it is derived from, which is why both being `Dict[str, object]` was
+#: worth naming apart.
+CatalogueEntry = Dict[str, object]
 
 #: Cap on one stored value. Conservative on purpose, see the module docstring.
 MAX_STORAGE_VALUE = 8000
@@ -76,8 +82,7 @@ def download_options(name: str) -> PackOptions:
     return PackOptions(name=name, **DOWNLOAD_PROFILE)
 
 
-def block_key(zoom_slot: int, block_x: int, block_y: int,
-              origin_x: int, origin_y: int) -> int:
+def block_key(block_x: int, block_y: int, origin_x: int, origin_y: int) -> int:
     """The same relative key `MapIndex.blockResource` computes on the watch."""
     rel_x, rel_y = block_x - origin_x, block_y - origin_y
     if rel_x < 0 or rel_y < 0 or rel_x > KEY_MAX or rel_y > KEY_MAX:
@@ -92,7 +97,7 @@ class TooBig(Exception):
 
 def write_city(result: PackResult, options: PackOptions, slug: str,
                out_dir: str, attribution: str,
-               country: str = "Other") -> Dict[str, object]:
+               country: str = "Other") -> CatalogueEntry:
     """Write `<out_dir>/<slug>/` and return its catalogue entry.
 
     Raises `TooBig` rather than writing something the watch will refuse
@@ -116,9 +121,8 @@ def write_city(result: PackResult, options: PackOptions, slug: str,
     keys: List[int] = []
     total_stored = 0
     for (zoom, block_x, block_y), data in sorted(result.blocks.items()):
-        slot = data_zooms.index(zoom)
         origin_x, origin_y = origins[zoom]
-        key = block_key(slot, block_x, block_y, origin_x, origin_y)
+        key = block_key(block_x, block_y, origin_x, origin_y)
         encoded = base64.b64encode(data).decode("ascii")
         path = os.path.join(city_dir, "b%d.json" % key)
         with open(path, "w", encoding="utf-8") as fh:
@@ -164,7 +168,7 @@ def write_city(result: PackResult, options: PackOptions, slug: str,
     return entry_from_meta(meta, slug)
 
 
-def entry_from_meta(meta: Dict[str, object], slug: str) -> Dict[str, object]:
+def entry_from_meta(meta: Dict[str, object], slug: str) -> CatalogueEntry:
     """The catalogue's view of one city, derived from its `meta.json`.
 
     The only producer of a catalogue entry. There were two, and they had
@@ -189,7 +193,7 @@ def entry_from_meta(meta: Dict[str, object], slug: str) -> Dict[str, object]:
     }
 
 
-def scan_published(out_dir: str) -> List[Dict[str, object]]:
+def scan_published(out_dir: str) -> List[CatalogueEntry]:
     """Catalogue entries for every city already written under `out_dir`.
 
     The catalogue is derived from what is on disk rather than from what this
@@ -197,7 +201,7 @@ def scan_published(out_dir: str) -> List[Dict[str, object]]:
     limits are a fact of life) must not publish a catalogue that forgets the
     cities from previous runs.
     """
-    entries: List[Dict[str, object]] = []
+    entries: List[CatalogueEntry] = []
     if not os.path.isdir(out_dir):
         return entries
     for slug in sorted(os.listdir(out_dir)):
@@ -210,7 +214,7 @@ def scan_published(out_dir: str) -> List[Dict[str, object]]:
     return entries
 
 
-def write_catalogue(entries: Sequence[Dict[str, object]], out_dir: str,
+def write_catalogue(entries: Sequence[CatalogueEntry], out_dir: str,
                     base_url: str) -> str:
     """The index the settings page and the watch both read."""
     os.makedirs(out_dir, exist_ok=True)
@@ -230,7 +234,7 @@ def write_catalogue(entries: Sequence[Dict[str, object]], out_dir: str,
     return path
 
 
-def write_settings_xml(entries: Sequence[Dict[str, object]], path: str,
+def write_settings_xml(entries: Sequence[CatalogueEntry], path: str,
                        base_url: str) -> str:
     """Generate `resources/settings/settings.xml`.
 
@@ -293,10 +297,7 @@ def write_settings_xml(entries: Sequence[Dict[str, object]], path: str,
         '</settings>',
         '',
     ]
-    os.makedirs(os.path.dirname(os.path.abspath(path)) or ".", exist_ok=True)
-    with open(path, "w", encoding="utf-8") as fh:
-        fh.write("\n".join(lines))
-    return path
+    return write_lines(path, lines)
 
 
 def site_of(base_url: str) -> str:
@@ -312,7 +313,7 @@ def site_of(base_url: str) -> str:
     return trimmed
 
 
-def _ordered(entries: Sequence[Dict[str, object]]) -> List[Dict[str, object]]:
+def _ordered(entries: Sequence[CatalogueEntry]) -> List[CatalogueEntry]:
     """The one order: country, then city.
 
     The catalogue, the settings dropdown and `CityList` all sort through here.
@@ -322,7 +323,7 @@ def _ordered(entries: Sequence[Dict[str, object]]) -> List[Dict[str, object]]:
     return sorted(entries, key=lambda c: (str(c.get("country", "")), str(c["name"])))
 
 
-def write_city_list_mc(entries: Sequence[Dict[str, object]], path: str) -> str:
+def write_city_list_mc(entries: Sequence[CatalogueEntry], path: str) -> str:
     """Generated Monkey C mapping a settings index back to a slug.
 
     Index 0 is the built-in map, so the slugs start at 1 and the array is
@@ -369,10 +370,7 @@ def write_city_list_mc(entries: Sequence[Dict[str, object]], path: str) -> str:
         "}",
         "",
     ]
-    os.makedirs(os.path.dirname(os.path.abspath(path)) or ".", exist_ok=True)
-    with open(path, "w", encoding="utf-8") as fh:
-        fh.write("\n".join(body))
-    return path
+    return write_lines(path, body)
 
 
 def write_properties_xml(path: str, base_url: str) -> str:
@@ -394,10 +392,7 @@ def write_properties_xml(path: str, base_url: str) -> str:
         '</properties>',
         '',
     ]
-    os.makedirs(os.path.dirname(os.path.abspath(path)) or ".", exist_ok=True)
-    with open(path, "w", encoding="utf-8") as fh:
-        fh.write("\n".join(lines))
-    return path
+    return write_lines(path, lines)
 
 
 def _escape(text: str) -> str:

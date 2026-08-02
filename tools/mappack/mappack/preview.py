@@ -27,9 +27,51 @@ import re
 from typing import Dict, List, Optional, Tuple
 
 from . import geom
-from .decode import decode_block_header, decode_tile, decode_directory
+from .decode import decode_tile, decode_directory
 
-TILE_SIZE = 256
+
+# --- reading constants back out of Monkey C --------------------------------
+#
+# This module keeps no second Python copy of a value the watch app already
+# declares: the generated index, the palette, the pen widths and the render
+# budgets are all read out of the .mc sources, which is what stops the preview
+# showing detail the device would never draw.
+#
+# Every one of those reads is "find `NAME = ...` and parse what follows", so it
+# lives here once instead of as a slightly different regex per class.
+
+
+def _capture(source: str, pattern: str, name: str) -> str:
+    match = re.search(pattern, source)
+    if match is None:
+        raise ValueError("no constant %s in this Monkey C source" % name)
+    return match.group(1)
+
+
+def const_int(source: str, name: str) -> int:
+    return int(_capture(source, r"\b%s = (-?\d+)" % name, name))
+
+
+def const_float(source: str, name: str) -> float:
+    """A Monkey C Double literal, which carries a `d` suffix: `13.2277449d`."""
+    return float(_capture(source, r"\b%s = (-?[\d.]+)d" % name, name))
+
+
+def const_str(source: str, name: str) -> str:
+    return _capture(source, r'\b%s = "([^"]*)"' % name, name)
+
+
+def const_body(source: str, name: str) -> str:
+    """Whatever sits between the brackets of `NAME = [ ... ]`, comments and all.
+
+    No DOTALL: the tables run over several lines, but a `]` only ever appears
+    at the end of one, so "anything that is not a bracket" already spans them.
+    """
+    return _capture(source, r"\b%s = \[([^\]]*)\]" % name, name)
+
+
+def const_ints(source: str, name: str) -> List[int]:
+    return [int(v) for v in const_body(source, name).split(",") if v.strip()]
 
 
 class MapIndexFile:
@@ -39,32 +81,27 @@ class MapIndexFile:
         with open(path, encoding="utf-8") as fh:
             source = fh.read()
         self.source = source
-        self.extent = self._int("EXTENT")
-        self.key_shift = self._int("KEY_SHIFT")
-        self.min_zoom = self._int("MIN_ZOOM")
-        self.max_zoom = self._int("MAX_ZOOM")
-        self.pack_name = self._str("PACK_NAME")
-        self.attribution = self._str("ATTRIBUTION")
-        self.data_zooms = self._int_list("DATA_ZOOMS")
-        self.block_log2 = self._int_list("BLOCK_LOG2")
-        self.origin_x = self._int_list("BLOCK_ORIGIN_X")
-        self.origin_y = self._int_list("BLOCK_ORIGIN_Y")
-        self.center_lat = self._float("CENTER_LAT")
-        self.center_lon = self._float("CENTER_LON")
+        self.extent = const_int(source, "EXTENT")
+        self.key_shift = const_int(source, "KEY_SHIFT")
+        self.min_zoom = const_int(source, "MIN_ZOOM")
+        self.max_zoom = const_int(source, "MAX_ZOOM")
+        self.pack_name = const_str(source, "PACK_NAME")
+        self.attribution = const_str(source, "ATTRIBUTION")
+        self.data_zooms = const_ints(source, "DATA_ZOOMS")
+        self.block_log2 = const_ints(source, "BLOCK_LOG2")
+        self.origin_x = const_ints(source, "BLOCK_ORIGIN_X")
+        self.origin_y = const_ints(source, "BLOCK_ORIGIN_Y")
+        self.center_lat = const_float(source, "CENTER_LAT")
+        self.center_lon = const_float(source, "CENTER_LON")
+        self.west = const_float(source, "WEST")
+        self.south = const_float(source, "SOUTH")
+        self.east = const_float(source, "EAST")
+        self.north = const_float(source, "NORTH")
         self.cases = self._cases()
 
-    def _int(self, name: str) -> int:
-        return int(re.search(r"\b%s = (-?\d+)" % name, self.source).group(1))
-
-    def _float(self, name: str) -> float:
-        return float(re.search(r"\b%s = (-?[\d.]+)d" % name, self.source).group(1))
-
-    def _str(self, name: str) -> str:
-        return re.search(r'\b%s = "([^"]*)"' % name, self.source).group(1)
-
-    def _int_list(self, name: str) -> List[int]:
-        body = re.search(r"\b%s = \[([^\]]*)\]" % name, self.source).group(1)
-        return [int(v) for v in body.split(",") if v.strip()]
+    def contains(self, lat: float, lon: float) -> bool:
+        """Mirror of `Camera.contains`: is this position inside the pack?"""
+        return self.west <= lon <= self.east and self.south <= lat <= self.north
 
     def _cases(self) -> Dict[Tuple[int, int], str]:
         out: Dict[Tuple[int, int], str] = {}
@@ -138,12 +175,8 @@ class Budgets:
     def __init__(self, renderer_mc: str):
         with open(renderer_mc, encoding="utf-8") as fh:
             source = fh.read()
-        self.area = self._const(source, "AREA_SEGMENTS")
-        self.lines = self._const(source, "MAX_SEGMENTS")
-
-    @staticmethod
-    def _const(source: str, name: str) -> int:
-        return int(re.search(r"const %s = (\d+)" % name, source).group(1))
+        self.area = const_int(source, "AREA_SEGMENTS")
+        self.lines = const_int(source, "MAX_SEGMENTS")
 
     def for_pass(self, pass_index: int) -> int:
         return self.area if pass_index == 0 else self.lines
@@ -155,21 +188,13 @@ class Style:
     def __init__(self, palette_mc: str, night: bool = True):
         with open(palette_mc, encoding="utf-8") as fh:
             source = fh.read()
-        name = "NIGHT" if night else "DAY"
-        self.colours = [int(v, 16) for v in
-                        re.findall(r"0x([0-9A-Fa-f]{6})",
-                                   re.search(r"const %s = \[(.*?)\];" % name, source,
-                                             re.S).group(1))]
-        self.width_far = self._ints(source, "WIDTH_FAR")
-        self.width_near = self._ints(source, "WIDTH_NEAR")
-        self.zoom_detail = int(re.search(r"ZOOM_DETAIL = (\d+)", source).group(1))
+        table = const_body(source, "NIGHT" if night else "DAY")
+        self.colours = [int(v, 16) for v in re.findall(r"0x([0-9A-Fa-f]{6})", table)]
+        self.width_far = const_ints(source, "WIDTH_FAR")
+        self.width_near = const_ints(source, "WIDTH_NEAR")
+        self.zoom_detail = const_int(source, "ZOOM_DETAIL")
         self.background = self.colours[10]
         self.area_layers = 3  # layers 0..2 are filled
-
-    @staticmethod
-    def _ints(source: str, name: str) -> List[int]:
-        body = re.search(r"const %s = \[([^\]]*)\]" % name, source).group(1)
-        return [int(v) for v in body.split(",")]
 
     def rgb(self, index: int) -> Tuple[int, int, int]:
         value = self.colours[index]
@@ -209,14 +234,14 @@ def render(pack_dir: str, index_path: str, palette_mc: str, size: int = 454,
     centre_y = geom.lat_to_world_y(centre_lat, data_zoom)
     radius = math.hypot(half, half) / scale
 
-    min_tx = math.floor((centre_x - radius) / TILE_SIZE)
-    max_tx = math.floor((centre_x + radius) / TILE_SIZE)
-    min_ty = math.floor((centre_y - radius) / TILE_SIZE)
-    max_ty = math.floor((centre_y + radius) / TILE_SIZE)
+    min_tx = math.floor((centre_x - radius) / geom.TILE_SIZE)
+    max_tx = math.floor((centre_x + radius) / geom.TILE_SIZE)
+    min_ty = math.floor((centre_y - radius) / geom.TILE_SIZE)
+    max_ty = math.floor((centre_y + radius) / geom.TILE_SIZE)
 
     cos_t, sin_t = math.cos(heading), math.sin(heading)
     rotated = heading != 0.0
-    units_to_pixels = scale * TILE_SIZE / index.extent
+    units_to_pixels = scale * geom.TILE_SIZE / index.extent
 
     stats = {"tiles": 0, "segments": 0, "missing": 0, "truncated": False}
 
@@ -252,8 +277,8 @@ def render(pack_dir: str, index_path: str, palette_mc: str, size: int = 454,
                 if pass_index == 0:
                     stats["tiles"] += 1
 
-                origin_x = (tile_x * TILE_SIZE - centre_x) * scale
-                origin_y = (tile_y * TILE_SIZE - centre_y) * scale
+                origin_x = (tile_x * geom.TILE_SIZE - centre_x) * scale
+                origin_y = (tile_y * geom.TILE_SIZE - centre_y) * scale
 
                 for layer_id, features in decode_tile(block, offset):
                     if pass_truncated:
@@ -279,11 +304,11 @@ def render(pack_dir: str, index_path: str, palette_mc: str, size: int = 454,
                             stats["truncated"] = True
                             break
 
-    _draw_chrome(draw, size, style, display_zoom, centre_lat, index)
+    _draw_chrome(draw, size, style, display_zoom, centre_lat)
     return image, stats
 
 
-def _draw_chrome(draw, size, style, display_zoom, centre_lat, index):
+def _draw_chrome(draw, size, style, display_zoom, centre_lat):
     """The bits of the overlay that are worth eyeballing: scale bar + marker."""
     half = size // 2
     draw.ellipse([half - 9, half - 9, half + 9, half + 9], fill=style.rgb(11))
@@ -305,16 +330,35 @@ def _draw_chrome(draw, size, style, display_zoom, centre_lat, index):
         draw.text((half - 14, y + 6), label, fill=ink)
 
 
-def main(argv=None) -> int:
-    here = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    root = os.path.dirname(here)
+def repo_root() -> str:
+    """The checkout this package lives in.
 
-    parser = argparse.ArgumentParser(prog="mappack.preview",
-                                     description="Render a map pack to PNG as the watch would.")
+    mappack/mappack/preview.py -> mappack -> tools -> the repo: four dirnames,
+    which is exactly the sort of thing that gets miscounted when it is written
+    out twice. `serve` takes the same defaults from here.
+    """
+    return os.path.dirname(os.path.dirname(os.path.dirname(
+        os.path.dirname(os.path.abspath(__file__)))))
+
+
+def add_pack_arguments(parser: argparse.ArgumentParser) -> None:
+    """The `--pack/--index/--palette/--size` block both entry points take.
+
+    `serve` renders through `render` below, so a pack that previews from one
+    set of paths and serves from another is a difference with nothing behind it.
+    """
+    root = repo_root()
     parser.add_argument("--pack", default=os.path.join(root, "mapdata", "active"))
-    parser.add_argument("--index", default=os.path.join(root, "source", "generated", "MapIndex.mc"))
+    parser.add_argument("--index",
+                        default=os.path.join(root, "source", "generated", "MapIndex.mc"))
     parser.add_argument("--palette", default=os.path.join(root, "source", "Palette.mc"))
     parser.add_argument("--size", type=int, default=454, help="454 = Venu 3, 390 = Venu 3S")
+
+
+def main(argv=None) -> int:
+    parser = argparse.ArgumentParser(prog="mappack.preview",
+                                     description="Render a map pack to PNG as the watch would.")
+    add_pack_arguments(parser)
     parser.add_argument("--zoom", type=int, default=None)
     parser.add_argument("--lat", type=float, default=None)
     parser.add_argument("--lon", type=float, default=None)

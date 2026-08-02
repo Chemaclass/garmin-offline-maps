@@ -133,12 +133,6 @@ module Diag {
         lastCrash = null;
     }
 
-    //! Not named `has`: that is the Monkey C membership operator and the
-    //! parser rejects it as an identifier.
-    function hasError() {
-        return lastError != null;
-    }
-
     //! What to put on the map, or null. The crash crumb wins: a caught
     //! exception is a failure the app survived, and the one that killed it
     //! matters more.

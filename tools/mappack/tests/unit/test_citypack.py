@@ -91,12 +91,12 @@ class TestLayout(unittest.TestCase):
     def test_block_keys_match_the_watch_side_formula(self):
         # MapIndex.blockResource computes (relX << KEY_SHIFT) | relY. Blocks at
         # x=100 and x=101 with origin 100 must therefore be 0 and 1<<10.
-        self.assertEqual(citypack.block_key(0, 100, 200, 100, 200), 0)
-        self.assertEqual(citypack.block_key(0, 101, 200, 100, 200), 1024)
+        self.assertEqual(citypack.block_key(100, 200, 100, 200), 0)
+        self.assertEqual(citypack.block_key(101, 200, 100, 200), 1024)
 
     def test_a_block_outside_the_key_range_is_refused(self):
         with self.assertRaises(ValueError):
-            citypack.block_key(0, 99, 200, 100, 200)
+            citypack.block_key(99, 200, 100, 200)
 
     def test_meta_carries_what_the_renderer_needs(self):
         meta = self.meta()

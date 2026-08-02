@@ -58,9 +58,9 @@ class TestPaletteContract(unittest.TestCase):
     def test_layer_count_agrees_across_both_languages(self):
         """classify.LAYER_COUNT and Palette.mc's LAYER_COUNT are one number.
 
-        Both say 10 and nothing checked that they still agreed. They are the
-        length of the shared layer-id range, so a drift makes the packer emit a
-        layer the renderer treats as out of range and skips, silently.
+        They are the length of the shared layer-id range, so a drift makes the
+        packer emit a layer the renderer treats as out of range and skips,
+        silently.
         """
         with open(PALETTE_MC, encoding="utf-8") as fh:
             source = fh.read()
@@ -92,11 +92,11 @@ class TestPaletteContract(unittest.TestCase):
     def test_renderer_caps_work_per_frame(self):
         """The cap counts points *processed*, not lines drawn.
 
-        It used to count drawn lines, which could not bound anything: with the
-        geometry off screen nothing was drawn, so nothing incremented, so the
-        cap never fired and the renderer walked every feature of every tile
-        until the watchdog killed the app. Decoding is the cost; a point off
-        screen costs nearly as much as one on it.
+        Counting drawn lines bounds nothing: with the geometry off screen
+        nothing is drawn, so nothing increments, so the cap never fires and the
+        renderer walks every feature of every tile until the watchdog kills the
+        app. Decoding is the cost; a point off screen costs nearly as much as
+        one on it.
         """
         with open(RENDERER_MC, encoding="utf-8") as fh:
             source = fh.read()
@@ -121,15 +121,12 @@ class TestPaletteContract(unittest.TestCase):
     def test_a_screenful_of_tiles_exceeds_the_frame_cap(self):
         """A full screen of packed detail does *not* fit one frame, on purpose.
 
-        This used to assert the opposite, and the assertion was wrong rather
-        than the code: a screenful at the packer's default is 4400 points
-        against a cap the watchdog holds near 400. Raising the cap to match the
-        packer is what killed the app.
-
-        So the renderer truncates by design, and the packer's job is to keep the
-        *first* points of a tile the ones worth drawing. What must not happen is
-        the cap quietly growing back to a screenful, so this pins the direction
-        of the inequality rather than pretending it fits.
+        A screenful at the packer's default is 4400 points against a cap the
+        watchdog holds near 400; raising the cap to match the packer kills the
+        app. So the renderer truncates by design, and the packer's job is to
+        keep the *first* points of a tile the ones worth drawing. What must not
+        happen is the cap quietly growing back to a screenful, so this pins the
+        direction of the inequality rather than pretending it fits.
         """
         with open(RENDERER_MC, encoding="utf-8") as fh:
             cap = int(re.search(r"MAX_SEGMENTS = (\d+)", fh.read()).group(1))

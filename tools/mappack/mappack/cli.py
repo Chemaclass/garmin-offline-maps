@@ -6,16 +6,15 @@ import argparse
 import os
 import sys
 import time
-from typing import List, Tuple
+from typing import List
 
 from . import geocode, osmread
 from .emit import write_pack
+from .geom import BBox
 from .pack import PackOptions, pack
 
-DEFAULT_ATTRIBUTION = "(c) OpenStreetMap contributors"
 
-
-def parse_bbox(text: str) -> Tuple[float, float, float, float]:
+def parse_bbox(text: str) -> BBox:
     parts = [p.strip() for p in text.replace(";", ",").split(",")]
     if len(parts) != 4:
         raise argparse.ArgumentTypeError("bbox needs 4 numbers: west,south,east,north")
@@ -68,7 +67,7 @@ def build_parser() -> argparse.ArgumentParser:
     shape.add_argument("--buildings", action="store_true", help="include building footprints (large)")
     shape.add_argument("--resource-budget", type=int, default=200,
                        help="max number of jsonData resources (Connect IQ caps around 255)")
-    shape.add_argument("--attribution", default=DEFAULT_ATTRIBUTION)
+    shape.add_argument("--attribution", default=osmread.DEFAULT_ATTRIBUTION)
 
     out = parser.add_argument_group("output")
     out.add_argument("--out", default="mapdata/active", help="resource directory to write")

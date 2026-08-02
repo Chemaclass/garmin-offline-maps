@@ -94,8 +94,11 @@ module Palette {
         return night ? NIGHT : DAY;
     }
 
+    //! Range-checked by the caller, not here. `MapRenderer.drawTile` has to
+    //! reject a layer id at or past `LAYER_COUNT` a few lines earlier anyway,
+    //! because the same id indexes `colours`; repeating the test in the one
+    //! function it protects only says the caller might not have done its job.
     function penWidth(layer, displayZoom) {
-        if (layer < 0 || layer >= LAYER_COUNT) { return 1; }
         return displayZoom >= ZOOM_DETAIL ? WIDTH_NEAR[layer] : WIDTH_FAR[layer];
     }
 }

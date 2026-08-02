@@ -62,7 +62,7 @@ week and a number nobody trusts is worse than no number.
 OfflineMapsApp.onStart
   ├── new Camera()              centre = MapIndex.CENTER_*, zoom = middle data zoom
   ├── Settings.load(camera)     restores centre only if the stored pack name matches
-  ├── new TileStore(null)       default 90 KB byte budget
+  ├── new TileStore()           90 KB byte budget
   └── new LocationTracker(onFix)
 
 OfflineMapsApp.getInitialView

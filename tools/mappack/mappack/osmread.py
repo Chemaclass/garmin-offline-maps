@@ -20,10 +20,15 @@ from typing import Dict, List, Optional, Tuple
 from .classify import build_overpass_query
 # (lon, lat) degrees here, world pixels once `geom.project` has run. Same pair
 # either way, and these coordinates go straight into it, so the alias is geom's.
-from .geom import Point
+from .geom import BBox, Point
 
 DEFAULT_OVERPASS_URL = "https://overpass-api.de/api/interpreter"
 USER_AGENT = "garmin-offline-maps mappack (+https://github.com/Chemaclass/garmin-offline-maps)"
+
+#: What the licence asks a map built from this data to say, and so what both
+#: entry points default to. It lives beside the source it credits: a pack and a
+#: published city are the same data and must not credit it differently.
+DEFAULT_ATTRIBUTION = "(c) OpenStreetMap contributors"
 
 
 @dataclass
@@ -146,7 +151,7 @@ def read_pbf(path: str) -> List[Way]:
     return ways
 
 
-def fetch_overpass(bbox: Tuple[float, float, float, float], url: str = DEFAULT_OVERPASS_URL,
+def fetch_overpass(bbox: BBox, url: str = DEFAULT_OVERPASS_URL,
                    cache_path: Optional[str] = None, timeout: int = 300) -> List[Way]:
     """bbox is (min_lon, min_lat, max_lon, max_lat)."""
     import urllib.request
@@ -177,7 +182,7 @@ def fetch_overpass(bbox: Tuple[float, float, float, float], url: str = DEFAULT_O
     return read_osm_xml(io.BytesIO(payload))
 
 
-def load(path: Optional[str], bbox: Optional[Tuple[float, float, float, float]] = None,
+def load(path: Optional[str], bbox: Optional[BBox] = None,
          overpass_url: str = DEFAULT_OVERPASS_URL,
          cache_path: Optional[str] = None) -> List[Way]:
     if path:

@@ -7,9 +7,18 @@ All "world pixel" coordinates use the standard slippy-map convention:
 from __future__ import annotations
 
 import math
-from typing import Iterable, List, Sequence, Tuple
+from typing import Callable, Iterable, List, Optional, Sequence, Tuple
 
 Point = Tuple[float, float]
+
+#: A (min_x, min_y, max_x, max_y) box, in whichever space its points are in --
+#: the same dual life `Point` leads, and `osmread` explains.
+#:
+#: In degrees that reads west, south, east, north. In world pixels min_y is
+#: *north*, because the y axis points down. Nothing here converts between the
+#: two; `pack.clamp_bbox` is the one place that does, and swapping the two y
+#: components is exactly what it has to remember to do.
+BBox = Tuple[float, float, float, float]
 
 TILE_SIZE = 256
 MAX_LAT = 85.05112878
@@ -96,7 +105,7 @@ def polyline_length(points: Sequence[Point]) -> float:
     return total
 
 
-def bbox(points: Iterable[Point]) -> Tuple[float, float, float, float]:
+def bbox(points: Iterable[Point]) -> BBox:
     xs = [p[0] for p in points]
     ys = [p[1] for p in points]
     return min(xs), min(ys), max(xs), max(ys)
@@ -149,7 +158,8 @@ def clip_polyline(
     return out
 
 
-def _clip_segment(p0: Point, p1: Point, xmin: float, ymin: float, xmax: float, ymax: float):
+def _clip_segment(p0: Point, p1: Point, xmin: float, ymin: float,
+                  xmax: float, ymax: float) -> Optional[Tuple[Point, Point]]:
     x0, y0 = p0
     x1, y1 = p1
     code0 = _outcode(x0, y0, xmin, ymin, xmax, ymax)
@@ -185,7 +195,8 @@ def clip_polygon(
     points: Sequence[Point], xmin: float, ymin: float, xmax: float, ymax: float
 ) -> List[Point]:
     """Sutherland-Hodgman against an axis-aligned rectangle."""
-    def clip_edge(poly: List[Point], inside, intersect) -> List[Point]:
+    def clip_edge(poly: List[Point], inside: Callable[[Point], bool],
+                  intersect: Callable[[Point, Point], Point]) -> List[Point]:
         if not poly:
             return []
         result: List[Point] = []

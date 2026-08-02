@@ -54,7 +54,6 @@ class MapView extends WatchUi.View {
         _diagShown = null;
     }
 
-    function camera() { return _camera; }
     function invalidate() { _dirty = true; }
     function toggleDebug() { _showDebug = !_showDebug; WatchUi.requestUpdate(); }
 
@@ -154,13 +153,10 @@ class MapView extends WatchUi.View {
             // Keep leaving crumbs for as long as a downloaded map is on
             // screen, and stop only once we are back on the built-in one.
             //
-            // This used to disarm after any successful frame, which quietly
-            // broke the whole diagnostic in 0.3.8: throttled loading means the
-            // first frame now *does* succeed, so tracing switched off after it
-            // and every later kill left nothing behind. The watchdog does not
-            // only fire on the first frame. It fires whenever a frame runs
-            // long, which is just as easily the third one, mid-pan, as the
-            // map fills in.
+            // Not "after the first successful frame": throttled loading means
+            // the first frame *does* succeed, and the watchdog fires whenever a
+            // frame runs long, which is just as easily the third one, mid-pan,
+            // as the map fills in. Disarming early leaves that kill no crumb.
             //
             // The cost is one storage write per block actually decoded, and
             // blocks are only decoded on a cache miss. `onStop` clears the
@@ -173,8 +169,7 @@ class MapView extends WatchUi.View {
             // repeats every frame.
             Pack.use(null);
             _store.clear();
-            _camera.zoom = Camera.defaultZoom();
-            _camera.jumpToPackCentre();
+            _camera.resetToPack();
             _dirty = true;
             try {
                 drawEverything(dc);
@@ -196,7 +191,6 @@ class MapView extends WatchUi.View {
         }
 
         var colours = Palette.colours(_camera.night);
-        var background = colours[Palette.SLOT_BACKGROUND];
 
         if (_useBuffer) {
             var bitmap = bufferBitmap();
@@ -206,20 +200,17 @@ class MapView extends WatchUi.View {
                         var started = System.getTimer();
                         _renderer.render(bitmap.getDc(), _camera, _store);
                         _renderMs = System.getTimer() - started;
-                        // Stay dirty while the store is still feeding blocks in
-                        // a few at a time, so the map finishes over the next
-                        // frames instead of in one that the watchdog kills.
-                        // Only come back for more if the store still has
-                        // blocks to hand over. A render that ran out of time
-                        // would otherwise ask to be run again immediately, and
-                        // redraw exactly the same thing, so the app would spin
-                        // at full tilt without ever finishing a map, which is
-                        // its own way of upsetting the watchdog.
+                        // Come back for another pass only while the store still
+                        // has blocks to hand over, so the map finishes over the
+                        // next few frames instead of in one the watchdog kills.
+                        // Not when the render merely ran out of time: that asks
+                        // to be run again immediately and redraws exactly the
+                        // same thing, so the app spins at full tilt without
+                        // ever finishing a map.
                         _dirty = _store.throttled() && !_renderer.timedOut();
                         if (_dirty) { WatchUi.requestUpdate(); }
                     }
-                    dc.setColor(background, background);
-                    dc.clear();
+                    Ui.clear(dc, colours);
                     dc.drawBitmap(_dragX, _dragY, bitmap);
                 } catch (ex) {
                     // Deliberately wide -- the blit is as likely to run out of
@@ -319,21 +310,17 @@ class MapView extends WatchUi.View {
 
     // ---- overlay --------------------------------------------------------
 
-    //! The overlay helpers all index `colours`, so `colours` is annotated the
-    //! whole way down from `Palette.colours()`. A parameter defaults to
-    //! `Object?`, which the checker cannot index, and an unannotated hop
-    //! anywhere in the chain puts the warning back.
-    //! The last recorded failure, drawn small at the bottom.
+    //! The last recorded failure, wrapped onto a panel at the bottom.
     //!
     //! Without this a caught exception is invisible: the map silently reverts
     //! to the built-in one and nobody can say why. Shown until the app is
     //! restarted, because a fault worth catching is worth reporting.
-    //! The failure, wrapped, on a panel, over however many lines it takes.
     //!
-    //! One `FONT_XTINY` line used to hold this, which clipped away the part
-    //! that names the fault -- and the whole reason it is on screen is so it
-    //! can be read off the watch and repeated back. A message reaching here has
-    //! already cost the user a failed download; the map can spare four lines.
+    //! Wrapped over four lines rather than held on one `FONT_XTINY` line, which
+    //! clips away the part that names the fault -- and being read off the watch
+    //! and repeated back is the whole reason it is on screen. A message
+    //! reaching here has already cost the user a failed download; the map can
+    //! spare the space.
     hidden function drawDiagnostic(dc, colours as Array<Number>) {
         var text = Diag.message();
         if (text == null) { return; }
@@ -370,8 +357,11 @@ class MapView extends WatchUi.View {
     //! By character rather than by word on purpose: these messages are mostly
     //! unspaced ("render.block 14/4400/2686", "UnexpectedTypeError"), and a
     //! word wrapper would leave most of each line empty.
+    //!
+    //! Typed return because `drawDiagnostic` indexes the result; the literal
+    //! below needs no cast of its own, the declared type carries it.
     hidden function wrapText(dc, text, font, maxWidth) as Array<String> {
-        var lines = [] as Array<String>;
+        var lines = [];
         var start = 0;
         while (start < text.length() && lines.size() < 4) {
             var end = text.length();
@@ -385,6 +375,10 @@ class MapView extends WatchUi.View {
         return lines;
     }
 
+    //! The overlay helpers all index `colours`, so it is annotated the whole
+    //! way down from `Palette.colours()`. A parameter defaults to `Object?`,
+    //! which the checker cannot index, and an unannotated hop anywhere in the
+    //! chain puts the warning back.
     hidden function drawOverlay(dc, colours as Array<Number>) {
         drawDiagnostic(dc, colours);
         if (Onboarding.shouldShow()) {
@@ -565,10 +559,9 @@ class MapView extends WatchUi.View {
 
     //! Two lines: where you are, and whether the render is keeping up.
     //!
-    //! It used to be four lines at a fixed 18 px pitch, which collided on a
-    //! 454 px screen and was unreadable. Spacing is now a fraction of the
-    //! screen so it scales with the device, and the tile/cache counters are
-    //! gone: they were useful while tuning the packer, not while wearing it.
+    //! Pitch is a fraction of the screen rather than a fixed 18 px, which
+    //! collides on a 454 px face. Two lines and not more: tile and cache
+    //! counters are for tuning the packer, not for wearing.
     hidden function drawDebug(dc, colours as Array<Number>) {
         dc.setColor(colours[Palette.SLOT_DIM], Graphics.COLOR_TRANSPARENT);
         var lines = [

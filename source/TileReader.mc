@@ -141,18 +141,6 @@ class TileReader {
         return true;
     }
 
-    static function blockZoom(block as ByteArray) {
-        return block[2];
-    }
-
-    static function blockLog2(block as ByteArray) {
-        return block[3];
-    }
-
-    static function tileCount(block as ByteArray) {
-        return block[8];
-    }
-
     //! Byte offset of one tile's payload inside the block, or -1 when the
     //! packer wrote nothing for that tile (open water, say).
     static function tileOffset(block as ByteArray, localX, localY) {

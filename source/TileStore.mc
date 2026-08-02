@@ -21,8 +21,7 @@ class TileStore {
     //! Sized for a compiled-in block, which is the big case. A downloaded one
     //! is capped near 6 KB by the 8 KB Storage value limit, so it is covered
     //! several times over. Measured against Berlin: 12 blocks and 46 KB fill a
-    //! screen at its lowest zoom, inside the 54 KB this leaves usable, so the
-    //! cache is not what was overrunning the frame. The load count was.
+    //! screen at its lowest zoom, inside the 54 KB this leaves usable.
     const RESERVE_BYTES = 36000;
 
     //! New blocks decoded in a single render.
@@ -34,7 +33,7 @@ class TileStore {
     //! tells the view to come straight back for another pass. The map arrives
     //! over several frames instead of not arriving at all.
     //!
-    //! One, not three, because this is the longest thing in a frame that cannot
+    //! One at a time, because this is the longest thing in a frame that cannot
     //! be interrupted. Every other budget in the renderer is checked between
     //! points or between tiles, but a Storage read and a base64 decode run to
     //! completion once started, so however far over the clock they take us is
@@ -53,12 +52,11 @@ class TileStore {
     hidden var _used as Array<Number>;
     hidden var _tick;
     hidden var _bytes;
-    hidden var _budget;
     //! Loads left in this render, and whether we ran out.
     hidden var _loadsLeft;
     hidden var _throttled;
 
-    function initialize(budget) {
+    function initialize() {
         _zoom = [];
         _blockX = [];
         _blockY = [];
@@ -66,7 +64,6 @@ class TileStore {
         _used = [];
         _tick = 0;
         _bytes = 0;
-        _budget = budget == null ? DEFAULT_BUDGET : budget;
         _loadsLeft = LOADS_PER_RENDER;
         _throttled = false;
     }
@@ -82,7 +79,6 @@ class TileStore {
     function throttled() {
         return _throttled;
     }
-
 
     //! Decoded block for these coordinates, or null when nothing is packed
     //! there (or when it would not fit in memory).
@@ -174,7 +170,7 @@ class TileStore {
     }
 
     hidden function evictFor(incoming) {
-        while (_data.size() > 0 && _bytes + incoming > _budget) {
+        while (_data.size() > 0 && _bytes + incoming > DEFAULT_BUDGET) {
             var oldest = 0;
             for (var i = 1; i < _used.size(); i += 1) {
                 if (_used[i] < _used[oldest]) { oldest = i; }
@@ -190,6 +186,10 @@ class TileStore {
 
     //! Array.remove() deletes by value, which is wrong when two blocks share a
     //! zoom or index, so rebuild by position instead.
+    //!
+    //! `list` is annotated because it is indexed below; bare `Array` rather
+    //! than a parameterised one because the five callers pass three element
+    //! types between them.
     hidden function removeAt(list as Array, index) as Array {
         var out = new [list.size() - 1];
         var at = 0;

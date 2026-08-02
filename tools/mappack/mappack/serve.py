@@ -24,13 +24,11 @@ import argparse
 import io
 import json
 import math
-import os
-import re
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
 from . import geom
-from .preview import MapIndexFile, render
+from .preview import MapIndexFile, add_pack_arguments, render
 
 PAGE = """<!doctype html>
 <meta charset="utf-8">
@@ -279,7 +277,7 @@ class _Handler(BaseHTTPRequestHandler):
         index = MapIndexFile(self.paths["index"])
         stats = dict(stats)
         stats["data_zoom"] = index.data_zoom_for(zoom)
-        stats["in_pack"] = _inside_pack(index, lat, lon)
+        stats["in_pack"] = index.contains(lat, lon)
 
         buffer = io.BytesIO()
         image.save(buffer, "PNG")
@@ -304,30 +302,11 @@ class _Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
 
-def _inside_pack(index, lat, lon):
-    """Mirror of Camera.insidePack, read off the generated index."""
-    def const(name):
-        match = re.search(r"\b%s = (-?[\d.]+)d" % name, index.source)
-        return float(match.group(1)) if match else None
-
-    west, east = const("WEST"), const("EAST")
-    south, north = const("SOUTH"), const("NORTH")
-    if None in (west, east, south, north):
-        return True
-    return west <= lon <= east and south <= lat <= north
-
-
 def main(argv=None) -> int:
-    here = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    root = os.path.dirname(here)
-
     parser = argparse.ArgumentParser(
         prog="mappack.serve",
         description="Drive the map interactively in a browser.")
-    parser.add_argument("--pack", default=os.path.join(root, "mapdata", "active"))
-    parser.add_argument("--index", default=os.path.join(root, "source", "generated", "MapIndex.mc"))
-    parser.add_argument("--palette", default=os.path.join(root, "source", "Palette.mc"))
-    parser.add_argument("--size", type=int, default=454, help="454 = Venu 3, 390 = Venu 3S")
+    add_pack_arguments(parser)
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--host", default="127.0.0.1")
     args = parser.parse_args(argv)

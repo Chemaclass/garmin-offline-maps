@@ -40,12 +40,12 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Sequence, Tuple
+from typing import Dict, List, Sequence, Tuple
 
 from . import geom
 from .classify import GEOM_POLYGON, L_BUILDING, Klass, classify
 from .decode import decode_tile
-from .varint import encode_points, write_u16, write_uvarint
+from .varint import encode_points, write_u16
 
 FORMAT_VERSION = 1
 MAGIC = 0x4D
@@ -78,7 +78,7 @@ DIRECTORY_ENTRY_BYTES = 4
 class Feature:
     klass: Klass
     #: world-pixel coordinates at ``ref_zoom``
-    coords: List[Tuple[float, float]]
+    coords: List[geom.Point]
     length: float
 
 
@@ -110,8 +110,8 @@ class PackOptions:
 class PackResult:
     blocks: Dict[Tuple[int, int, int], bytes]  # (zoom, block_x, block_y) -> bytes
     block_log2: Dict[int, int]                 # zoom -> block_log2
-    bounds: Tuple[float, float, float, float]  # min_lon, min_lat, max_lon, max_lat
-    center: Tuple[float, float]
+    bounds: geom.BBox                          # min_lon, min_lat, max_lon, max_lat
+    center: geom.Point
     tile_counts: Dict[int, int]
     dropped_points: int
     total_points: int
@@ -143,7 +143,7 @@ def build_features(ways, options: PackOptions, ref_zoom: int) -> List[Feature]:
     return features
 
 
-def clamp_bbox(features: Sequence[Feature], ref_zoom: int):
+def clamp_bbox(features: Sequence[Feature], ref_zoom: int) -> geom.BBox:
     if not features:
         raise SystemExit("No renderable features found -- check your bbox or input file.")
     min_x = min(min(p[0] for p in f.coords) for f in features)
@@ -178,7 +178,6 @@ def _to_local(points, tile_x: int, tile_y: int) -> List[Tuple[int, int]]:
 
 def build_tiles(
     features: Sequence[Feature], zoom: int, ref_zoom: int, options: PackOptions,
-    bounds_tiles: Optional[Tuple[int, int, int, int]] = None,
 ) -> Tuple[Dict[Tuple[int, int], List[TileFeature]], int, int]:
     """Return ({(tile_x, tile_y): [TileFeature]}, kept_points, dropped_points)."""
     scale = 1.0 / (1 << (ref_zoom - zoom))
@@ -207,10 +206,6 @@ def build_tiles(
         tx1 = int(math.floor((max_x + buffer_px) / geom.TILE_SIZE))
         ty0 = int(math.floor((min_y - buffer_px) / geom.TILE_SIZE))
         ty1 = int(math.floor((max_y + buffer_px) / geom.TILE_SIZE))
-        if bounds_tiles is not None:
-            bx0, by0, bx1, by1 = bounds_tiles
-            tx0, tx1 = max(tx0, bx0), min(tx1, bx1)
-            ty0, ty1 = max(ty0, by0), min(ty1, by1)
 
         for tile_x in range(tx0, tx1 + 1):
             x_lo = tile_x * geom.TILE_SIZE - buffer_px

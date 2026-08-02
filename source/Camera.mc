@@ -20,9 +20,7 @@ class Camera {
     var night;
 
     function initialize() {
-        lat = Pack.centerLat();
-        lon = Pack.centerLon();
-        zoom = defaultZoom();
+        resetToPack();
         headingUp = false;
         heading = 0.0;
         follow = true;
@@ -108,10 +106,21 @@ class Camera {
             && someLat >= Pack.south() && someLat <= Pack.north();
     }
 
-
     function jumpToPackCentre() {
         lat = Pack.centerLat();
         lon = Pack.centerLon();
+    }
+
+    //! Where a camera starts on a pack: its centre, at the default zoom.
+    //!
+    //! Every path that swaps the map underneath us wants exactly this, and so
+    //! does a fresh `Camera`. Left pointing at the old pack the map draws
+    //! blank, and left at the old pack's zoom it can be outside the new one's
+    //! range entirely -- which is why the two moves belong together rather
+    //! than being written out at each call site.
+    function resetToPack() {
+        jumpToPackCentre();
+        zoom = defaultZoom();
     }
 
     function metresPerPixel() {

@@ -6,7 +6,7 @@ so water goes down first and motorways go down last.
 
 from __future__ import annotations
 
-from typing import Dict, NamedTuple, Optional
+from typing import Dict, Iterable, NamedTuple, Optional
 
 # --- layer ids (keep in sync with source/Palette.mc) -----------------------
 L_WATER_AREA = 0
@@ -138,7 +138,7 @@ def classify(tags: Dict[str, str], include_buildings: bool = False) -> Optional[
 _RELATION_LEISURE = {"park", "garden", "nature_reserve"}
 
 
-def _any_of(values) -> str:
+def _any_of(values: Iterable[str]) -> str:
     """An Overpass value regex matching exactly `values`, in a stable order."""
     return "^(%s)$" % "|".join(sorted(values))
 

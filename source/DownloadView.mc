@@ -36,31 +36,23 @@ class DownloadView extends WatchUi.View {
 
     function onUpdate(dc) {
         var colours = Palette.colours(true);
-        var background = colours[Palette.SLOT_BACKGROUND];
-        dc.setColor(background, background);
-        dc.clear();
+        Ui.clear(dc, colours);
 
         var width = dc.getWidth();
         var height = dc.getHeight();
 
-        dc.setColor(colours[Palette.SLOT_TEXT], Graphics.COLOR_TRANSPARENT);
-        dc.drawText(width / 2, (height * 0.30).toNumber(), Graphics.FONT_SMALL,
-                    WatchUi.loadResource(_failed ? Rez.Strings.DownloadFailed
-                                                 : Rez.Strings.Downloading) as String,
-                    Graphics.TEXT_JUSTIFY_CENTER);
-
-        dc.setColor(colours[Palette.SLOT_ACCENT], Graphics.COLOR_TRANSPARENT);
-        dc.drawText(width / 2, (height * 0.42).toNumber(), Graphics.FONT_MEDIUM,
-                    _city, Graphics.TEXT_JUSTIFY_CENTER);
+        Ui.resourceLine(dc, colours[Palette.SLOT_TEXT], width, height, 0.30,
+                        Graphics.FONT_SMALL,
+                        _failed ? Rez.Strings.DownloadFailed : Rez.Strings.Downloading);
+        Ui.textLine(dc, colours[Palette.SLOT_ACCENT], width, height, 0.42,
+                    Graphics.FONT_MEDIUM, _city);
 
         if (!_failed) {
             drawBar(dc, colours, width, height);
         }
 
-        dc.setColor(colours[Palette.SLOT_DIM], Graphics.COLOR_TRANSPARENT);
-        dc.drawText(width / 2, (height * 0.70).toNumber(), Graphics.FONT_XTINY,
-                    WatchUi.loadResource(Rez.Strings.DownloadKeepPhone) as String,
-                    Graphics.TEXT_JUSTIFY_CENTER);
+        Ui.resourceLine(dc, colours[Palette.SLOT_DIM], width, height, 0.70,
+                        Graphics.FONT_XTINY, Rez.Strings.DownloadKeepPhone);
     }
 
     hidden function drawBar(dc, colours as Array<Number>, width, height) {

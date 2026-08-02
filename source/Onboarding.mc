@@ -2,7 +2,6 @@ import Toybox.Application;
 import Toybox.Graphics;
 import Toybox.Lang;
 import Toybox.System;
-import Toybox.WatchUi;
 
 //! The first-run card explaining that the built-in map is a demo.
 //!
@@ -59,10 +58,13 @@ module Onboarding {
         }
     }
 
-    //! Every offset is a fraction of the screen, because the products in
-    //! manifest.xml differ in both size and shape; see docs/DEVICES.md. The row
-    //! pitch is 0.09 of the height, which clears a FONT_XTINY line box (about
-    //! 1.2 times the em, and the em is around 8% of the height) on all of them.
+    //! The row pitch is 0.09 of the height, which clears a FONT_XTINY line box
+    //! (about 1.2 times the em, and the em is around 8% of the height) on every
+    //! product in manifest.xml. `Ui.resourceLine` is why the offsets are
+    //! fractions at all; see docs/DEVICES.md.
+    //!
+    //! Lines are separate resources instead of one wrapped string because
+    //! `drawText` does not wrap: the break points are part of the copy.
     //!
     //! `colours` is annotated for the reason given in `MapView.drawOverlay`: an
     //! unannotated hop makes it `Object?`, which the checker cannot index.
@@ -84,32 +86,20 @@ module Onboarding {
         var ink = colours[Palette.SLOT_TEXT];
         var dim = colours[Palette.SLOT_DIM];
 
-        textLine(dc, colours[Palette.SLOT_ACCENT], width, height, 0.155,
-                 Graphics.FONT_SMALL, Rez.Strings.TipTitle);
-        textLine(dc, ink, width, height, 0.290, Graphics.FONT_XTINY,
-                 Rez.Strings.TipCity);
-        textLine(dc, ink, width, height, 0.380, Graphics.FONT_XTINY,
-                 Rez.Strings.TipHold1);
-        textLine(dc, ink, width, height, 0.470, Graphics.FONT_XTINY,
-                 Rez.Strings.TipHold2);
+        Ui.resourceLine(dc, colours[Palette.SLOT_ACCENT], width, height, 0.155,
+                        Graphics.FONT_SMALL, Rez.Strings.TipTitle);
+        Ui.resourceLine(dc, ink, width, height, 0.290, Graphics.FONT_XTINY,
+                        Rez.Strings.TipCity);
+        Ui.resourceLine(dc, ink, width, height, 0.380, Graphics.FONT_XTINY,
+                        Rez.Strings.TipHold1);
+        Ui.resourceLine(dc, ink, width, height, 0.470, Graphics.FONT_XTINY,
+                        Rez.Strings.TipHold2);
         // Dim from here down: the phone route is the fallback, not the ask.
-        textLine(dc, dim, width, height, 0.575, Graphics.FONT_XTINY,
-                 Rez.Strings.TipConnect1);
-        textLine(dc, dim, width, height, 0.665, Graphics.FONT_XTINY,
-                 Rez.Strings.TipConnect2);
-        textLine(dc, dim, width, height, 0.770, Graphics.FONT_XTINY,
-                 Rez.Strings.TipDismiss);
-    }
-
-    //! One centred line. Takes a colour rather than a palette slot so that
-    //! every `colours[...]` subscript stays in the one annotated caller above.
-    //!
-    //! Lines are separate resources instead of one wrapped string because
-    //! `drawText` does not wrap: the break points are part of the copy.
-    function textLine(dc, colour, width, height, fraction, font, resource) {
-        dc.setColor(colour, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(width / 2, (height * fraction).toNumber(), font,
-                    WatchUi.loadResource(resource) as String,
-                    Graphics.TEXT_JUSTIFY_CENTER);
+        Ui.resourceLine(dc, dim, width, height, 0.575, Graphics.FONT_XTINY,
+                        Rez.Strings.TipConnect1);
+        Ui.resourceLine(dc, dim, width, height, 0.665, Graphics.FONT_XTINY,
+                        Rez.Strings.TipConnect2);
+        Ui.resourceLine(dc, dim, width, height, 0.770, Graphics.FONT_XTINY,
+                        Rez.Strings.TipDismiss);
     }
 }

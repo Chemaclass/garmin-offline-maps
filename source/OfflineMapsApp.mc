@@ -53,11 +53,9 @@ class OfflineMapsApp extends Application.AppBase {
         // back into whatever killed it: leave the downloaded city alone and
         // start on the built-in map.
         //
-        // Without this the diagnostic cannot work at all. The step that dies is
-        // reached from `onStart`, so every launch died in the same place, and
-        // the message describing it never survived to be drawn. That is exactly
-        // what 0.3.6 did: it recorded the cause correctly and then crashed
-        // again before it could ever be read.
+        // Without this the diagnostic cannot work at all: the step that dies is
+        // reached from `onStart`, so every launch dies in the same place and
+        // the message naming the cause never survives to be drawn.
         //
         // The city stays in storage. It is not deleted, because the user paid
         // for that download and may want to retry it from the menu; it is only
@@ -95,7 +93,7 @@ class OfflineMapsApp extends Application.AppBase {
         Diag.trace("startup.camera");
         _camera = new Camera();
         Settings.load(_camera);
-        _store = new TileStore(null);
+        _store = new TileStore();
         _tracker = new LocationTracker(method(:onFix));
     }
 
@@ -106,7 +104,11 @@ class OfflineMapsApp extends Application.AppBase {
         _timer = new Timer.Timer();
         _timer.start(method(:onTick), HEADING_POLL_MS, true);
 
-        return [_view, new MapDelegate(_view, _camera, _tracker)];
+        // `pickCity` goes down with the delegate, the same way `onFix` goes to
+        // the tracker and `onCityChosen` to the picker. Handed down rather than
+        // reached up for: `MapMenuDelegate.onSelect` names the cycle this
+        // avoids, and is where the temptation to close it lives.
+        return [_view, new MapDelegate(_view, _camera, _tracker, method(:pickCity))];
     }
 
     // ---- choosing a city -------------------------------------------------
@@ -192,10 +194,19 @@ class OfflineMapsApp extends Application.AppBase {
             // phone/watch mismatch is not worth the space a real failure needs.
             System.println("could not write cityId: " + ex.getErrorMessage());
         }
-        if (CityStore.isComplete(slug)) {
-            Pack.use(CityStore.meta());
-            refreshAfterPackChange();
-            return;
+        // Guarded because this is a callback. Nothing above a picker callback
+        // catches anything, so a throw here ends the app rather than the
+        // action: black screen, Connect IQ error icon, from choosing a city.
+        // Adopting the city is the risky half; falling through to download it
+        // again is always survivable.
+        try {
+            if (CityStore.isComplete(slug)) {
+                Pack.use(CityStore.meta());
+                refreshAfterPackChange();
+                return;
+            }
+        } catch (ex) {
+            Diag.record("city", ex);
         }
         startDownload(slug);
     }
@@ -209,7 +220,7 @@ class OfflineMapsApp extends Application.AppBase {
     hidden function baseUrl() {
         try {
             var url = Application.Properties.getValue("packBaseUrl");
-            if (url instanceof Lang.String && (url as String).length() > 0) {
+            if (url instanceof Lang.String && url.length() > 0) {
                 return url;
             }
         } catch (ex) {
@@ -335,21 +346,16 @@ class OfflineMapsApp extends Application.AppBase {
             System.println("could not clear cityId: " + ex.getErrorMessage());
         }
         Pack.use(null);
-        if (_store != null) { _store.clear(); }
-        if (_camera != null) {
-            _camera.zoom = Camera.defaultZoom();
-            _camera.jumpToPackCentre();
-        }
-        if (_view != null) { _view.invalidate(); }
+        // Reverting *is* a pack change, so it takes the same path. It used to
+        // repeat those four steps here minus the `requestUpdate`, which meant
+        // the map only caught up on the next tick.
+        refreshAfterPackChange();
     }
 
     //! The map underneath changed, so nothing cached still applies.
     hidden function refreshAfterPackChange() {
         if (_store != null) { _store.clear(); }
-        if (_camera != null) {
-            _camera.zoom = Camera.defaultZoom();
-            _camera.jumpToPackCentre();
-        }
+        if (_camera != null) { _camera.resetToPack(); }
         if (_view != null) {
             _view.invalidate();
             WatchUi.requestUpdate();

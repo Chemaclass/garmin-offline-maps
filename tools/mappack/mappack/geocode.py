@@ -35,8 +35,9 @@ from __future__ import annotations
 
 import json
 import math
-from typing import List, NamedTuple, Optional, Tuple
+from typing import List, NamedTuple, Optional
 
+from .geom import BBox
 from .osmread import USER_AGENT
 
 DEFAULT_NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
@@ -54,8 +55,8 @@ class Place(NamedTuple):
     name: str
     lat: float
     lon: float
-    #: The place's own boundary, west,south,east,north. Reported, not packed.
-    bounds: Tuple[float, float, float, float]
+    #: The place's own boundary. Reported, not packed.
+    bounds: BBox
     kind: str
 
     def describe(self) -> str:
@@ -74,7 +75,7 @@ def span_km(low: float, high: float, at_lat: Optional[float]) -> float:
     return degrees * _KM_PER_DEGREE_LAT * math.cos(math.radians(at_lat))
 
 
-def bbox_around(lat: float, lon: float, radius_km: float) -> Tuple[float, float, float, float]:
+def bbox_around(lat: float, lon: float, radius_km: float) -> BBox:
     """A west,south,east,north box of `radius_km` either side of a point."""
     if radius_km <= 0:
         raise ValueError("radius must be positive")

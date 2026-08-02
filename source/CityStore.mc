@@ -27,7 +27,7 @@ module CityStore {
     //! is the obvious thing to do, so it must not be the thing that fails.
     function normalize(text) {
         if (text == null || !(text instanceof Lang.String)) { return null; }
-        var raw = (text as String).toLower();
+        var raw = text.toLower();
         var out = "";
         var lastWasDash = true;         // also trims a leading separator
         for (var i = 0; i < raw.length(); i += 1) {
@@ -50,21 +50,22 @@ module CityStore {
     }
 
     //! Slug of the stored city, or null when none has been downloaded.
+    //!
+    //! Unguarded, unlike the writes below, and the asymmetry is the API's not
+    //! ours: `Storage.getValue` throws only on a key that is not a String and
+    //! only from a background process, and this app has neither. A key that is
+    //! simply absent comes back as null. So a `catch` here could return nothing
+    //! the ordinary path does not already return, which is a guard that hides
+    //! rather than recovers. The failure that is real -- too little heap to
+    //! deserialise a stored value -- is a `Lang.Error` no `catch` receives.
     function slug() {
-        try {
-            return Application.Storage.getValue(KEY_SLUG);
-        } catch (ex) {
-            return null;
-        }
+        return Application.Storage.getValue(KEY_SLUG);
     }
 
-    //! Stored metadata, or null. Shape is `<slug>/meta.json`.
+    //! Stored metadata, or null. Shape is `<slug>/meta.json`. Unguarded for the
+    //! reason given on `slug`.
     function meta() as Dictionary? {
-        try {
-            return Application.Storage.getValue(KEY_META);
-        } catch (ex) {
-            return null;
-        }
+        return Application.Storage.getValue(KEY_META);
     }
 
     //! True when this city is stored complete and ready to draw.
@@ -93,12 +94,11 @@ module CityStore {
         return KEY_BLOCK + Num.integer(key, -1).toString();
     }
 
+    //! Unguarded for the reason given on `slug`, and doubly so here: the one
+    //! caller is `TileStore.block`, which already wraps this in a try that
+    //! names the block it lost. A `catch` returning a bare null took that away.
     function blockBase64(key) {
-        try {
-            return Application.Storage.getValue(keyName(key));
-        } catch (ex) {
-            return null;
-        }
+        return Application.Storage.getValue(keyName(key));
     }
 
     //! Write one block. Returns false when Storage refused it, which is how a

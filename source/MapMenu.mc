@@ -36,11 +36,13 @@ class MapMenuDelegate extends WatchUi.Menu2InputDelegate {
 
     hidden var _view;
     hidden var _camera;
+    hidden var _onPickCity;
 
-    function initialize(view, camera) {
+    function initialize(view, camera, onPickCity) {
         Menu2InputDelegate.initialize();
         _view = view;
         _camera = camera;
+        _onPickCity = onPickCity;
     }
 
     function onSelect(item) {
@@ -58,8 +60,12 @@ class MapMenuDelegate extends WatchUi.Menu2InputDelegate {
             _view.invalidate();
         } else if (id == :city) {
             WatchUi.popView(WatchUi.SLIDE_DOWN);
-            // The app owns the downloader and the pack, so it drives this.
-            (Application.getApp() as OfflineMapsApp).pickCity();
+            // The app owns the downloader and the pack, so it drives this, but
+            // the entry point is handed down rather than reached up for.
+            // `Application.getApp() as OfflineMapsApp` here would name the app
+            // from a menu the app's own delegate opened, closing the cycle
+            // OfflineMapsApp -> MapDelegate -> MapMenuDelegate -> OfflineMapsApp.
+            if (_onPickCity != null) { _onPickCity.invoke(); }
             return;
         } else if (id == :stats) {
             _view.toggleDebug();

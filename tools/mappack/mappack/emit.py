@@ -6,7 +6,7 @@ import base64
 import json
 import os
 import shutil
-from typing import Dict, List, NamedTuple, Tuple
+from typing import Dict, List, NamedTuple, Sequence, Tuple
 
 from .pack import EXTENT, FORMAT_VERSION, CLIP_BUFFER, PackOptions, PackResult
 
@@ -25,6 +25,21 @@ KEY_MAX = (1 << KEY_SHIFT) - 1
 
 def resource_id(zoom: int, block_x: int, block_y: int) -> str:
     return "b%d_%d_%d" % (zoom, block_x, block_y)
+
+
+def write_lines(path: str, lines: Sequence[str]) -> str:
+    """Write a generated text file, creating the directory it goes in.
+
+    Every generated artefact in this package -- the resource XML, the index,
+    the settings, the properties, `CityList` -- is a list of lines destined for
+    a path whose directory may not exist yet. `citypack` writes three of them
+    and this module two, so the incantation lives here rather than at each of
+    the five call sites.
+    """
+    os.makedirs(os.path.dirname(os.path.abspath(path)) or ".", exist_ok=True)
+    with open(path, "w", encoding="utf-8") as fh:
+        fh.write("\n".join(lines))
+    return path
 
 
 class BlockEntry(NamedTuple):
@@ -119,8 +134,7 @@ def _write_resource_xml(out_dir: str, entries: List[BlockEntry]) -> None:
         )
     lines.append('</resources>')
     lines.append('')
-    with open(os.path.join(out_dir, "mapdata.xml"), "w", encoding="utf-8") as fh:
-        fh.write("\n".join(lines))
+    write_lines(os.path.join(out_dir, "mapdata.xml"), lines)
 
 
 def _write_index(path: str, result: PackResult, options: PackOptions,
@@ -216,6 +230,4 @@ def _write_index(path: str, result: PackResult, options: PackOptions,
     out.append("}")
     out.append("")
 
-    os.makedirs(os.path.dirname(os.path.abspath(path)) or ".", exist_ok=True)
-    with open(path, "w", encoding="utf-8") as fh:
-        fh.write("\n".join(out))
+    write_lines(path, out)

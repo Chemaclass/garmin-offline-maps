@@ -1,7 +1,7 @@
 """Varint / zigzag primitives shared by the packer and the reference decoder.
 
 The on-watch decoder in ``source/TileReader.mc`` implements exactly these rules.
-Keep the two in sync -- ``tests/test_roundtrip.py`` proves they agree.
+Keep the two in sync -- ``tests/contract/test_tile_format.py`` proves they agree.
 """
 
 from __future__ import annotations

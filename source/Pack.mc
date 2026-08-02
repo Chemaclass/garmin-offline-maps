@@ -47,7 +47,7 @@ module Pack {
     var _blockCount = 0;
     //! The keys this pack actually holds. Kept, not just counted: see
     //! `hasBlock`.
-    var _blocks = [] as Array<Number>;
+    var _blocks as Array<Number> = [];
     var _dataBytes = 0;
     var _west = 0.0d;
     var _south = 0.0d;
@@ -208,34 +208,24 @@ module Pack {
 
     //! Is anything packed here? Cheap, and separate from `blockBase64` so the
     //! tile cache can make room *before* paying for the load rather than after.
-    //! Is anything packed here?
     //!
-    //! Membership in the pack's own list, not just a key in range, and the
-    //! difference is the bug that killed every downloaded city.
-    //!
-    //! `blockKey` only checks that the block falls inside the `keyShift` grid,
-    //! which is 1024x1024 keys. Berlin holds 20. So this answered "yes" for a
-    //! million blocks that do not exist, and each phantom cost `TileStore` a
-    //! load slot from its per-frame budget before `blockBase64` returned null.
-    //! With the budget spent on nothing, the store reported itself throttled,
-    //! `MapView` stayed dirty and asked to be drawn again, and the next frame
-    //! did exactly the same. The app spun without ever yielding, which is what
-    //! the watchdog kills: "Code Executed Too Long", every frame quick, the
-    //! loop endless. Only downloaded packs were affected; the built-in path
-    //! asks `MapIndex` for a resource and gets a truthful null.
+    //! Membership in the pack's own list, not merely a key in range. `blockKey`
+    //! only checks that the block falls inside the `keyShift` grid, which is
+    //! 1024x1024 keys; Berlin holds 20. Answer "yes" for the million that do
+    //! not exist and each phantom costs `TileStore` a load slot from its
+    //! per-frame budget before `blockBase64` returns null; with the budget
+    //! spent on nothing the store reports itself throttled, `MapView` stays
+    //! dirty and asks to be drawn again, and the next frame does the same. The
+    //! app spins without ever yielding, which is what the watchdog kills:
+    //! "Code Executed Too Long", every frame quick, the loop endless.
     function hasBlock(z, blockX, blockY) {
         if (!_downloaded) {
             return MapIndex.blockResource(z, blockX, blockY) != null;
         }
         var key = blockKey(z, blockX, blockY);
         if (key < 0) { return false; }
-        // Annotated on the local: a `module` variable does not carry its
-        // declared type to the subscript below, so the cast has to sit on the
-        // hop that indexes it. Same rule as the other container roots in
-        // docs/DEVELOPMENT.md.
-        var blocks = _blocks as Array<Number>;
-        for (var i = 0; i < blocks.size(); i += 1) {
-            if (blocks[i] == key) { return true; }
+        for (var i = 0; i < _blocks.size(); i += 1) {
+            if (_blocks[i] == key) { return true; }
         }
         return false;
     }

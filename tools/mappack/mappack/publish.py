@@ -23,11 +23,11 @@ import urllib.error
 from typing import List, Optional
 
 from . import citypack, geocode, osmread
+from .citypack import CatalogueEntry
 from .osmread import Way
 from .pack import pack
 
 DEFAULT_BASE_URL = "https://chemaclass.github.io/garmin-offline-maps/packs"
-DEFAULT_ATTRIBUTION = "(c) OpenStreetMap contributors"
 
 #: Nominatim asks for no more than one request a second.
 GEOCODE_INTERVAL = 1.1
@@ -88,7 +88,7 @@ def build_parser() -> argparse.ArgumentParser:
     # 5 km rather than the geocoder default of 6: Berlin is 71 KB at 5 km
     # and 110 KB at 6, and the watch has about 128 KB in total.
     parser.add_argument("--radius-km", type=float, default=PUBLISH_RADIUS_KM)
-    parser.add_argument("--attribution", default=DEFAULT_ATTRIBUTION)
+    parser.add_argument("--attribution", default=osmread.DEFAULT_ATTRIBUTION)
     # settings.xml numbers the cities and CityList.mc turns a number back into
     # a slug, so the two are only correct together. One run writes both.
     parser.add_argument("--settings", help="also write this settings.xml")
@@ -99,7 +99,7 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def build_city(entry: str, args, searcher=None, loader=None) -> Optional[dict]:
+def build_city(entry: str, args, searcher=None, loader=None) -> Optional[CatalogueEntry]:
     """Geocode, fetch, pack and write one city. None when it did not fit."""
     name, override = split_entry(entry)
     search = searcher if searcher is not None else geocode.search
