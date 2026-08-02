@@ -44,9 +44,6 @@ class TileStore {
         _budget = budget == null ? DEFAULT_BUDGET : budget;
     }
 
-    function cachedBytes() { return _bytes; }
-    function cachedBlocks() { return _data.size(); }
-    function missCount() { return _misses; }
 
     //! Decoded block for these coordinates, or null when nothing is packed
     //! there (or when it would not fit in memory).

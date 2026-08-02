@@ -103,10 +103,6 @@ class Camera {
             && someLat >= Pack.south() && someLat <= Pack.north();
     }
 
-    //! Is the centre inside the packed region?
-    function insidePack() {
-        return contains(lat, lon);
-    }
 
     function jumpToPackCentre() {
         lat = Pack.centerLat();

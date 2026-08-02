@@ -47,8 +47,6 @@ class MapRenderer {
 
     function segmentsDrawn() { return _segments; }
     function tilesDrawn() { return _tilesDrawn; }
-    function wasTruncated() { return _truncated; }
-    function missingTiles() { return _missing; }
 
     function render(dc, camera, store) {
         _segments = 0;
