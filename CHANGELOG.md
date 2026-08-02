@@ -9,6 +9,19 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Nothing yet.
 
+## [0.3.8] - 2026-08-02
+
+### Fixed
+
+- **A downloaded city no longer kills the app.** Opening one ended in a black
+  screen and the Connect IQ error icon. The watch was not rejecting anything:
+  it was cutting the app off for taking too long. Filling the screen from a
+  downloaded map can need a dozen blocks, each read from storage and decoded,
+  and doing all of that before drawing a single frame overran the time an app
+  is allowed. The map now loads a few blocks per frame and fills in over the
+  next moment or two, which is a beat of detail arriving rather than a crash.
+  This is the fault behind every black screen reported since 0.3.0.
+
 ## [0.3.7] - 2026-08-02
 
 ### Fixed
@@ -241,7 +254,8 @@ simulator.
 - **Preview renderer**: render a pack to PNG and see what the watch will draw
   before spending time flashing it.
 
-[Unreleased]: https://github.com/Chemaclass/garmin-offline-maps/compare/v0.3.7...HEAD
+[Unreleased]: https://github.com/Chemaclass/garmin-offline-maps/compare/v0.3.8...HEAD
+[0.3.8]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.8
 [0.3.7]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.7
 [0.3.6]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.6
 [0.3.5]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.5

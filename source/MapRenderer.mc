@@ -50,6 +50,8 @@ class MapRenderer {
         _tilesDrawn = 0;
         _passTruncated = false;
 
+        store.beginFrame();
+
         var colours = Palette.colours(camera.night);
         var background = colours[Palette.SLOT_BACKGROUND];
         dc.setColor(background, background);

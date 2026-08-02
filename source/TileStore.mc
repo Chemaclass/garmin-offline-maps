@@ -17,7 +17,23 @@ class TileStore {
     const DEFAULT_BUDGET = 90000;
     //! Headroom kept free for the next load: the packer targets 24 KB blocks,
     //! and decoding one needs the base64 String plus the ByteArray at once.
+    //!
+    //! Sized for a compiled-in block, which is the big case. A downloaded one
+    //! is capped near 6 KB by the 8 KB Storage value limit, so it is covered
+    //! several times over. Measured against Berlin: 12 blocks and 46 KB fill a
+    //! screen at its lowest zoom, inside the 54 KB this leaves usable, so the
+    //! cache is not what was overrunning the frame. The load count was.
     const RESERVE_BYTES = 36000;
+
+    //! New blocks decoded in a single render.
+    //!
+    //! The watchdog kills an app whose code runs too long, and it does not care
+    //! why. Filling a screen from a downloaded pack can want twenty blocks, and
+    //! twenty Storage reads with a base64 decode each does not fit in one
+    //! frame. So a render loads a few and draws what it has; `throttled` then
+    //! tells the view to come straight back for another pass. The map arrives
+    //! over several frames instead of not arriving at all.
+    const LOADS_PER_RENDER = 3;
 
     //! Five parallel arrays, one cache entry per index. Typed because the hot
     //! paths below subscript them, and the checker will not index an untyped
@@ -30,6 +46,9 @@ class TileStore {
     hidden var _tick;
     hidden var _bytes;
     hidden var _budget;
+    //! Loads left in this render, and whether we ran out.
+    hidden var _loadsLeft;
+    hidden var _throttled;
 
     function initialize(budget) {
         _zoom = [];
@@ -40,6 +59,20 @@ class TileStore {
         _tick = 0;
         _bytes = 0;
         _budget = budget == null ? DEFAULT_BUDGET : budget;
+        _loadsLeft = LOADS_PER_RENDER;
+        _throttled = false;
+    }
+
+    //! Called once per render, before any block is asked for.
+    function beginFrame() {
+        _loadsLeft = LOADS_PER_RENDER;
+        _throttled = false;
+    }
+
+    //! True when this render wanted a block it was not allowed to load, so the
+    //! picture on screen is incomplete and the view should ask again.
+    function throttled() {
+        return _throttled;
     }
 
 
@@ -57,6 +90,14 @@ class TileStore {
         if (!Pack.hasBlock(zoom, blockX, blockY)) {
             return null;
         }
+
+        // Spent this frame's allowance. Say so and draw without it; the view
+        // will come back for another pass.
+        if (_loadsLeft <= 0) {
+            _throttled = true;
+            return null;
+        }
+        _loadsLeft -= 1;
 
         // Make room *before* loading. Decoding needs the base64 String and the
         // ByteArray alive at the same time, so arriving at the load with a full

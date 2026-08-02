@@ -193,7 +193,11 @@ class MapView extends WatchUi.View {
                         var started = System.getTimer();
                         _renderer.render(bitmap.getDc(), _camera, _store);
                         _renderMs = System.getTimer() - started;
-                        _dirty = false;
+                        // Stay dirty while the store is still feeding blocks in
+                        // a few at a time, so the map finishes over the next
+                        // frames instead of in one that the watchdog kills.
+                        _dirty = _store.throttled();
+                        if (_dirty) { WatchUi.requestUpdate(); }
                     }
                     dc.setColor(background, background);
                     dc.clear();
