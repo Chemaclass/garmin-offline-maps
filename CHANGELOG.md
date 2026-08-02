@@ -7,8 +7,21 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [0.3.0] - 2026-08-02
+
+Choosing a city stops being a guessing game, and the catalogue grows without
+shipping an app.
+
 ### Added
 
+- **Pick a city by country, then city.** Hold the screen, choose "Change city",
+  and the watch lists the countries it has maps for, then the cities in the one
+  you pick, each with its size. The list comes from the published catalogue, so
+  new cities appear without updating the app.
+- **Fifteen cities to choose from**, across Germany, Spain, France, the
+  Netherlands, Portugal and Austria, and adding more no longer needs a release.
 - **A first-run card explains the demo map.** A fresh install opens on a small
   sample map, which looked like a broken map of wherever you happen to be. It
   now says so, and points at the two ways to get your own city: hold the screen
@@ -21,10 +34,9 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
-- **Choosing a city works from the watch, and typing one is forgiving.** The
-  map menu gained "Change city", which lists what is actually published. The
-  City setting no longer cares about capitals or spaces, so "Berlin" and
-  "New York" resolve rather than silently finding nothing.
+- **Typing a city is forgiving.** The City setting no longer cares about
+  capitals or spaces, so "Berlin" and "New York" resolve rather than silently
+  finding nothing. It also links to the published city list.
 
 ## [0.2.0] - 2026-08-02
 
@@ -105,6 +117,7 @@ simulator.
 - **Preview renderer**: render a pack to PNG and see what the watch will draw
   before spending time flashing it.
 
-[Unreleased]: https://github.com/Chemaclass/garmin-offline-maps/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/Chemaclass/garmin-offline-maps/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.0
 [0.2.0]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.2.0
 [0.1.0]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.1.0
