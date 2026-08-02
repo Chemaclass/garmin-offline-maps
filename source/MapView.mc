@@ -238,6 +238,12 @@ class MapView extends WatchUi.View {
     //! `Object?`, which the checker cannot index, and an unannotated hop
     //! anywhere in the chain puts the warning back.
     hidden function drawOverlay(dc, colours as Array<Number>) {
+        if (Onboarding.shouldShow()) {
+            // The card and nothing else. It covers the button orbit, so the
+            // usual chrome would only survive as slivers along its edges.
+            Onboarding.draw(dc, colours, _width, _height);
+            return;
+        }
         drawPositionMarker(dc, colours);
         drawButtons(dc, colours);
         drawScaleBar(dc, colours);

@@ -8,6 +8,22 @@
     <string id="WaitingForGps">Searching for GPS</string>
     <string id="OutsideMap">You are outside this map</string>
 
+    <!-- First-run card, shown over the map while the built-in demo pack is the
+         active map (see source/Onboarding.mc). One string per rendered line:
+         drawText does not wrap, so the breaks are part of the copy. Keep every
+         line at or under about 22 characters. FONT_XTINY is around 30 px on a
+         Venu 3, so a longer line runs off the side of a 390 px round screen
+         before it runs out of room on a 454 px one.
+         TipHold2 names the menu entry the reader has to go and find, so it has
+         to keep saying exactly what MenuCity says. -->
+    <string id="TipTitle">Demo map</string>
+    <string id="TipCity">This is not your city.</string>
+    <string id="TipHold1">Hold the screen and</string>
+    <string id="TipHold2">pick Change city.</string>
+    <string id="TipConnect1">Or set City in</string>
+    <string id="TipConnect2">Garmin Connect.</string>
+    <string id="TipDismiss">Tap to continue</string>
+
     <string id="MenuTitle">Map</string>
     <string id="MenuHeadingUp">Heading up</string>
     <string id="MenuHeadingUpSub">Rotate the map as you turn</string>
