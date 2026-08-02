@@ -9,6 +9,18 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Nothing yet.
 
+## [0.3.2] - 2026-08-02
+
+### Fixed
+
+- **The app no longer stops working after downloading a city.** Drawing a
+  downloaded map could throw, which took the whole app down and left a black
+  screen. Drawing is now guarded end to end: if it fails, the app falls back to
+  the map built into it and keeps running.
+- **A failure now says what went wrong**, in red along the bottom of the map,
+  rather than leaving you to guess. If you see one, the text is worth
+  reporting.
+
 ## [0.3.1] - 2026-08-02
 
 ### Fixed
@@ -136,7 +148,8 @@ simulator.
 - **Preview renderer**: render a pack to PNG and see what the watch will draw
   before spending time flashing it.
 
-[Unreleased]: https://github.com/Chemaclass/garmin-offline-maps/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/Chemaclass/garmin-offline-maps/compare/v0.3.2...HEAD
+[0.3.2]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.2
 [0.3.1]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.1
 [0.3.0]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.0
 [0.2.0]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.2.0
