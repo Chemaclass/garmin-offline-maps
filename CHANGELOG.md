@@ -7,6 +7,18 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [0.3.4] - 2026-08-02
+
+### Changed
+
+- **Cities show their streets again.** A city ringed by farmland or forest
+  could pack as a green field with the road network missing, because the
+  landcover used up the space the roads needed. Murcia went from almost no
+  visible streets to a full road network at the same size. Re-select your city
+  to pick up the better map; already-published cities have been rebuilt.
+
 ### Fixed
 
 - **Upgrading from 0.3.0 to 0.3.2 could keep crashing even after the fix.**
@@ -167,7 +179,8 @@ simulator.
 - **Preview renderer**: render a pack to PNG and see what the watch will draw
   before spending time flashing it.
 
-[Unreleased]: https://github.com/Chemaclass/garmin-offline-maps/compare/v0.3.3...HEAD
+[Unreleased]: https://github.com/Chemaclass/garmin-offline-maps/compare/v0.3.4...HEAD
+[0.3.4]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.4
 [0.3.3]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.3
 [0.3.2]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.2
 [0.3.1]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.1
