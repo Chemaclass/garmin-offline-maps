@@ -160,6 +160,21 @@ class MapRenderer {
             _passTruncated = false;
             for (var tileY = minTileY; tileY <= maxTileY && !_passTruncated; tileY += 1) {
                 for (var tileX = minTileX; tileX <= maxTileX && !_passTruncated; tileX += 1) {
+                    // Checked per tile, not only per point.
+                    //
+                    // A tile with nothing packed in it returns from `drawTile`
+                    // before a single point is read, so the point-level check
+                    // never runs for it. At the lowest zoom a screen spans
+                    // thirty-six tiles, most of them empty, and each still
+                    // costs a cache scan and a key lookup. That was unbounded
+                    // work, and it is the part that hurts on a watch rather
+                    // than in the simulator: the same loop is a great deal
+                    // slower there, which is how a frame that measures well on
+                    // a laptop still gets the app killed on the wrist.
+                    if (outOfTime()) {
+                        _passTruncated = true;
+                        break;
+                    }
                     drawTile(dc, store, colours, camera, pass, dataZoom, log2,
                              tileX, tileY, centreX, centreY, scale,
                              halfW, halfH, cosT, sinT, width, height, budget);

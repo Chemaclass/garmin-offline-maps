@@ -9,6 +9,17 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Nothing yet.
 
+## [0.3.12] - 2026-08-02
+
+### Fixed
+
+- **A tile with nothing in it now counts against the frame.** At the widest
+  zoom a screen covers thirty-six tiles, and an empty one was skipped without
+  the app ever checking how long it had been drawing. On a watch, which is a
+  good deal slower than the simulator this was measured in, that unwatched work
+  was enough on its own to get the app cut off. It is the same black screen as
+  0.3.11 fixed, from the one path that fix did not cover.
+
 ## [0.3.11] - 2026-08-02
 
 ### Fixed
@@ -298,7 +309,8 @@ simulator.
 - **Preview renderer**: render a pack to PNG and see what the watch will draw
   before spending time flashing it.
 
-[Unreleased]: https://github.com/Chemaclass/garmin-offline-maps/compare/v0.3.11...HEAD
+[Unreleased]: https://github.com/Chemaclass/garmin-offline-maps/compare/v0.3.12...HEAD
+[0.3.12]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.12
 [0.3.11]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.11
 [0.3.10]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.10
 [0.3.9]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.9
