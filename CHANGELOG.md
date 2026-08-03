@@ -7,7 +7,19 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-Nothing yet.
+### Fixed
+
+- **Heading-up mode draws the streets.** The map is built up over several
+  frames, water and parks first and roads after, and every turn of the wrist
+  started it over from the beginning. On an arm that moves, it never got as far
+  as the roads: a map of water and green space and nothing else. A turn now
+  waits for the picture to finish before redrawing it.
+
+### Changed
+
+- **Stats now says whether the map has finished drawing.** A map still building
+  and a map that has finished with layers missing look identical, and only one
+  of them is a fault worth reporting.
 
 ## [0.3.19] - 2026-08-02
 

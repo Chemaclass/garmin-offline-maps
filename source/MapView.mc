@@ -25,6 +25,9 @@ class MapView extends WatchUi.View {
     hidden var _bufferRef;
     hidden var _useBuffer;
     hidden var _dirty;
+    //! A rotation that arrived mid-render and is waiting for it to finish.
+    //! See `invalidateWhenIdle`.
+    hidden var _rotationPending;
 
     hidden var _dragX;
     hidden var _dragY;
@@ -52,9 +55,35 @@ class MapView extends WatchUi.View {
         _renderMs = 0;
         _showDebug = false;
         _diagShown = null;
+        _rotationPending = false;
     }
 
     function invalidate() { _dirty = true; }
+
+    //! Invalidate, but never at the cost of finishing the picture.
+    //!
+    //! For a change that is only worth showing once the map is drawn, which is
+    //! what a turn of the wrist is. The passes run in order, areas then lines,
+    //! and a restart throws away everything drawn so far and begins again at
+    //! areas. A city needs many frames to get through both. So a restart
+    //! arriving more often than the map can finish means the areas pass runs
+    //! for ever and the lines pass never starts: water and parks on screen,
+    //! and no streets at all.
+    //!
+    //! `pollHeading` fires on a five degree change, once a second, and an arm
+    //! moves more than that just walking, so heading-up used to guarantee that
+    //! outcome on a wrist. A simulator never sees it: nothing there turns.
+    //!
+    //! Deferring costs a stale rotation for the rest of the current render,
+    //! which is a second or two of the map pointing where you were facing
+    //! rather than where you are. Losing the streets costs the map.
+    function invalidateWhenIdle() {
+        if (_renderer.complete()) {
+            _dirty = true;
+        } else {
+            _rotationPending = true;
+        }
+    }
 
     //! Give the off-screen buffer back.
     //!
@@ -217,6 +246,16 @@ class MapView extends WatchUi.View {
                         _renderer.render(bitmap.getDc(), _camera, _store, _dirty);
                         _renderMs = System.getTimer() - started;
                         _dirty = false;
+                        // A rotation that arrived while this was drawing gets
+                        // its restart now that there is a finished picture to
+                        // replace. Deferred rather than dropped: dropping it
+                        // would leave the map pointing the wrong way until
+                        // something else happened to invalidate.
+                        if (_rotationPending && _renderer.complete()) {
+                            _rotationPending = false;
+                            _dirty = true;
+                            WatchUi.requestUpdate();
+                        }
                         // Keep asking until the whole view has been drawn.
                         //
                         // Each frame is deliberately short, and a city needs
@@ -588,10 +627,17 @@ class MapView extends WatchUi.View {
     //! counters are for tuning the packer, not for wearing.
     hidden function drawDebug(dc, colours as Array<Number>) {
         dc.setColor(colours[Palette.SLOT_DIM], Graphics.COLOR_TRANSPARENT);
+        // "done" versus "..." is the line worth having. A map that is still
+        // building looks exactly like a map that has finished and is missing
+        // half its layers, and only one of those is a bug. Without it, a report
+        // from a wrist cannot tell the two apart, and the simulator will not
+        // reproduce either.
         var lines = [
             _camera.lat.format("%.5f") + ", " + _camera.lon.format("%.5f"),
             "z" + _camera.zoom + "   " + _renderer.segmentsDrawn() + " seg   "
-                + _renderMs + " ms"
+                + _renderMs + " ms",
+            _renderer.tilesDrawn() + " tiles   "
+                + (_renderer.complete() ? "done" : "...")
         ];
         var pitch = _height * 0.075;
         var top = _height * 0.30;

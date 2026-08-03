@@ -363,7 +363,6 @@ class OfflineMapsApp extends Application.AppBase {
     }
 
     //! A new GPS fix arrived.
-    //! A new GPS fix arrived.
     //!
     //! Following it only while it is on the map. Otherwise downloading a city
     //! you are not standing in gives you a blank screen: the first fix drags
@@ -391,7 +390,11 @@ class OfflineMapsApp extends Application.AppBase {
         if (_camera == null || _view == null || !_camera.headingUp) { return; }
         if (_tracker.pollHeading()) {
             _camera.heading = _tracker.heading();
-            _view.invalidate();
+            // Not `invalidate`: this fires once a second on a five degree
+            // change, which a wrist clears just by moving, and restarting the
+            // render that often means it never reaches the pass that draws the
+            // streets. See `MapView.invalidateWhenIdle`.
+            _view.invalidateWhenIdle();
             WatchUi.requestUpdate();
         }
     }
