@@ -55,4 +55,7 @@ means "go edit the other side", not "fix this code".
 
 The packer, the format and the rendering maths are covered by the test suite and
 by a Python re-implementation of the renderer. The Monkey C compiles for the
-24 products under Connect IQ SDK 9.2.0 and runs in the simulator.
+24 products under Connect IQ SDK 9.2.0, runs in the 9.1.0 simulator (9.2.0's
+segfaults on draw, see
+[DEVELOPMENT.md](DEVELOPMENT.md#the-simulator-needs-an-older-sdk-than-the-compiler)),
+runs on a Venu 3, and is published to the Connect IQ store.

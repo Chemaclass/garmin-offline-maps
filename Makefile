@@ -24,20 +24,15 @@ SDK_BIN     ?= $(CASK_SDK)
 
 MONKEYC     := $(if $(SDK_BIN),$(SDK_BIN)/monkeyc,monkeyc)
 MONKEYDO    := $(if $(SDK_BIN),$(SDK_BIN)/monkeydo,monkeydo)
-# `open` with the bundle's full path, and both halves of that matter.
-#
-# Not the `connectiq` launcher beside it: that runs `open -a ConnectIQ.app`,
-# and `-a` resolves through LaunchServices by bundle id, so a copy registered
-# from /Applications can start instead. The simulator works out where the SDK
-# is from its own location, so the wrong one finds no version.txt and no device
+# The binary inside a bundle we name by full path, not the `connectiq` launcher
+# sitting beside it. That launcher runs `open -a ConnectIQ.app`, and `-a`
+# resolves through LaunchServices by bundle id, so a copy registered from
+# /Applications can start instead. The simulator works out where the SDK is from
+# its own location, so the wrong one finds no version.txt and no device
 # definitions, and then rejects a device with "SDK Version 4.2.0.beta2 or
-# greater is required" against a 9.2.0 SDK. Giving `open` a concrete path
-# pins which bundle runs.
+# greater is required" against a 9.2.0 SDK. A concrete path pins which bundle
+# runs.
 #
-# And `open`, not the binary inside the bundle: launching that straight from a
-# shell gives a process with a window that never draws. It answers on the
-# side-load port and runs the app, so everything looks fine from the terminal
-# while the simulator sits there blank.
 # The simulator comes from a different SDK than the compiler, deliberately.
 #
 # 9.2.0's simulator segfaults on macOS 26.5.2 the moment an app draws:
@@ -119,9 +114,13 @@ doctor:
 		if java -version >/dev/null 2>&1; then java -version 2>&1 | head -1; \
 		else echo "MISSING   brew install --cask temurin@21"; fi
 	@printf '  %-20s' "simulator"; \
-		if [ -d "$(SIM_APP)" ] || command -v connectiq >/dev/null 2>&1; then \
-			echo "$(if $(SIM_APP),$(SIM_APP),connectiq)"; \
+		if [ -n "$(SIM_SDK)" ]; then echo "$(SIM_APP)"; \
+		elif [ -d "$(SIM_APP)" ] || command -v connectiq >/dev/null 2>&1; then \
+			echo "9.2.0     segfaults on draw; get 9.1.0 in SdkManager.app"; \
 		else echo "MISSING   in the connectiq cask, but not linked onto PATH"; fi
+	@printf '  %-20s' "libmtp"; \
+		if command -v mtp-detect >/dev/null 2>&1; then echo "present"; \
+		else echo "absent    brew install libmtp -- only for make watch"; fi
 	@printf '  %-20s' "devices"; \
 		d="$$HOME/Library/Application Support/Garmin/ConnectIQ/Devices"; \
 		if [ -d "$$d" ] && [ -n "$$(ls -A "$$d" 2>/dev/null)" ]; then \

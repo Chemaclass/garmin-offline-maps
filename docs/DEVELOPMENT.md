@@ -11,7 +11,7 @@ make demo     # rebuild the committed demo pack
 make pack     # build a pack for a real area
 ```
 
-Only `make build`, `make sim` and `make package` need the SDK.
+Only `make build`, `make sim`, `make watch` and `make package` need the SDK.
 
 ```bash
 pip install pillow    # unskips the 10 preview tests
@@ -21,7 +21,7 @@ pip install osmium    # enables make pack INPUT=*.osm.pbf
 ## Setting up the toolchain
 
 Run `make doctor` at any point. It names which piece is missing instead of
-letting `monkeyc` guess. Four things must exist, and they fail with
+letting `monkeyc` guess. Six things must exist, and they fail with
 similar-looking errors:
 
 | Missing | Symptom |
@@ -30,17 +30,24 @@ similar-looking errors:
 | Java runtime | `Unable to locate a Java Runtime` |
 | Device definitions | `ERROR: Invalid device id specified: 'venu3'.` |
 | Signing key | `make build` stops before compiling; fix with `make key` |
+| A 9.1.x SDK for the simulator | the simulator window appears for a second and vanishes, and `monkeydo` still exits 0 |
+| `libmtp` | `make watch` says `mtp-detect not found` |
 
 ```bash
 brew install --cask connectiq              # monkeyc, monkeydo, simulator -- no Garmin login
 brew install --cask temurin@21             # JDK 21, matching CI
 brew install --cask connectiq-sdk-manager  # device definitions -- free Garmin account
+brew install libmtp                        # only for make watch, side-loading over USB
 ```
 
 Use `temurin@21`, not `temurin`. The unversioned cask is now JDK 26. Only
 `temurin@21` needs `sudo` (it is a `.pkg`); the other two are not.
 
-**Device definitions are the one step that cannot be scripted for you.** The SDK
+Nothing else is needed. The simulator is a universal binary that links only
+macOS system frameworks, so there is no Rosetta step on Apple Silicon and no
+runtime to install beyond the JDK, which is the compiler's, not its.
+
+**Device definitions are the step that most often stalls.** The SDK
 download does not carry them, and Garmin gates them behind an account. Open
 `SdkManager.app`, sign in, download an SDK **and accept the licence agreement**
 (an unaccepted agreement is what silently leaves the Devices list empty), then
@@ -57,6 +64,42 @@ The headless route CI uses works locally too, and still needs your credentials:
 curl -sSf https://raw.githubusercontent.com/lindell/connect-iq-sdk-manager-cli/master/install.sh | sh
 connect-iq-sdk-manager login
 connect-iq-sdk-manager device download --manifest=manifest.xml
+```
+
+### The simulator needs an older SDK than the compiler
+
+**9.2.0's simulator segfaults on macOS 26.5.2 the moment an app draws.**
+`EXC_BAD_ACCESS`, a null dereference every frame, inside Garmin's closed-source
+`simulator` binary. Garmin's own sample apps kill it the same way, so it is not
+ours to fix. The failure is quiet in exactly the wrong way: the window appears
+for about a second and vanishes, `monkeydo` still exits 0, and from the terminal
+it looks like the run succeeded.
+
+9.1.0 runs the identical `.prg` without crashing. So the Makefile compiles with
+the newest SDK and simulates with the newest one that survives:
+
+```bash
+# in SdkManager.app, download 9.1.0 alongside whatever you compile with
+ls ~/.Garmin/ConnectIQ/Sdks/          # make sim wants a connectiq-sdk-mac-9.1.* here
+```
+
+Two more traps in the same area, both already handled by `make sim` and both
+worth knowing before you launch the simulator by hand:
+
+- **Do not use the `connectiq` launcher.** It runs `open -a ConnectIQ.app`, and
+  `-a` resolves through LaunchServices by bundle id, so the cask's copy
+  hard-linked into `/Applications` can start instead. The simulator locates the
+  SDK from its own path, so the wrong bundle finds no `version.txt` and no
+  device definitions, then rejects a device with "SDK Version 4.2.0.beta2 or
+  greater is required" against a 9.2.0 SDK.
+- **Prefer an SdkManager install under `~/.Garmin`** over the cask's, for the
+  same reason: the cask's bundle lives where it cannot find its own
+  `version.txt`.
+
+If the port stays shut, an instance is wedged:
+
+```bash
+pkill -f 'bin/monkeydo'; pkill -f 'MacOS/simulator'
 ```
 
 ### Where the Makefile looks
@@ -82,17 +125,42 @@ make build DEVICE=venu3     # -> bin/offline-maps.prg
 make build DEVICE=venu3s    # every product in manifest.xml, not just the default
                             # (same output path, so the last build wins)
 make sim                    # simulator + side-load
+make watch                  # build and side-load onto a watch on USB
 make package                # -> bin/offline-maps.iq for the store
 ```
 
 `make sim` waits for the simulator to open its side-load socket (TCP 1234)
 rather than sleeping a fixed interval, and reuses an already-running simulator.
 Leave it open between builds; `Ctrl-C` detaches `monkeydo` without closing it.
+It also prints everything the app writes with `System.println`, which is the
+only log you get.
 
-On the watch: plug in over USB, copy the `.prg` into `GARMIN/APPS/`, eject. The
-Venu 3 has music storage, so macOS mounts it over **MTP**, not mass storage, and
-Finder will not show it. Use [OpenMTP](https://openmtp.ganeshrvel.com/) or
-Android File Transfer.
+### On a real watch
+
+```bash
+brew install libmtp
+make watch                  # or: make watch DEVICE=venu3s
+```
+
+That is the loop worth having. The alternative is upload, store review, phone
+sync, watch update, for every one-line change; this is a few seconds and needs
+neither a phone nor a network. Keep releases for builds worth publishing.
+
+Garmin watches speak **MTP**, which macOS does not mount natively (the Venu 3
+has music storage, so it is not a mass-storage device and Finder never shows
+it), hence `libmtp` rather than a copy into `/Volumes`. `tools/push-watch.sh`
+looks the `GARMIN/APPS` folder id up rather than hardcoding it, and deletes the
+previous copy first, because MTP will happily store a second file under the same
+name and the watch then lists the app twice.
+
+**The watch must be awake.** It drops off the bus when the screen sleeps, and
+`libmtp` reports "No raw devices found" exactly as though it were unplugged.
+Quit Garmin Express too: it holds the device. Then check the About screen for
+the version you just pushed, which is what `source/Version.mc` is for.
+
+There is no on-watch log to read. `GARMIN/APPS/LOGS/CIQ_LOG.YML` records that an
+app died and where, but only after a crash, and `Diag.mc` writes its own
+breadcrumbs to `Application.Storage` for the same reason.
 
 **`developer_key` is the app's identity in the Connect IQ store.** The store pins
 a published app to the key that signed its first upload; a new key means a new
@@ -198,7 +266,7 @@ this is what you use when it does not.
 ## Testing
 
 ```bash
-make test                                                    # everything, 85 tests
+make test                                                    # everything, 131 tests
 cd tools/mappack
 python3 -m unittest discover -s tests/unit -t .              # one category
 python3 -m unittest tests.contract.test_tile_format -v       # one file
@@ -211,18 +279,23 @@ directory's `__init__.py` states its own rule.
 ```
 tools/mappack/tests/
 ├── demo-city.osm       synthetic fixture, generated by make_fixture.py
-├── unit/               27 tests, one file per mappack module, single module each
+├── unit/               86 tests, one file per mappack module, single module each
 │   ├── test_varint.py      LEB128, zigzag
 │   ├── test_geom.py        Mercator, Douglas–Peucker, clipping
 │   ├── test_classify.py    OSM tags → layer + minzoom
-│   └── test_osmread.py     OSM XML → tagged ways
+│   ├── test_osmread.py     OSM XML → tagged ways
+│   ├── test_geocode.py     place name → bbox
+│   ├── test_citypack.py    downloadable city packs
+│   ├── test_publish.py     cities.json → per-city store bundles
+│   └── test_pack_budget.py the size ceilings
 ├── integration/        27 tests, pipeline stages wired together
 │   ├── test_pack.py        osmread → classify → geom → pack
 │   ├── test_emit.py        pack → emit → resources + generated MapIndex.mc
 │   └── test_preview.py     generated artefacts → preview → PNG (needs Pillow)
-└── contract/           13 tests, agreements with the Monkey C
+└── contract/           18 tests, agreements with the Monkey C
     ├── test_tile_format.py pack.py writer vs decode.py, mirror of TileReader.mc
-    └── test_palette.py     classify.py L_* vs Palette.mc SLOT_*, renderer budgets
+    ├── test_palette.py     classify.py L_* vs Palette.mc SLOT_*, renderer budgets
+    └── test_version.py     Version.mc APP vs the newest CHANGELOG.md heading
 ```
 
 Adding a test: if it exercises one module, it goes in `unit/` in the file named
@@ -263,8 +336,9 @@ the `for device in venu3 venu3s` loop in CI lists devices literally.
 ## Agents
 
 `.claude/` carries project config: four agents split along the repo's seams
-(`watch-app`, `map-packer`, `contract-auditor`, `build-ops`) and five skills
-(`sdk`, `pack`, `contracts`, `preview`, `add-device`). `settings.json` denies
+(`watch-app`, `map-packer`, `contract-auditor`, `build-ops`) and six skills
+(`sdk`, `pack`, `contracts`, `preview`, `add-device`, `changelog`).
+`settings.json` denies
 writes to the generated paths and reads of `developer_key`; a PostToolUse hook
 surfaces whichever invariant applies to the file just touched.
 

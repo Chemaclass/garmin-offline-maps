@@ -32,17 +32,35 @@ make test            # should be green immediately
 pip install pillow   # optional: unskips the 10 preview tests
 ```
 
-**With the SDK**, for `source/`: follow
-[docs/DEVELOPMENT.md § Setting up the toolchain](docs/DEVELOPMENT.md#setting-up-the-toolchain).
-Four pieces must exist and they fail with similar-looking errors, so start here
-and let it tell you which one is missing:
+**With the SDK**, for `source/`, on macOS:
 
 ```bash
-make doctor
+brew install --cask connectiq              # monkeyc, monkeydo, the simulator
+brew install --cask temurin@21             # JDK 21, matching CI. Not plain `temurin`, that is 26
+brew install --cask connectiq-sdk-manager  # device definitions, needs a free Garmin account
+brew install libmtp                        # only for `make watch`, side-loading over USB
+make key                                   # one-off signing key, gitignored
+make doctor                                # says which piece is still missing
 ```
 
-Device definitions are the only step that cannot be scripted: Garmin gates them
-behind a free account and a licence agreement you have to accept by hand.
+Nothing else. The simulator is a universal binary against macOS system
+frameworks only: no Rosetta on Apple Silicon, and the JDK above is the
+compiler's, not its.
+
+Two of those steps cannot be scripted for you, and both fail in ways that do not
+say what is wrong:
+
+- **Device definitions.** Garmin gates them behind an account *and* a licence
+  agreement you accept by hand in `SdkManager.app`. An unaccepted agreement is
+  what silently leaves the Devices list empty.
+- **A 9.1.x SDK for the simulator.** 9.2.0's simulator segfaults on macOS
+  26.5.2 the moment an app draws, including on Garmin's own samples. The window
+  appears for a second and vanishes while `monkeydo` exits 0, so it reads as
+  success from the terminal. Download 9.1.0 alongside whatever you compile with;
+  `make sim` picks it up from `~/.Garmin/ConnectIQ/Sdks/` on its own.
+
+Both, and the rest of the toolchain, in
+[docs/DEVELOPMENT.md § Setting up the toolchain](docs/DEVELOPMENT.md#setting-up-the-toolchain).
 
 ## The fast loop
 
@@ -110,7 +128,14 @@ device and not the other:
 make build DEVICE=venu3
 make build DEVICE=venu3s
 make sim                     # side-load into the simulator and actually look at it
+make watch                   # and onto a watch on USB, if you have one
 ```
+
+`make sim` prints everything the app writes with `System.println`, which is the
+only log there is. `make watch` needs `libmtp` and a watch that is **awake**: it
+drops off the USB bus when the screen sleeps, and asleep is indistinguishable
+from unplugged. [docs/DEVELOPMENT.md § On a real
+watch](docs/DEVELOPMENT.md#on-a-real-watch) has the rest.
 
 Add a [CHANGELOG.md](CHANGELOG.md) entry under `[Unreleased]` if the change is
 something a user would notice. Most changes here are not.
@@ -163,7 +188,7 @@ whole repo:
 | `contract-auditor` | read-only check of the three invariants |
 | `build-ops` | toolchain, monkeyc failures, the simulator, CI |
 
-And the skills, which encode procedures rather than facts: `sdk`, `pack`,
+And the six skills, which encode procedures rather than facts: `sdk`, `pack`,
 `contracts`, `preview`, `add-device`, `changelog`.
 
 Two rules that matter more for agents than for humans:
@@ -177,19 +202,23 @@ Two rules that matter more for agents than for humans:
 
 ## Project status
 
-Recorded in [CHANGELOG.md](CHANGELOG.md): the packer, the byte format and the
+Recorded in [CHANGELOG.md](CHANGELOG.md). The packer, the byte format and the
 rendering maths are covered by tests and by a Python re-implementation of the
-renderer. The watch app compiles for all 24 products under Connect IQ SDK 9.2.0
-and runs in the simulator.
+renderer. The watch app compiles for all 24 products under Connect IQ SDK 9.2.0,
+runs in the 9.1.0 simulator, runs on a real Venu 3, and is published to the
+Connect IQ store.
 
 Memory headroom and frame timing are the two things the simulator will not tell
 you, and they are exactly the two the [hardware limits](docs/DEVICES.md) say are
-tight.
+tight. Both have produced crashes that a clean simulator run did not predict, so
+a change that survives `make sim` is not yet a change that works: say which of
+the two you ran, and do not report simulator results as more than they are.
 
 ## Good first contributions
 
-- **Run it on an actual Venu 3 and report what happens.** The single most
-  valuable thing anyone can do for this project right now.
+- **Run it on a watch that is not a Venu 3 and report what happens.** The single
+  most valuable thing anyone can do for this project right now. 24 products
+  compile; one has been worn.
 - Add a device: see the `add-device` skill and
   [docs/DEVICES.md](docs/DEVICES.md); memory versus buffer size is what decides
   viability.

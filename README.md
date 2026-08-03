@@ -48,7 +48,12 @@ cd garmin-offline-maps
 make key      # one-off signing key, kept out of git
 make build    # compiles with the bundled demo map
 make sim      # opens the simulator and side-loads it
+make watch    # or straight onto a watch on USB
 ```
+
+The simulator wants an SDK **9.1.x** specifically: 9.2.0's segfaults on macOS 26
+the moment anything draws. The toolchain, and the rest of what that costs you,
+in [CONTRIBUTING.md § Setup](CONTRIBUTING.md#setup).
 
 Then swap the demo for where you actually live, by name:
 
@@ -83,7 +88,7 @@ architecture, rendering, packer, format, devices, development and publishing.
 
 Most of the interesting work (the packer, the byte format, the look of the map)
 needs nothing but `python3`; only `source/` needs a Garmin toolchain. `make
-test` runs 85 tests without the SDK.
+test` runs 131 tests without the SDK.
 
 Start at **[CONTRIBUTING.md](CONTRIBUTING.md)**. Adding a watch model is a good
 first change: see [docs/DEVICES.md](docs/DEVICES.md#adding-another-device).
@@ -102,14 +107,17 @@ guidelines put the licensing burden on you.
 ## Status
 
 [CHANGELOG.md](CHANGELOG.md) lists what exists today; the current release is
-`v0.1.0`. The packer, format and rendering maths are covered by tests, and the
-Monkey C compiles for all 24 products and runs in the simulator.
+`v0.3.19`. The packer, format and rendering maths are covered by tests; the
+Monkey C compiles for all 24 products, runs in the simulator, runs on a Venu 3,
+and is in the Connect IQ store.
 
 ## Roadmap
 
-- [ ] On-watch timing measurements
+- [x] Connect IQ store release
+- [x] Downloadable cities, so one install covers more than one place
+- [ ] On-watch timing measurements (frame times are measured in the simulator,
+      not on the wrist)
 - [ ] Waypoints: drop, save, bearing and distance
 - [ ] Route overlay from a GPX packed alongside the map
 - [ ] Place-name labels (needs a text layer in the format)
 - [ ] Widget/glance entry point
-- [ ] Connect IQ store release
