@@ -15,5 +15,5 @@ import Toybox.Lang;
 //! a build that lies about itself.
 module Version {
 
-    const APP = "0.3.19";
+    const APP = "0.3.20";
 }

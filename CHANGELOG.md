@@ -7,6 +7,10 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [0.3.20] - 2026-08-03
+
 ### Fixed
 
 - **Heading-up mode draws the streets.** The map is built up over several
@@ -408,7 +412,8 @@ simulator.
 - **Preview renderer**: render a pack to PNG and see what the watch will draw
   before spending time flashing it.
 
-[Unreleased]: https://github.com/Chemaclass/garmin-offline-maps/compare/v0.3.19...HEAD
+[Unreleased]: https://github.com/Chemaclass/garmin-offline-maps/compare/v0.3.20...HEAD
+[0.3.20]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.20
 [0.3.19]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.19
 [0.3.18]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.18
 [0.3.17]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.17
