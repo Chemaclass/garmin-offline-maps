@@ -370,13 +370,44 @@ class OfflineMapsApp extends Application.AppBase {
     //! theme that is a black screen with one dim line of explanation on it. The
     //! map you asked for is right there, so show it. `drawPositionStatus` still
     //! says the marker is elsewhere.
+    //! Standing still still produces a fix a second, and each one used to
+    //! recentre the map and restart the render from scratch. The map is built
+    //! over many frames, areas before lines, so a restart every second meant the
+    //! areas pass finished and the lines pass never started: water and parks on
+    //! screen and not one street, for as long as you stood there.
+    //!
+    //! No simulator run shows this. There is no fix there, so `onFix` returns at
+    //! `hasFix` and the map completes in 18 frames with its roads on it. It
+    //! needs a real receiver and a pack you are actually standing in, which is
+    //! to say a wrist in Berlin.
+    //!
+    //! About 17 m, which is a few pixels at the zooms a downloaded city allows.
+    //! GPS jitter sits well inside it; walking clears it in ten seconds or so.
+    const FOLLOW_MIN_DEGREES = 0.00015;
+
     function onFix() {
         if (_camera == null || _view == null) { return; }
         if (!_camera.follow || !_tracker.hasFix()) { return; }
         if (!Camera.contains(_tracker.lat(), _tracker.lon())) { return; }
+        if (!movedEnough(_tracker.lat(), _tracker.lon())) { return; }
         _camera.centreOn(_tracker.lat(), _tracker.lon());
-        _view.invalidate();
+        // Deferred, for the same reason as the compass: a fix that lands while
+        // the map is still drawing waits for it to finish rather than throwing
+        // it away. See `MapView.invalidateWhenIdle`.
+        _view.invalidateWhenIdle();
         WatchUi.requestUpdate();
+    }
+
+    //! Is the new fix far enough from where the map is already centred to be
+    //! worth redrawing for? Longitude is not scaled by latitude on purpose:
+    //! that makes the threshold tighter as you go north, which errs towards
+    //! redrawing rather than towards a map that will not follow you.
+    hidden function movedEnough(newLat, newLon) {
+        var dLat = _camera.lat - newLat;
+        var dLon = _camera.lon - newLon;
+        if (dLat < 0) { dLat = -dLat; }
+        if (dLon < 0) { dLon = -dLon; }
+        return dLat > FOLLOW_MIN_DEGREES || dLon > FOLLOW_MIN_DEGREES;
     }
 
     //! Annotated because `Timer.start` requires a `Method() as Void`.

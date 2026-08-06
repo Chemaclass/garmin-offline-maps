@@ -9,6 +9,18 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Nothing yet.
 
+## [0.3.21] - 2026-08-06
+
+### Fixed
+
+- **The map draws its streets while you are standing on them.** Every GPS fix
+  recentred the map and started the drawing again from nothing, and fixes
+  arrive every second. The map is built up in stages, water and parks before
+  roads, so it never got past the first stage: a screen of water with no
+  streets on it, for as long as you stood still. Following now waits until
+  you have actually moved, and a fix that lands mid-draw lets the map finish
+  first. Measured over 30 fixes: 31 restarts before, 1 after.
+
 ## [0.3.20] - 2026-08-03
 
 ### Fixed
@@ -412,7 +424,8 @@ simulator.
 - **Preview renderer**: render a pack to PNG and see what the watch will draw
   before spending time flashing it.
 
-[Unreleased]: https://github.com/Chemaclass/garmin-offline-maps/compare/v0.3.20...HEAD
+[Unreleased]: https://github.com/Chemaclass/garmin-offline-maps/compare/v0.3.21...HEAD
+[0.3.21]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.21
 [0.3.20]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.20
 [0.3.19]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.19
 [0.3.18]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.18
