@@ -147,7 +147,9 @@ live in [DEVICES.md](DEVICES.md); what each one forced:
 
 Plus one performance reality: every drawing call is interpreted, and a full
 redraw has to stay well under a second to feel responsive. The watchdog itself
-only fires around 5 s, so this is a usability ceiling, not a crash ceiling.
+counts interpreted instructions rather than time, so this is a usability
+ceiling and the crash ceiling is a different measurement entirely; see
+[DEVICES.md](DEVICES.md).
 Hence the off-screen buffer, the hard segment caps in [RENDERING.md](RENDERING.md),
 and decoding geometry straight into draw calls with no intermediate feature
 objects. Allocation is the other thing that hurts on this heap.

@@ -7,9 +7,10 @@ import Toybox.System;
 //!
 //! Performance notes, because they drove every decision here:
 //!  * Each `drawLine` is an interpreted call, and a full redraw has to stay
-//!    well under a second to feel like a map rather than a slideshow. (The
-//!    watchdog itself only fires around 5 s -- see docs/DEVICES.md -- so this
-//!    is a usability ceiling, not a crash one.) Rendering therefore happens
+//!    well under a second to feel like a map rather than a slideshow. That is
+//!    a usability ceiling. The crash ceiling is separate and is counted in
+//!    interpreted instructions rather than time -- see TILE_POINT_CAP and
+//!    docs/DEVICES.md. Rendering therefore happens
 //!    once into an off-screen buffer when the view changes, never per frame,
 //!    and the total segment count is hard-capped.
 //!  * Geometry is decoded straight into draw calls -- no intermediate feature
@@ -41,8 +42,12 @@ class MapRenderer {
     //! 42 -> 76 -> 86 -> 125 ms before the app was killed, so a cap much above
     //! 100 never bites while the churn still adds up. At 80 it does: 198
     //! renders panning Alexanderplatz to Wedding across zooms 13 to 15 peaked
-    //! at 81 ms with nothing killed. The watchdog fires around 5 s
-    //! (docs/DEVICES.md); the rest of that is the blit and the overlay.
+    //! at 81 ms with nothing killed.
+    //!
+    //! This is the responsiveness budget, not the one that prevents a kill.
+    //! The watchdog counts interpreted work rather than elapsed time, so a
+    //! frame can be well inside this and still die; TILE_POINT_CAP is what
+    //! guards that. See docs/DEVICES.md for the measurement.
     const FRAME_BUDGET_MS = 80;
 
     //! Hard cap on points decoded in a single tile, atomic tile included.

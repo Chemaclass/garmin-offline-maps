@@ -3,10 +3,19 @@
 Everything here is shaped by a 768 KB heap and by every drawing call being
 interpreted. Hardware numbers and their sources: [DEVICES.md](DEVICES.md).
 
-On timing, be precise about which ceiling is which. The **watchdog** fires
-around 5 s and kills the app. Long before that, a full redraw that takes even a
-few hundred milliseconds makes the map feel like a slideshow. The budgets below
-target the second ceiling; the first is not the one you will hit.
+On timing, be precise about which ceiling is which, and about its units.
+
+The **watchdog** counts interpreted instructions, not milliseconds, and kills
+the app. A busy loop dies after ~12,000 iterations and 10 ms; a render frame
+doing draw calls survives 80 ms, because a `drawLine` is one instruction
+however long it paints. Measurement and consequences in
+[DEVICES.md](DEVICES.md). This *is* a ceiling you will hit: a dense tile
+decodes enough varints to reach it, which is why `TILE_POINT_CAP` bounds a
+tile in points rather than in time.
+
+**Responsiveness** is the other ceiling and the softer one. A full redraw
+taking a few hundred milliseconds makes the map feel like a slideshow long
+before anything is killed. `FRAME_BUDGET_MS` targets this one.
 
 ## Render once, blit many
 

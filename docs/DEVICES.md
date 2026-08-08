@@ -106,10 +106,22 @@ stroked segment by segment.
 - Primitive drawing is slow. One measurement put the practical ceiling around
   100 `setColor` + `drawPixel` pairs per frame on a fēnix 7 watch face, and
   Garmin's own performance blog acknowledges 700 ms single-screen draws as a
-  realistic bad case. The watchdog fires at about 5 seconds.
-  `MapRenderer.MAX_SEGMENTS` caps a render at 2600 primitives; if renders come
-  out slow on hardware, lower `--max-points-per-tile` when packing before
-  touching the renderer.
+  realistic bad case.
+- **The watchdog counts interpreted work, not elapsed time.** Measured on
+  venu3 under the 9.1.0 simulator with a probe that busy-loops in `onUpdate`
+  and prints every 2000 iterations: killed after roughly 12,000 iterations, at
+  **10 ms** of wall clock. An earlier probe reporting every 100 ms printed
+  nothing at all before dying. Ordinary render frames in this app measure up to
+  81 ms and are not killed, and both facts are only consistent if what is
+  counted is interpreter instructions: `drawLine` is a single call into native
+  code however long it paints for, while varint decoding is thousands of
+  instructions per feature.
+
+  So a budget in milliseconds does not measure the thing that kills the app.
+  `MapRenderer.TILE_POINT_CAP` bounds a tile at 200 points decoded, which is
+  the unit that matters; `FRAME_BUDGET_MS` remains as a responsiveness budget,
+  which is a different ceiling. Not yet repeated on hardware: the watch's
+  interpreter is not the simulator's and the figure may differ.
 
 ## Supported devices
 

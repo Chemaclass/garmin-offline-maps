@@ -172,9 +172,10 @@ that catch people out:
   lazy-imported for `.pbf`. Do not add a dependency, restructure.
 
 Platform limits in [docs/DEVICES.md](docs/DEVICES.md) are measured, with sources,
-not preferences. The watch has ~768 KB of app memory and roughly half a second
-before the watchdog fires, so desktop instincts about "just redraw it" do not
-transfer.
+not preferences. The watch has ~768 KB of app memory, and a watchdog that
+counts interpreted instructions rather than time: a busy loop is killed after
+about 12,000 iterations. Desktop instincts about "just redraw it" do not
+transfer, and neither does timing a loop to see whether it is affordable.
 
 ## If you are an AI agent
 
