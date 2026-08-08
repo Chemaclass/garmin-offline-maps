@@ -360,8 +360,9 @@ the `for device in venu3 venu3s` loop in CI lists devices literally.
 ## Agents
 
 `.claude/` carries project config: four agents split along the repo's seams
-(`watch-app`, `map-packer`, `contract-auditor`, `build-ops`) and six skills
-(`sdk`, `pack`, `contracts`, `preview`, `add-device`, `changelog`).
+(`watch-app`, `map-packer`, `contract-auditor`, `build-ops`) and eight skills
+(`sdk`, `pack`, `contracts`, `preview`, `add-device`, `changelog`, `gh-issue`,
+`gh-issues`).
 `settings.json` denies
 writes to the generated paths and reads of `developer_key`; a PostToolUse hook
 surfaces whichever invariant applies to the file just touched.
