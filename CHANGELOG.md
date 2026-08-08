@@ -9,6 +9,17 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Nothing yet.
 
+## [0.5.1] - 2026-08-08
+
+### Fixed
+
+- **The Berlin map draws all of its detail instead of a fraction.** Each piece
+  of the map was packed with more in it than the app would ever draw, and the
+  app gave up part way through a piece and moved on, so most of the streets in
+  a busy area were thrown away every time. Berlin is now packed to what the app
+  actually draws: fewer points stored, and far more of them on screen. Rebuild
+  the city to get it.
+
 ## [0.5.0] - 2026-08-08
 
 ### Added
@@ -462,7 +473,8 @@ simulator.
 - **Preview renderer**: render a pack to PNG and see what the watch will draw
   before spending time flashing it.
 
-[Unreleased]: https://github.com/Chemaclass/garmin-offline-maps/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/Chemaclass/garmin-offline-maps/compare/v0.5.1...HEAD
+[0.5.1]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.5.1
 [0.5.0]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.5.0
 [0.4.0]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.4.0
 [0.3.21]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.21
