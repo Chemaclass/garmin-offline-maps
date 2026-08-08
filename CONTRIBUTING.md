@@ -189,9 +189,9 @@ whole repo:
 | `contract-auditor` | read-only check of the three invariants |
 | `build-ops` | toolchain, monkeyc failures, the simulator, CI |
 
-And the eight skills, which encode procedures rather than facts: `sdk`, `pack`,
-`contracts`, `preview`, `add-device`, `changelog`, and `gh-issue` /
-`gh-issues` for working the tracker.
+And the nine skills, which encode procedures rather than facts: `sdk`, `pack`,
+`contracts`, `preview`, `add-device`, `changelog`, `debug-watch` for a crash or
+a map that will not draw, and `gh-issue` / `gh-issues` for working the tracker.
 
 Two rules that matter more for agents than for humans:
 

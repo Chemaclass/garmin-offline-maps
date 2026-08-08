@@ -16,11 +16,23 @@ make doctor
 ```
 
 That is the whole diagnosis step; it checks each piece separately and prints the
-fix. Four things must exist and they fail with similar-looking errors: missing
-SDK binaries give `make: monkeyc: No such file or directory`; missing Java gives
-`Unable to locate a Java Runtime`; missing device definitions give
-`ERROR: Invalid device id specified: 'venu3'.`; a missing `developer_key` stops
-`make build` before it compiles.
+fix. **Six** things must exist and they fail with similar-looking errors:
+
+| Missing | Symptom |
+|---|---|
+| SDK binaries | `make: monkeyc: No such file or directory` |
+| Java runtime | `Unable to locate a Java Runtime` |
+| Device definitions | `ERROR: Invalid device id specified: 'venu3'.` |
+| `developer_key` | `make build` stops before compiling |
+| A 9.1.x SDK for the simulator | window appears for a second and vanishes, `monkeydo` still exits 0 |
+| `libmtp` | `make watch` says `mtp-detect not found` |
+
+**The simulator needs an older SDK than the compiler.** 9.2.0's simulator
+segfaults on macOS 26 the moment an app draws, including on Garmin's own
+samples, and it fails quietly: `monkeydo` exits 0, so from the terminal it looks
+like it worked. `make sim` looks for a `connectiq-sdk-mac-9.1.*` under
+`~/.Garmin/ConnectIQ/Sdks/`. This is the single most expensive trap in the
+toolchain; check it before believing any "the app does not run" report.
 
 ## 2. Ask before installing
 
@@ -38,7 +50,9 @@ user reports success, that is the usual cause.
 
 ```bash
 make build DEVICE=venu3     # and venu3s -- every product in manifest.xml
-make sim                    # simulator + side-load
+make sim                    # simulator + side-load; prints System.println output
+make watch                  # side-load to a watch on USB (needs libmtp)
+make catalogue CITY=Berlin  # serve a downloadable city, for the download path
 make package                # .iq for the store
 ```
 
@@ -46,13 +60,27 @@ The Makefile autodetects the Homebrew SDK; `SDK_BIN=` is only for an SDK
 installed elsewhere. Never suggest `SDK_BIN="$(brew --prefix)/bin"`: the cask
 does not link `connectiq` there, so it builds but breaks `make sim`.
 
-On the watch: plug in over USB, copy the `.prg` into `GARMIN/APPS/`, eject. The
-Venu 3 mounts over MTP, not mass storage, so macOS Finder will not show it.
+On the watch: `make watch`. Garmin watches speak MTP, which macOS does not
+mount natively, hence `libmtp` rather than a copy into `/Volumes`. **The watch
+must be awake** or it drops off the bus, and `libmtp` then reports
+`No raw devices found` exactly as though it were unplugged. Quit Garmin Express,
+which holds the device.
+
+If the side-load port stays shut, an instance is wedged:
+
+```bash
+pkill -f 'bin/monkeydo'; pkill -f 'MacOS/simulator'
+```
 
 ## Build expectations
 
 The app compiles clean for all 24 products under SDK 9.2.0 and runs in the
-simulator.
+9.1.0 simulator.
+
+**What the simulator does not do**, because reports of "it works" keep resting
+on it: it produces no GPS fix and no compass heading, so the whole follow path
+is dead code there; and it persists app settings per app, so editing a default
+in the generated `resources/settings/properties.xml` reaches nothing.
 
 **Zero warnings is the expected state**, on every device. It did not used to be:
 `Cannot determine if container access is using container type` fired 36 times

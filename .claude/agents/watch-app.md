@@ -16,10 +16,24 @@ not a desktop.
   Toybox APIs exist at all. Cite it rather than asserting numbers from memory.
 - `docs/ARCHITECTURE.md`: how your half meets the packer's.
 
-Two things people get wrong that these pages settle: the watchdog fires around
-**5 s**, not half a second (the sub-second target is responsiveness, not a crash
-ceiling); and `Palette.mc` having exactly 16 entries is a *memory* decision,
-because it keeps the off-screen buffer at 4 bpp.
+Two things people get wrong that these pages settle.
+
+**The watchdog counts interpreted instructions, not time.** Measured: a busy
+loop in `onUpdate` is killed after ~12,000 iterations and 10 ms, while a render
+frame doing draw calls survives 80 ms, because `drawLine` is one call into
+native code however long it paints. So a budget in milliseconds does not
+measure the thing that kills the app; `MapRenderer.TILE_POINT_CAP` counts points
+decoded, which does. `FRAME_BUDGET_MS` is a responsiveness budget and a
+different ceiling. Do not time a loop to decide whether it is affordable.
+
+**`Palette.mc` having exactly 16 entries is a memory decision**, because it
+keeps the off-screen buffer at 4 bpp.
+
+## When something crashes or will not draw
+
+Use the `debug-watch` skill rather than reasoning from the code. It carries the
+measurements (what the watchdog counts, what the simulator does not execute) and
+the instrument-then-revert loop. Guessing is what makes this expensive.
 
 ## House style
 
