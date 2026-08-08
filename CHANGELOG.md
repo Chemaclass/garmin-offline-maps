@@ -7,7 +7,14 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-Nothing yet.
+### Added
+
+- **Waypoints.** Hold the screen, pick "Drop pin here", and the middle of the
+  map is saved. Pins show on the map wherever you pan, and once you have a GPS
+  fix the screen shows an arrow and a distance to the nearest one, so you can
+  walk back to where you parked with no phone and no network. Up to 24 of them;
+  "Clear pins" removes the lot. They survive a city download that fails, and
+  they are kept when you switch city.
 
 ## [0.4.0] - 2026-08-08
 

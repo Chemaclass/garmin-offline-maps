@@ -23,6 +23,16 @@ module MapMenu {
         menu.addItem(new WatchUi.MenuItem(
             Rez.Strings.MenuCity, Pack.name(), :city, null));
 
+        // Pin entries carry the count, so the menu answers "how many have I
+        // dropped" without a screen of its own.
+        menu.addItem(new WatchUi.MenuItem(
+            Rez.Strings.MenuPin, Rez.Strings.MenuPinSub, :pin, null));
+        if (Waypoints.count() > 0) {
+            menu.addItem(new WatchUi.MenuItem(
+                Rez.Strings.MenuPinsClear, Waypoints.count().toString(),
+                :pinsClear, null));
+        }
+
         menu.addItem(new WatchUi.MenuItem(Rez.Strings.MenuStats, null, :stats, null));
 
         menu.addItem(new WatchUi.MenuItem(
@@ -67,6 +77,20 @@ class MapMenuDelegate extends WatchUi.Menu2InputDelegate {
             // OfflineMapsApp -> MapDelegate -> MapMenuDelegate -> OfflineMapsApp.
             if (_onPickCity != null) { _onPickCity.invoke(); }
             return;
+        } else if (id == :pin) {
+            // The screen centre, not the GPS position: you may be pinning
+            // somewhere you are looking at rather than standing in, and with no
+            // fix there would be nothing to pin at all.
+            // No confirmation on success: the menu closes onto the pin, which
+            // says it better than a message would. Only a failure needs words,
+            // because a pin that silently did not appear reads as a dead button.
+            if (!Waypoints.add(_camera.lat, _camera.lon)) {
+                Diag.note("pin", WatchUi.loadResource(Rez.Strings.PinsFull) as String);
+            }
+            WatchUi.popView(WatchUi.SLIDE_DOWN);
+        } else if (id == :pinsClear) {
+            Waypoints.clear();
+            WatchUi.popView(WatchUi.SLIDE_DOWN);
         } else if (id == :stats) {
             _view.toggleDebug();
             WatchUi.popView(WatchUi.SLIDE_DOWN);

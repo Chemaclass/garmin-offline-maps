@@ -515,14 +515,104 @@ class MapView extends WatchUi.View {
             Onboarding.draw(dc, colours, _width, _height);
             return;
         }
+        drawWaypoints(dc, colours);
         drawPositionMarker(dc, colours);
         drawButtons(dc, colours);
         drawScaleBar(dc, colours);
+        drawNearestPin(dc, colours);
         drawPositionStatus(dc, colours);
         drawStatus(dc, colours);
         if (_showDebug) {
             drawDebug(dc, colours);
         }
+    }
+
+    //! Pins, and the way back to the nearest one.
+    //!
+    //! Drawn in the overlay rather than into the map buffer, which is the whole
+    //! reason this is cheap: dropping a pin repaints the chrome and leaves the
+    //! rendered map alone, so it costs no restart. See
+    //! `MapRenderer` on what a restart costs.
+    hidden function drawWaypoints(dc, colours as Array<Number>) {
+        var pins = Waypoints.all();
+        if (pins.size() < 2) { return; }
+
+        var zoom = _camera.zoom;
+        var theta = _camera.rotation();
+        var c = 1.0;
+        var sn = 0.0;
+        if (theta != 0.0) {
+            c = Math.cos(theta);
+            sn = Math.sin(theta);
+        }
+        var centreX = Mercator.lonToWorldX(_camera.lon, zoom);
+        var centreY = Mercator.latToWorldY(_camera.lat, zoom);
+        var r = (_width * 0.018).toNumber();
+
+        for (var i = 0; i < pins.size() / 2; i += 1) {
+            var dx = (Mercator.lonToWorldX(Waypoints.lonAt(pins, i), zoom)
+                      - centreX).toFloat();
+            var dy = (Mercator.latToWorldY(Waypoints.latAt(pins, i), zoom)
+                      - centreY).toFloat();
+            var sx;
+            var sy;
+            if (theta != 0.0) {
+                sx = _width / 2.0 + dx * c + dy * sn;
+                sy = _height / 2.0 - dx * sn + dy * c;
+            } else {
+                sx = _width / 2.0 + dx;
+                sy = _height / 2.0 + dy;
+            }
+            if (sx < -10 || sy < -10 || sx > _width + 10 || sy > _height + 10) {
+                continue;
+            }
+            // Outlined, like the position marker: a flat dot disappears into
+            // whatever it lands on, and it lands on roads by definition.
+            dc.setColor(colours[Palette.SLOT_TEXT], Graphics.COLOR_TRANSPARENT);
+            dc.fillCircle(sx.toNumber(), sy.toNumber(), r + 2);
+            dc.setColor(colours[Palette.SLOT_DIM], Graphics.COLOR_TRANSPARENT);
+            dc.fillCircle(sx.toNumber(), sy.toNumber(), r);
+        }
+    }
+
+    //! How far and which way to the nearest pin, from where you are.
+    //!
+    //! Needs a fix: the distance is from *you*, not from the middle of the
+    //! screen, and saying otherwise while panning around would be a lie in the
+    //! one place the app is meant to be trustworthy.
+    hidden function drawNearestPin(dc, colours as Array<Number>) {
+        if (!_tracker.hasFix() || Waypoints.count() == 0) { return; }
+        var pins = Waypoints.all();
+        var i = Waypoints.nearest(_tracker.lat(), _tracker.lon());
+        if (i < 0) { return; }
+
+        var metres = Waypoints.distance(_tracker.lat(), _tracker.lon(),
+                                        Waypoints.latAt(pins, i),
+                                        Waypoints.lonAt(pins, i));
+        var label = metres < 1000
+            ? metres.format("%.0f") + " m"
+            : (metres / 1000.0).format("%.1f") + " km";
+
+        var bearingRad = Waypoints.bearing(_tracker.lat(), _tracker.lon(),
+                                           Waypoints.latAt(pins, i),
+                                           Waypoints.lonAt(pins, i));
+        // Relative to the map's own rotation, so the arrow points at the pin on
+        // screen rather than at a compass bearing the map is not drawn to.
+        var screenBearing = bearingRad - _camera.rotation();
+
+        var cx = _width / 2;
+        var y = (_height * 0.80).toNumber();
+        var size = _width * 0.022;
+        dc.setColor(colours[Palette.SLOT_DIM], Graphics.COLOR_TRANSPARENT);
+        var arrowX = cx - dc.getTextWidthInPixels(label, Graphics.FONT_XTINY) / 2
+                     - size * 2;
+        dc.fillPolygon([
+            rotatePoint(arrowX, y, 0, -size, screenBearing),
+            rotatePoint(arrowX, y, -size * 0.8, size * 0.7, screenBearing),
+            rotatePoint(arrowX, y, size * 0.8, size * 0.7, screenBearing)
+        ]);
+        dc.drawText(cx, y - size * 1.6, Graphics.FONT_XTINY, label,
+                    Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     //! Say why the position marker is not on screen.

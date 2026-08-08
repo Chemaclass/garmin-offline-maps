@@ -6,6 +6,7 @@
     <!-- Why the position marker is not on screen. Without these the app looks
          broken: a missing marker is indistinguishable from a missing feature. -->
     <string id="WaitingForGps">Searching for GPS</string>
+    <string id="PinsFull">No room to save that pin</string>
     <string id="OutsideMap">You are outside this map</string>
 
     <!-- First-run card, shown over the map while the built-in demo pack is the
@@ -29,6 +30,9 @@
     <string id="MenuHeadingUpSub">Rotate the map as you turn</string>
     <string id="MenuNight">Dark theme</string>
     <string id="MenuNightSub">Easier on an AMOLED battery</string>
+    <string id="MenuPin">Drop pin here</string>
+    <string id="MenuPinSub">Saves the middle of the screen</string>
+    <string id="MenuPinsClear">Clear pins</string>
     <string id="MenuStats">Show stats</string>
     <string id="MenuAbout">About this pack</string>
     <string id="MenuCity">Change city</string>
