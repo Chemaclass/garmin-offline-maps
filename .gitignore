@@ -37,3 +37,6 @@ tools/mappack/*.osm
 
 # Personal packs built alongside the committed demo
 mapdata/berlin/
+
+# Local city catalogue for `make catalogue`
+.catalogue/

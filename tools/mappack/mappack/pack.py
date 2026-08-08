@@ -288,7 +288,18 @@ def encode_tile(features: Sequence[TileFeature]) -> bytes:
     out = bytearray()
     out.append(len(by_layer))
     for layer_id in sorted(by_layer):
-        feats = by_layer[layer_id][:MAX_FEATURES_PER_LAYER]
+        feats = by_layer[layer_id]
+        # Raise rather than slice. `select_features` already enforces this cap,
+        # so more than 255 here means that enforcement broke, and silently
+        # dropping the overflow would hide it: the pack would be valid, smaller
+        # than asked for, and wrong in a way nothing reports. Same reasoning as
+        # the tile-count check in `write_directory`.
+        if len(feats) > MAX_FEATURES_PER_LAYER:
+            raise ValueError(
+                "layer %d holds %d features, max %d -- feature selection did "
+                "not apply its per-layer cap"
+                % (layer_id, len(feats), MAX_FEATURES_PER_LAYER)
+            )
         blob = bytearray()
         blob.append(len(feats))
         for feature in feats:

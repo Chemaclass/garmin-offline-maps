@@ -132,3 +132,33 @@ class TestPack(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestFeatureCountCeiling(unittest.TestCase):
+    """The format writes ``feature_count`` as a u8, so a layer tops out at 255.
+
+    ``select_features`` enforces that. ``encode_tile`` used to slice to the same
+    bound as a belt-and-braces measure, which meant a break in that enforcement
+    would produce a pack that was valid, quietly smaller than asked for, and
+    wrong with nothing reported. It raises now, and this pins that.
+    """
+
+    def test_encode_tile_refuses_more_than_255_features_in_a_layer(self):
+        from mappack.pack import MAX_FEATURES_PER_LAYER, TileFeature, encode_tile
+
+        one_too_many = [
+            TileFeature(layer=6, geom_type=1, points=[(0, 0), (1, 1)], importance=1)
+            for _ in range(MAX_FEATURES_PER_LAYER + 1)
+        ]
+        with self.assertRaises(ValueError) as caught:
+            encode_tile(one_too_many)
+        self.assertIn("max %d" % MAX_FEATURES_PER_LAYER, str(caught.exception))
+
+    def test_encode_tile_accepts_exactly_255(self):
+        from mappack.pack import MAX_FEATURES_PER_LAYER, TileFeature, encode_tile
+
+        exactly = [
+            TileFeature(layer=6, geom_type=1, points=[(0, 0), (1, 1)], importance=1)
+            for _ in range(MAX_FEATURES_PER_LAYER)
+        ]
+        self.assertTrue(len(encode_tile(exactly)) > 0)
