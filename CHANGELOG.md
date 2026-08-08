@@ -7,6 +7,10 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [0.5.0] - 2026-08-08
+
 ### Added
 
 - **Waypoints.** Hold the screen, pick "Drop pin here", and the middle of the
@@ -458,7 +462,8 @@ simulator.
 - **Preview renderer**: render a pack to PNG and see what the watch will draw
   before spending time flashing it.
 
-[Unreleased]: https://github.com/Chemaclass/garmin-offline-maps/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/Chemaclass/garmin-offline-maps/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.5.0
 [0.4.0]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.4.0
 [0.3.21]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.21
 [0.3.20]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.20
