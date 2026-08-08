@@ -45,6 +45,26 @@ class MapRenderer {
     //! (docs/DEVICES.md); the rest of that is the blit and the overlay.
     const FRAME_BUDGET_MS = 80;
 
+    //! Hard cap on points decoded in a single tile, atomic tile included.
+    //!
+    //! The watchdog counts interpreted instructions, not milliseconds. Measured
+    //! (issue #2): a busy loop in `onUpdate` is killed after ~12,000 iterations
+    //! and 10 ms, while an ordinary render frame doing draw calls survives
+    //! 80 ms. Both are only consistent if what is counted is work done by the
+    //! interpreter, and `drawLine` is one call into native code however long it
+    //! takes on screen.
+    //!
+    //! Varint decoding is the most instruction-dense thing the renderer does,
+    //! so points decoded is the budget that matters, and the atomic tile had no
+    //! bound on it at all. A street-level pack died in the first tile of the
+    //! lines pass every time (issue #1). Ceilings of 600 ms, 250 ms and 150 ms
+    //! all failed identically, because the kill lands inside every one of them.
+    //!
+    //! Hitting this abandons the tile *and steps over it*. Coming back would
+    //! hit the same cap in the same place for ever, which is the
+    //! never-advances bug this renderer already had once.
+    const TILE_POINT_CAP = 200;
+
     //! Checked every 16 points rather than every point: `getTimer` in the inner
     //! loop of the hot path would itself cost more than it saves. Each point is
     //! a `drawLine`, so 16 of them is already real work.
@@ -73,6 +93,11 @@ class MapRenderer {
     //! True while drawing the one tile a frame owes the map regardless of the
     //! clock. See the note in `render`.
     hidden var _atomicTile;
+    //! Points decoded in the tile being drawn. Per tile, unlike `_passWork`
+    //! which is per pass. See `TILE_POINT_CAP`.
+    hidden var _tilePoints;
+    //! Set when a tile hit `TILE_POINT_CAP`, so `render` steps over it.
+    hidden var _tileAbandoned;
 
     function initialize() {
         _segments = 0;
@@ -84,6 +109,8 @@ class MapRenderer {
         _cursorTileX = null;
         _complete = false;
         _atomicTile = false;
+        _tilePoints = 0;
+        _tileAbandoned = false;
     }
 
     //! Has the whole view been drawn? False means the buffer holds a partial
@@ -244,11 +271,19 @@ class MapRenderer {
                              halfW, halfH, cosT, sinT, width, height, budget);
                     drewOne = true;
                     if (_passTruncated) {
-                        // Stopped inside this tile. Come back to it: next frame
-                        // it will be the atomic one and will finish.
                         _cursorPass = pass;
                         _cursorTileY = tileY;
-                        _cursorTileX = tileX;
+                        if (_tileAbandoned) {
+                            // Hit the point cap. Coming back means hitting it
+                            // again in the same place, so step over it and
+                            // leave a hole. See `TILE_POINT_CAP`.
+                            _tileAbandoned = false;
+                            _cursorTileX = tileX + 1;
+                        } else {
+                            // Stopped on the frame budget. Come back to it:
+                            // next frame it is the atomic one and finishes.
+                            _cursorTileX = tileX;
+                        }
                         return;
                     }
                 }
@@ -276,6 +311,7 @@ class MapRenderer {
             return;
         }
         if (pass == PASS_AREAS) { _tilesDrawn += 1; }
+        _tilePoints = 0;
 
         // Screen position of this tile's top-left corner, relative to centre.
         var originX = (tileX * Mercator.TILE_SIZE - centreX) * scale;
@@ -347,6 +383,11 @@ class MapRenderer {
                 // comes back for it. Frames are kept short between tiles
                 // instead, where stopping costs nothing. `budget` survives as
                 // the guard against a single tile being absurd.
+                if (_tilePoints > TILE_POINT_CAP) {
+                    _tileAbandoned = true;
+                    _passTruncated = true;
+                    return;
+                }
                 if (!_atomicTile && (_passWork > budget || outOfTime())) {
                     _passTruncated = true;
                     return;
@@ -402,6 +443,7 @@ class MapRenderer {
             // the app. A map that is merely off centre must not cost more than
             // one that is not.
             _passWork += 1;
+            _tilePoints += 1;
             if (i > 0 && (inside || prevInside)) {
                 dc.drawLine(prevSx.toNumber(), prevSy.toNumber(), sx.toNumber(), sy.toNumber());
                 _segments += 1;

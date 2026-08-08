@@ -7,7 +7,14 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-Nothing yet.
+### Fixed
+
+- **Dense maps draw instead of stopping the app.** A street-level city map
+  killed the app the moment it started drawing roads. The limit it was
+  overrunning was measured in the wrong thing: the watch counts the work done,
+  not the time taken, and one piece of map had no limit on that work at all.
+  A piece that would overrun is now cut short and the map moves on, so a
+  crowded corner costs a little missing detail rather than the whole app.
 
 ## [0.3.21] - 2026-08-06
 
