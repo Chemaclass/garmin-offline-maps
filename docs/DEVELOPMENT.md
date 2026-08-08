@@ -263,6 +263,32 @@ frame timing: a render that looks fine here can still fail to allocate its
 buffer on the device. The Connect IQ simulator is the better tool when it runs;
 this is what you use when it does not.
 
+## Exercising the follow path
+
+The simulator produces **no GPS fix and no compass heading**, so `onFix` returns
+at its first guard and `pollHeading` never reports a change. The whole
+follow-the-user path is dead code under `make sim`, however many frames you run.
+Two bugs shipped through that gap in one month.
+
+`source/DevTools.mc` feeds synthetic ones. Set `ENABLED = true`, rebuild, run:
+
+```bash
+make build DEVICE=venu3 && make sim
+```
+
+It injects a fix every second, jittered by a few metres around the **centre of
+the active pack** (a position outside the pack is culled by `Camera.contains`,
+which leaves the path exactly as dead as no position at all), and turns the
+heading 7 degrees a tick, which clears `pollHeading`'s 5 degree threshold.
+
+**Read `restarts` on the Stats overlay.** Standing still it must stay put. A
+render restart discards a part-drawn map and begins again at the areas pass, so
+one arriving every second means the lines pass never runs: water and parks on
+screen, no streets. Measured with the harness against current code: 1 restart
+across ~100 fixes. Before the fixes it was one per fix.
+
+Set `ENABLED` back to false before committing.
+
 ## Exercising the download path
 
 A compiled-in pack and a downloaded one are not the same code path. Blocks

@@ -104,6 +104,11 @@ class OfflineMapsApp extends Application.AppBase {
         _timer = new Timer.Timer();
         _timer.start(method(:onTick), HEADING_POLL_MS, true);
 
+        // No-op unless DevTools.ENABLED. Feeds synthetic fixes and headings so
+        // the follow path can be exercised at all; see DevTools.mc for why the
+        // simulator cannot.
+        DevTools.start(_tracker);
+
         // `pickCity` goes down with the delegate, the same way `onFix` goes to
         // the tracker and `onCityChosen` to the picker. Handed down rather than
         // reached up for: `MapMenuDelegate.onSelect` names the cycle this
@@ -442,6 +447,7 @@ class OfflineMapsApp extends Application.AppBase {
             _timer.stop();
             _timer = null;
         }
+        DevTools.stop();
         // The GPS receiver is the one that costs real battery, so it goes off
         // first and unconditionally.
         if (_tracker != null) {

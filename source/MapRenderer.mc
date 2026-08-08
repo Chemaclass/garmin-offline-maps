@@ -103,6 +103,17 @@ class MapRenderer {
     hidden var _tilePoints;
     //! Set when a tile hit `TILE_POINT_CAP`, so `render` steps over it.
     hidden var _tileAbandoned;
+    //! How many times the picture has been thrown away and begun again.
+    //!
+    //! The number that catches the bug this renderer keeps having. A restart
+    //! discards everything drawn so far and begins at `PASS_AREAS`, so a caller
+    //! invalidating faster than the map completes means it never completes:
+    //! water and parks on screen and no streets, indefinitely. That has shipped
+    //! twice, from the compass and from GPS, and both times a count would have
+    //! said so immediately where the picture only looked like missing layers.
+    //!
+    //! Never reset. It is a lifetime count, read off the Stats overlay.
+    hidden var _restarts;
 
     function initialize() {
         _segments = 0;
@@ -116,6 +127,7 @@ class MapRenderer {
         _atomicTile = false;
         _tilePoints = 0;
         _tileAbandoned = false;
+        _restarts = 0;
     }
 
     //! Has the whole view been drawn? False means the buffer holds a partial
@@ -123,6 +135,8 @@ class MapRenderer {
     function complete() { return _complete; }
 
     function segmentsDrawn() { return _segments; }
+    //! Lifetime count of renders begun from nothing. See `_restarts`.
+    function restarts() { return _restarts; }
     function tilesDrawn() { return _tilesDrawn; }
 
     //! Did the last render stop on the clock? Worth knowing: it means the map
@@ -163,6 +177,7 @@ class MapRenderer {
 
         var colours = Palette.colours(camera.night);
         if (restart) {
+            _restarts += 1;
             _segments = 0;
             _tilesDrawn = 0;
             _complete = false;

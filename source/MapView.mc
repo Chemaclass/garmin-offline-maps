@@ -648,7 +648,10 @@ class MapView extends WatchUi.View {
             "z" + _camera.zoom + "   " + _renderer.segmentsDrawn() + " seg   "
                 + _renderMs + " ms",
             _renderer.tilesDrawn() + " tiles   "
-                + (_renderer.complete() ? "done" : "...")
+                + (_renderer.complete() ? "done" : "..."),
+            // Restarts climbing while the map sits still is the signature of
+            // the bug this renderer keeps having. See MapRenderer._restarts.
+            _renderer.restarts() + " restarts" 
         ];
         var pitch = _height * 0.075;
         var top = _height * 0.30;

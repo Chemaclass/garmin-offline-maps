@@ -122,6 +122,28 @@ class LocationTracker {
         }
     }
 
+    //! Push a position in as though the receiver had produced one.
+    //!
+    //! Exists for `DevTools`, which is the only caller: the simulator emits no
+    //! fix at all, so the follow path cannot otherwise be exercised without a
+    //! wrist outdoors. Goes through the same `_onFix` callback a real fix does,
+    //! which is the point -- a harness that bypassed it would prove nothing.
+    function injectFix(newLat, newLon) {
+        _lat = newLat;
+        _lon = newLon;
+        _hasFix = true;
+        if (_onFix != null) { _onFix.invoke(); }
+    }
+
+    //! Push a heading in, in radians. See `injectFix`.
+    //!
+    //! Sets `_hasHeading` so `pollHeading` compares against it and reports a
+    //! change, which is what drives the heading-up redraw path.
+    function injectHeading(radians) {
+        _heading = radians;
+        _hasHeading = true;
+    }
+
     //! Poll the compass. Called on a timer rather than via sensor events so we
     //! are not woken up more often than the map can redraw.
     //! Returns true when the heading moved enough to be worth a repaint.

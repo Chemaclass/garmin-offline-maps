@@ -96,14 +96,19 @@ that line before drawing conclusions.
 
 Every one of these has shipped a bug.
 
-- **No GPS fix, ever.** `LocationTracker.onPosition` never fires, `hasFix()`
-  stays false, `onFix` returns at its first guard. The entire follow path is
-  dead code. To exercise it, drive the callback directly: a `Timer` at 1 Hz
-  invoking `_onFix` with a hardcoded lat/lon **inside the active pack** plus a
-  few metres of jitter. Outside the pack, `Camera.contains` culls it and the
-  path stays dead anyway.
-- **No compass heading.** `pollHeading` never reports a change, so heading-up
-  mode is untested by any simulator run.
+- **No GPS fix and no compass heading.** `LocationTracker.onPosition` never
+  fires, `hasFix()` stays false, `onFix` returns at its first guard, and
+  `pollHeading` never reports a change. The entire follow path is dead code.
+
+  `source/DevTools.mc` exists for this: set `ENABLED = true`, rebuild, and it
+  injects a jittered fix every second around the **centre of the active pack**
+  plus a turning heading. Centred on the pack because `Camera.contains` culls a
+  position outside it, which leaves the path just as dead as none at all. Set it
+  back to false before committing.
+
+  Then read **`restarts`** on the Stats overlay. Standing still it must stay
+  put; one per second is the bug. Against current code the harness measures 1
+  restart across ~100 fixes.
 - **A downloaded pack is not a compiled-in pack.** Different code path: blocks
   arrive over HTTP, live in `Application.Storage`, and are decoded at runtime.
   `make catalogue CITY=Berlin` serves one so the app can download it.
