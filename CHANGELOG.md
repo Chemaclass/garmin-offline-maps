@@ -7,6 +7,10 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [0.4.0] - 2026-08-08
+
 ### Changed
 
 - **The map follows you smoothly instead of jumping.** Following used to cost a
@@ -447,7 +451,8 @@ simulator.
 - **Preview renderer**: render a pack to PNG and see what the watch will draw
   before spending time flashing it.
 
-[Unreleased]: https://github.com/Chemaclass/garmin-offline-maps/compare/v0.3.21...HEAD
+[Unreleased]: https://github.com/Chemaclass/garmin-offline-maps/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.4.0
 [0.3.21]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.21
 [0.3.20]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.20
 [0.3.19]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.3.19
