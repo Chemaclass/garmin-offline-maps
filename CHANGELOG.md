@@ -9,6 +9,12 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **The map follows you smoothly instead of jumping.** Following used to cost a
+  full redraw, so it was rationed: the map sat still until you had moved about
+  17 metres, then jumped. It now slides under you as each fix arrives and only
+  redraws once you have gone far enough to need it, roughly 60 metres at street
+  zoom. Smoother, and fewer redraws than before.
+
 - **Downloaded cities keep their side streets.** A city downloaded to the watch
   spent almost its whole budget on main roads: inside Berlin's Ringbahn it
   carried 220 residential streets against several thousand arterials, so once

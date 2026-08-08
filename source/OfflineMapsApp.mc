@@ -386,20 +386,40 @@ class OfflineMapsApp extends Application.AppBase {
     //! needs a real receiver and a pack you are actually standing in, which is
     //! to say a wrist in Berlin.
     //!
-    //! About 17 m, which is a few pixels at the zooms a downloaded city allows.
-    //! GPS jitter sits well inside it; walking clears it in ten seconds or so.
-    const FOLLOW_MIN_DEGREES = 0.00015;
+    //! About 2 m. Jitter while standing still sits inside it, so a watch on a
+    //! table stops touching the map at all.
+    //!
+    //! It used to be 17 m, because following meant a full redraw and one was
+    //! rationed. It does not any more: `MapView.shiftBy` slides the buffer and
+    //! only redraws once the offset has built up, so tracking can be as fine as
+    //! the receiver is without costing anything.
+    const FOLLOW_MIN_DEGREES = 0.00002;
 
     function onFix() {
         if (_camera == null || _view == null) { return; }
         if (!_camera.follow || !_tracker.hasFix()) { return; }
         if (!Camera.contains(_tracker.lat(), _tracker.lon())) { return; }
-        if (!movedEnough(_tracker.lat(), _tracker.lon())) { return; }
-        _camera.centreOn(_tracker.lat(), _tracker.lon());
-        // Deferred, for the same reason as the compass: a fix that lands while
-        // the map is still drawing waits for it to finish rather than throwing
-        // it away. See `MapView.redrawWhenIdle`.
-        _view.redrawWhenIdle();
+        var newLat = _tracker.lat();
+        var newLon = _tracker.lon();
+        if (!movedEnough(newLat, newLon)) { return; }
+
+        // How far the map has to slide to keep showing the same ground under a
+        // new centre. World units at the display zoom are screen pixels, which
+        // is the same identity `Camera.panPixels` relies on.
+        var dx = Mercator.lonToWorldX(_camera.lon, _camera.zoom)
+                 - Mercator.lonToWorldX(newLon, _camera.zoom);
+        var dy = Mercator.latToWorldY(_camera.lat, _camera.zoom)
+                 - Mercator.latToWorldY(newLat, _camera.zoom);
+
+        _camera.centreOn(newLat, newLon);
+
+        // Slide if it fits, and only fall back to a redraw when it does not.
+        // Deferred even then, for the same reason as the compass: a fix landing
+        // mid-draw waits rather than throwing the picture away. See
+        // `MapView.shiftBy` and `MapView.redrawWhenIdle`.
+        if (!_view.shiftBy(dx, dy)) {
+            _view.redrawWhenIdle();
+        }
         WatchUi.requestUpdate();
     }
 

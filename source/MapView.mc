@@ -13,6 +13,25 @@ import Toybox.WatchUi;
 //! blit the same buffer at an offset and re-render when you let go.
 class MapView extends WatchUi.View {
 
+    //! How far the buffer may be blitted off-centre before it is redrawn.
+    //!
+    //! Following you does not need a redraw. The buffer holds the map drawn
+    //! about one centre, and blitting it a few pixels over shows the same map
+    //! about a different one, exactly: a world point lands at
+    //! `(P - C1) + half + (C1 - C2)`, which is `(P - C2) + half`. That is what
+    //! dragging already does with `_dragX`/`_dragY` while a finger is down.
+    //!
+    //! The cost is an unpainted band along the trailing edge, at most this
+    //! wide, and it is the same artefact a drag shows. On a 390 px round screen
+    //! 24 px of it sits largely outside the bezel.
+    //!
+    //! The gain runs both ways. Following used to demand a restart, which the
+    //! renderer answers over many frames, so it was rationed to moves worth
+    //! paying for: 17 m at a time, in jumps. Now a fix slides the map at once
+    //! and a redraw waits until the offset has built up, which at zoom 16 is
+    //! about 60 m. Smoother *and* fewer redraws.
+    const FOLLOW_REDRAW_PX = 24;
+
     //! Fraction of the screen radius at which the round buttons sit.
     const BUTTON_ORBIT = 0.345;
     const BUTTON_RADIUS = 0.095;
@@ -32,6 +51,10 @@ class MapView extends WatchUi.View {
     hidden var _dragX;
     hidden var _dragY;
     hidden var _dragging;
+    //! Pixels between where the buffer was drawn and where the camera now is.
+    //! Added to the drag offset at blit time. See `FOLLOW_REDRAW_PX`.
+    hidden var _followX;
+    hidden var _followY;
 
     hidden var _width;
     hidden var _height;
@@ -56,6 +79,31 @@ class MapView extends WatchUi.View {
         _showDebug = false;
         _diagShown = null;
         _rotationPending = false;
+        _followX = 0;
+        _followY = 0;
+    }
+
+    //! The camera moved a little; slide the buffer instead of redrawing it.
+    //!
+    //! Takes a screen-pixel delta. Returns true when it absorbed the move, so
+    //! the caller knows no redraw is needed. Once the accumulated offset passes
+    //! `FOLLOW_REDRAW_PX` it gives up and asks for a real redraw, because the
+    //! unpainted trailing band would start to show.
+    //!
+    //! Only for north-up. Under heading-up the buffer is drawn rotated, so a
+    //! world delta is not a screen delta, and a turn of the wrist is going to
+    //! force a redraw anyway.
+    function shiftBy(dx, dy) {
+        if (_camera.headingUp || !_useBuffer) { return false; }
+        var nx = _followX + dx;
+        var ny = _followY + dy;
+        if (nx > FOLLOW_REDRAW_PX || nx < -FOLLOW_REDRAW_PX
+                || ny > FOLLOW_REDRAW_PX || ny < -FOLLOW_REDRAW_PX) {
+            return false;
+        }
+        _followX = nx;
+        _followY = ny;
+        return true;
     }
 
     //! Throw away the picture and draw it again from nothing.
@@ -69,7 +117,13 @@ class MapView extends WatchUi.View {
     //!
     //! If your caller fires on a timer, a sensor or a fix, you want
     //! `redrawWhenIdle` instead.
-    function redrawFromScratch() { _dirty = true; }
+    function redrawFromScratch() {
+        _dirty = true;
+        // The buffer is about to be drawn about the current centre, so the
+        // offset that was standing in for that is spent.
+        _followX = 0;
+        _followY = 0;
+    }
 
     //! Redraw, but never at the cost of finishing the picture.
     //!
@@ -280,7 +334,7 @@ class MapView extends WatchUi.View {
                         if (!_renderer.complete()) { WatchUi.requestUpdate(); }
                     }
                     Ui.clear(dc, colours);
-                    dc.drawBitmap(_dragX, _dragY, bitmap);
+                    dc.drawBitmap(_dragX + _followX, _dragY + _followY, bitmap);
                 } catch (ex) {
                     // Deliberately wide -- the blit is as likely to run out of
                     // graphics memory as the render -- so a real drawing bug
