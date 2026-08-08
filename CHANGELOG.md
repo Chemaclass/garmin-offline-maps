@@ -7,6 +7,16 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **Downloaded cities keep their side streets.** A city downloaded to the watch
+  spent almost its whole budget on main roads: inside Berlin's Ringbahn it
+  carried 220 residential streets against several thousand arterials, so once
+  you left a main road there was nothing on screen to place you. Roads are now
+  chosen so that side streets get a share of the space, which gives about
+  eleven times as many of them in the same download. Main roads thin out a
+  little in the densest areas. Rebuild or re-download a city to get this.
+
 ### Fixed
 
 - **Dense maps draw instead of stopping the app.** A street-level city map

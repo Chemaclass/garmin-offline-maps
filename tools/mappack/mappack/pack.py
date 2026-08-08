@@ -43,7 +43,7 @@ from dataclasses import dataclass
 from typing import Dict, List, Sequence, Tuple
 
 from . import geom
-from .classify import GEOM_POLYGON, L_BUILDING, Klass, classify
+from .classify import GEOM_POLYGON, L_BUILDING, L_MINOR, L_PATH, Klass, classify
 from .decode import decode_tile
 from .varint import encode_points, write_u16
 
@@ -66,6 +66,37 @@ MAX_FEATURES_PER_LAYER = 255
 #: as a green field with no roads on it. Reserving the rest for lines means a
 #: map you can still navigate by, whatever the landcover looks like.
 AREA_BUDGET_SHARE = 0.35
+
+#: Share of a tile's point budget reserved for minor roads.
+#:
+#: The same starvation as AREA_BUDGET_SHARE, one level down. Features are taken
+#: in importance order, and a primary is 90 against a residential's 45, so in a
+#: dense tile the majors spend the budget before a single side street is
+#: considered. Measured on a downloadable Berlin: residential roads came to
+#: 2.6% of kept points, 220 features for everything inside the Ringbahn, while
+#: primary and secondary took 77% between them. That is a map of arterials with
+#: nothing to navigate by once you leave one.
+#:
+#: This is a floor rather than a cap, so it is spent as a ceiling on everything
+#: else: areas and major roads share `major_budget`, minors draw on whatever
+#: remains. Nothing is wasted when a tile has no minor roads in it, because the
+#: total budget is still the binding constraint.
+#:
+#: 0.30 is measured. Downloadable Berlin, same profile and the same ~17,450
+#: points throughout, so this only decides how they are spent:
+#:
+#:     share   residential   secondary/tertiary   primary
+#:     0.00           220                 3,659     3,035     <- before
+#:     0.20         1,710                 2,632     2,722
+#:     0.30         2,503                 2,201     2,482     <- this
+#:     0.40         3,293                 1,803     2,193
+#:     0.50         4,053                 1,398     1,865
+#:
+#: 0.30 puts the three road classes within a few hundred features of each
+#: other. Further than that starts cutting the arterials a downloaded city is
+#: mostly for: it is an orientation map first, and you navigate by main roads
+#: and recognise the last block by side streets, not the other way round.
+MINOR_BUDGET_SHARE = 0.30
 
 #: magic, version, zoom, block_log2, u16 block_x, u16 block_y, tile count.
 #: Mirrors `MapFormat.HEADER_BYTES` in source/TileReader.mc.
@@ -245,6 +276,11 @@ def build_tiles(
         feats.sort(key=lambda f: (-f.importance, -len(f.points)))
         budget = options.max_points_per_tile
         area_budget = int(options.max_points_per_tile * AREA_BUDGET_SHARE)
+        # What everything except minor roads may take between them; the
+        # remainder is held back for them. See MINOR_BUDGET_SHARE.
+        major_budget = options.max_points_per_tile - int(
+            options.max_points_per_tile * MINOR_BUDGET_SHARE
+        )
         per_layer: Dict[int, int] = {}
         chosen: List[TileFeature] = []
         for feat in feats:
@@ -264,6 +300,14 @@ def build_tiles(
                     dropped_points += len(feat.points)
                     continue
                 area_budget -= len(feat.points)
+            # Minor roads draw on the whole remaining budget; everything else
+            # is capped so that something is left for them. See
+            # MINOR_BUDGET_SHARE.
+            if feat.layer not in (L_PATH, L_MINOR):
+                if len(feat.points) > major_budget:
+                    dropped_points += len(feat.points)
+                    continue
+                major_budget -= len(feat.points)
             budget -= len(feat.points)
             per_layer[feat.layer] = count + 1
             chosen.append(feat)
