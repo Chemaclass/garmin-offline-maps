@@ -16,7 +16,13 @@
     "at street level is ~2.7 MB per watch: five fit, twenty-four do not.",
     "",
     "bbox is west,south,east,north. tools/build-city.sh fails the build if the",
-    "packer warns or the .iq overruns."
+    "packer warns or the .iq overruns.",
+    "",
+    "max-points-per-tile must stay at or below MapRenderer.TILE_POINT_CAP. The",
+    "renderer abandons a tile that runs past that cap and steps over it, so a",
+    "packer budget above it means every dense tile is drawn part way and then",
+    "skipped -- a permanently thinner map that looks like sparse data rather",
+    "than a fault. 700 did exactly that. Nothing enforces this pairing yet."
   ],
   "cities": {
     "berlin": {
@@ -26,7 +32,7 @@
       "bbox": "13.30,52.47,13.48,52.56",
       "zooms": "12,14,16",
       "simplify": "2.0",
-      "extra": "--max-points-per-tile 700 --cache berlin.osm",
+      "extra": "--max-points-per-tile 200 --cache berlin.osm",
       "note": "Inside the Ringbahn. Dense: needs the tighter point budget to keep the renderer from truncating before it covers the screen.",
       "products": [
         "venu3",
