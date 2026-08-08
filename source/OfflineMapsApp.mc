@@ -357,7 +357,7 @@ class OfflineMapsApp extends Application.AppBase {
         if (_store != null) { _store.clear(); }
         if (_camera != null) { _camera.resetToPack(); }
         if (_view != null) {
-            _view.invalidate();
+            _view.redrawFromScratch();
             WatchUi.requestUpdate();
         }
     }
@@ -393,8 +393,8 @@ class OfflineMapsApp extends Application.AppBase {
         _camera.centreOn(_tracker.lat(), _tracker.lon());
         // Deferred, for the same reason as the compass: a fix that lands while
         // the map is still drawing waits for it to finish rather than throwing
-        // it away. See `MapView.invalidateWhenIdle`.
-        _view.invalidateWhenIdle();
+        // it away. See `MapView.redrawWhenIdle`.
+        _view.redrawWhenIdle();
         WatchUi.requestUpdate();
     }
 
@@ -421,11 +421,11 @@ class OfflineMapsApp extends Application.AppBase {
         if (_camera == null || _view == null || !_camera.headingUp) { return; }
         if (_tracker.pollHeading()) {
             _camera.heading = _tracker.heading();
-            // Not `invalidate`: this fires once a second on a five degree
+            // Not `redrawFromScratch`: this fires once a second on five degrees
             // change, which a wrist clears just by moving, and restarting the
             // render that often means it never reaches the pass that draws the
-            // streets. See `MapView.invalidateWhenIdle`.
-            _view.invalidateWhenIdle();
+            // streets. See `MapView.redrawWhenIdle`.
+            _view.redrawWhenIdle();
             WatchUi.requestUpdate();
         }
     }

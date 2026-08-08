@@ -52,12 +52,12 @@ class MapMenuDelegate extends WatchUi.Menu2InputDelegate {
         // ToggleMenuItems, and only that subtype carries isEnabled().
         if (id == :headingUp) {
             _camera.headingUp = (item as ToggleMenuItem).isEnabled();
-            _view.invalidate();
+            _view.redrawFromScratch();
         } else if (id == :night) {
             _camera.night = (item as ToggleMenuItem).isEnabled();
             // The buffer is unpaletted, so a theme change is a repaint: no
             // need to throw the allocation away and take it again.
-            _view.invalidate();
+            _view.redrawFromScratch();
         } else if (id == :city) {
             WatchUi.popView(WatchUi.SLIDE_DOWN);
             // The app owns the downloader and the pack, so it drives this, but

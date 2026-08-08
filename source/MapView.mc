@@ -26,7 +26,7 @@ class MapView extends WatchUi.View {
     hidden var _useBuffer;
     hidden var _dirty;
     //! A rotation that arrived mid-render and is waiting for it to finish.
-    //! See `invalidateWhenIdle`.
+    //! See `redrawWhenIdle`.
     hidden var _rotationPending;
 
     hidden var _dragX;
@@ -58,9 +58,20 @@ class MapView extends WatchUi.View {
         _rotationPending = false;
     }
 
-    function invalidate() { _dirty = true; }
+    //! Throw away the picture and draw it again from nothing.
+    //!
+    //! Named for what it costs. The map is built over many frames, areas before
+    //! lines, and this restarts at the first of them: everything drawn so far
+    //! goes. That is right for a view that actually moved (a zoom, a pan, a new
+    //! pack) and wrong for anything that repeats, because a restart arriving
+    //! faster than the map completes means it never completes. Twice this month
+    //! that shipped as a map of water with no streets on it.
+    //!
+    //! If your caller fires on a timer, a sensor or a fix, you want
+    //! `redrawWhenIdle` instead.
+    function redrawFromScratch() { _dirty = true; }
 
-    //! Invalidate, but never at the cost of finishing the picture.
+    //! Redraw, but never at the cost of finishing the picture.
     //!
     //! For a change that is only worth showing once the map is drawn, which is
     //! what a turn of the wrist is. The passes run in order, areas then lines,
@@ -77,7 +88,7 @@ class MapView extends WatchUi.View {
     //! Deferring costs a stale rotation for the rest of the current render,
     //! which is a second or two of the map pointing where you were facing
     //! rather than where you are. Losing the streets costs the map.
-    function invalidateWhenIdle() {
+    function redrawWhenIdle() {
         if (_renderer.complete()) {
             _dirty = true;
         } else {
@@ -250,7 +261,7 @@ class MapView extends WatchUi.View {
                         // its restart now that there is a finished picture to
                         // replace. Deferred rather than dropped: dropping it
                         // would leave the map pointing the wrong way until
-                        // something else happened to invalidate.
+                        // something else happened to trigger a redraw.
                         if (_rotationPending && _renderer.complete()) {
                             _rotationPending = false;
                             _dirty = true;

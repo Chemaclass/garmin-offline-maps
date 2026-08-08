@@ -125,7 +125,7 @@ class MapDelegate extends WatchUi.InputDelegate {
     //! Take down the first-run card if it is up. True when it was, so callers
     //! can spend the gesture on that instead of on whatever it covers.
     //!
-    //! No `_view.invalidate()`: the map buffer underneath is already rendered
+    //! No `_view.redrawFromScratch()`: the map buffer underneath is already rendered
     //! and unchanged, so this is only the overlay going away.
     hidden function dismissTip() {
         if (!Onboarding.shouldShow()) { return false; }
@@ -138,7 +138,7 @@ class MapDelegate extends WatchUi.InputDelegate {
     //! is six Storage writes that each need transient heap; MapView.onHide()
     //! and the app's onStop() persist instead.
     hidden function refresh() {
-        _view.invalidate();
+        _view.redrawFromScratch();
         WatchUi.requestUpdate();
     }
 
