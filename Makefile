@@ -82,7 +82,7 @@ ZOOMS       ?= 12,14,16
 SIMPLIFY    ?= 1.0
 EXTRA       ?=
 
-.PHONY: help doctor key pack demo build watch sim serve city catalogue package test lint clean distclean
+.PHONY: help doctor key pack demo build watch sim serve city catalogue package test lint regression clean distclean
 
 help:
 	@echo "Targets:"
@@ -96,6 +96,7 @@ help:
 	@echo "  make package     build the .iq bundle for the Connect IQ store"
 	@echo "  make city        build one city's store bundle (CITY=berlin)"
 	@echo "  make test        run the packer test suite"
+	@echo "  make regression  every gate at once (SIM=1 also runs the simulator)"
 	@echo "  make lint        byte-compile the packer"
 	@echo "  make doctor      report which toolchain pieces are missing"
 	@echo "  make clean       remove build output"
@@ -243,6 +244,16 @@ endif
 	@echo ">> serving $(CAT_DIR) on http://127.0.0.1:$(CAT_PORT) -- Ctrl-C to stop"
 	@echo ">> set packBaseUrl to that in the simulator's Application Settings"
 	cd $(CAT_DIR) && $(PYTHON) -m http.server $(CAT_PORT) --bind 127.0.0.1
+
+# Every gate in one run: tests, lint, the generated-artefact diff, the version
+# contract, warning-free builds across screen sizes, and the store bundle.
+# SIM=1 additionally runs both shipping pack shapes in the simulator, which is
+# the only part that catches a map that compiles and then draws the wrong thing.
+#
+#   make regression
+#   make regression SIM=1
+regression:
+	@tools/regression.sh $(if $(SIM),--sim,)
 
 package: $(KEY)
 	@mkdir -p $(BIN)
