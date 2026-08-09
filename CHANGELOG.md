@@ -9,6 +9,17 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 Nothing yet.
 
+## [0.5.2] - 2026-08-09
+
+### Fixed
+
+- **The map finishes drawing itself.** The map arrives a piece at a time, and
+  the app could decide it had finished while most of the pieces were still on
+  their way, then stop and leave what little it had on screen. That is the
+  screen of water with no streets on it. It now knows the difference between a
+  piece with nothing in it and one that has not arrived yet, and it keeps going
+  until the map is actually there.
+
 ## [0.5.1] - 2026-08-08
 
 ### Fixed
@@ -473,7 +484,8 @@ simulator.
 - **Preview renderer**: render a pack to PNG and see what the watch will draw
   before spending time flashing it.
 
-[Unreleased]: https://github.com/Chemaclass/garmin-offline-maps/compare/v0.5.1...HEAD
+[Unreleased]: https://github.com/Chemaclass/garmin-offline-maps/compare/v0.5.2...HEAD
+[0.5.2]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.5.2
 [0.5.1]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.5.1
 [0.5.0]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.5.0
 [0.4.0]: https://github.com/Chemaclass/garmin-offline-maps/releases/tag/v0.4.0

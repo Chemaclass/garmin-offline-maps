@@ -2,6 +2,7 @@ import Toybox.Graphics;
 import Toybox.Lang;
 import Toybox.Math;
 import Toybox.System;
+import Toybox.Timer;
 import Toybox.WatchUi;
 
 //! The map screen.
@@ -12,6 +13,15 @@ import Toybox.WatchUi;
 //! which is what keeps dragging smooth: while your finger is down we simply
 //! blit the same buffer at an offset and re-render when you let go.
 class MapView extends WatchUi.View {
+
+    //! Gap before the frame that carries on filling the map in.
+    //!
+    //! `TileStore` decodes one block a frame, so a screenful arrives over
+    //! several. Asking for those with `WatchUi.requestUpdate` from inside
+    //! `onUpdate` does not reliably produce one: measured, the map stopped
+    //! after three frames with blocks still outstanding. A timer does produce
+    //! one. Short enough that the map fills in while you look at it.
+    const FILL_GAP_MS = 40;
 
     //! How far the buffer may be blitted off-centre before it is redrawn.
     //!
@@ -55,6 +65,8 @@ class MapView extends WatchUi.View {
     //! Added to the drag offset at blit time. See `FOLLOW_REDRAW_PX`.
     hidden var _followX;
     hidden var _followY;
+    //! Pending timer for the next fill-in frame. See `FILL_GAP_MS`.
+    hidden var _fillTimer;
 
     hidden var _width;
     hidden var _height;
@@ -81,6 +93,29 @@ class MapView extends WatchUi.View {
         _rotationPending = false;
         _followX = 0;
         _followY = 0;
+        _fillTimer = null;
+    }
+
+    //! Ask for the next fill-in frame, through a timer. See `FILL_GAP_MS`.
+    hidden function scheduleFill() {
+        if (_fillTimer != null) { return; }
+        _fillTimer = new Timer.Timer();
+        _fillTimer.start(method(:onFillTimer), FILL_GAP_MS, false);
+    }
+
+    //! Annotated because `Timer.start` requires a `Method() as Void`.
+    function onFillTimer() as Void {
+        _fillTimer = null;
+        WatchUi.requestUpdate();
+    }
+
+    //! Stop filling in. Called wherever the view leaves the screen, so a timer
+    //! cannot outlive it.
+    hidden function stopFill() {
+        if (_fillTimer != null) {
+            _fillTimer.stop();
+            _fillTimer = null;
+        }
     }
 
     //! The camera moved a little; slide the buffer instead of redrawing it.
@@ -158,6 +193,7 @@ class MapView extends WatchUi.View {
     //! a collector to notice. `onShow` takes a new one, so the view still works
     //! if it comes back.
     function release() {
+        stopFill();
         _bufferRef = null;
         _useBuffer = false;
         _dirty = true;
@@ -331,7 +367,7 @@ class MapView extends WatchUi.View {
                         // between frames now, so asking again is not a spin: the
                         // renderer resumes where it stopped and eventually says
                         // it is done.
-                        if (!_renderer.complete()) { WatchUi.requestUpdate(); }
+                        if (!_renderer.complete()) { scheduleFill(); }
                     }
                     Ui.clear(dc, colours);
                     dc.drawBitmap(_dragX + _followX, _dragY + _followY, bitmap);
@@ -404,6 +440,7 @@ class MapView extends WatchUi.View {
     //! Persist here rather than on every zoom press: Storage writes are
     //! expensive and need transient heap well beyond the payload size.
     function onHide() {
+        stopFill();
         Settings.save(_camera);
     }
 
