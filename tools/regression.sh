@@ -32,7 +32,8 @@ if [ -n "$(git status --porcelain)" ]; then
 fi
 
 step "Packer"
-make test 2>&1 | tail -3 | grep -q '^OK' && ok "test suite" || bad "make test"
+test_out="$(make test 2>&1)"
+case "$test_out" in *$'\nOK'*|*"OK ("*) ok "test suite" ;; *) bad "make test" ;; esac
 make lint >/dev/null 2>&1 && ok "lint" || bad "make lint"
 
 step "Generated artefacts"
@@ -61,8 +62,14 @@ if command -v monkeyc >/dev/null 2>&1 || [ -n "$(ls -d "$(brew --prefix 2>/dev/n
         count="$(make build DEVICE="$device" 2>&1 | grep -cE 'WARNING|ERROR')"
         [ "$count" = "0" ] && ok "$device" || bad "$device ($count warnings/errors)"
     done
-    make package 2>&1 | grep -q 'BUILD SUCCESSFUL' \
-        && ok "store bundle, every product" || bad "make package"
+    # Captured rather than piped into grep: `grep -q` exits on the first match,
+    # which SIGPIPEs make, and `pipefail` then calls the whole pipeline failed
+    # even though the build succeeded.
+    package_out="$(make package 2>&1)"
+    case "$package_out" in
+        *"BUILD SUCCESSFUL"*) ok "store bundle, every product" ;;
+        *) bad "make package" ;;
+    esac
 else
     echo "  SKIP  no Connect IQ SDK; packer gates above are the whole run"
 fi
