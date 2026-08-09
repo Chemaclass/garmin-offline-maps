@@ -103,6 +103,10 @@ class MapRenderer {
     hidden var _tilePoints;
     //! Set when a tile hit `TILE_POINT_CAP`, so `render` steps over it.
     hidden var _tileAbandoned;
+    //! True when a tile was skipped because its block exists but has not been
+    //! decoded yet. See the note on `_complete` in `render`.
+    hidden var _blocksPending;
+
     //! How many times the picture has been thrown away and begun again.
     //!
     //! The number that catches the bug this renderer keeps having. A restart
@@ -128,6 +132,7 @@ class MapRenderer {
         _tilePoints = 0;
         _tileAbandoned = false;
         _restarts = 0;
+        _blocksPending = false;
     }
 
     //! Has the whole view been drawn? False means the buffer holds a partial
@@ -172,6 +177,7 @@ class MapRenderer {
         _timedOut = false;
         _passWork = 0;
         _passTruncated = false;
+        _blocksPending = false;
 
         store.beginFrame();
 
@@ -313,7 +319,18 @@ class MapRenderer {
             _cursorTileY = minTileY;
             _cursorTileX = minTileX;
         }
-        _complete = true;
+        // Both passes reached the end of the tile range. That is only
+        // "finished" if every tile that had data got to draw it.
+        //
+        // This is what made the segment budget load-bearing. `MAX_SEGMENTS`
+        // truncated the pass, which cost a frame, which let `TileStore` decode
+        // another block, which is the only reason the map ever filled in.
+        // Raise the budget and the render reached the end of the range in one
+        // frame with one block decoded, declared itself complete on 65
+        // segments across 12 tiles, and stopped asking for frames. The map
+        // froze mostly empty, which is exactly the "water and no streets"
+        // report.
+        _complete = !_blocksPending;
     }
 
     //! `colours` is annotated for the same reason as in MapView: it is indexed
@@ -324,6 +341,14 @@ class MapRenderer {
                              halfW, halfH, cosT, sinT, width, height, budget) {
         var block = store.block(dataZoom, tileX >> log2, tileY >> log2);
         if (block == null) {
+            // Null means two different things and the difference is the whole
+            // bug. Outside the pack there is nothing to draw and never will be.
+            // Inside it, `TileStore` throttles decoding to a block a frame, so
+            // this tile has data that has simply not arrived yet, and finishing
+            // the render now would freeze a map that is mostly empty.
+            if (Pack.hasBlock(dataZoom, tileX >> log2, tileY >> log2)) {
+                _blocksPending = true;
+            }
             return;
         }
         var offset = store.tileOffset(block, tileX, tileY, log2);
