@@ -7,7 +7,13 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-Nothing yet.
+### Changed
+
+- **The app covers the Venu family.** A street-level city map is compiled into
+  every watch the app supports, and it is far bigger than the demo map, so the
+  store's size limit decided the rest: Venu 2, 2S, 2 Plus, 3, 3S, Venu (41 and
+  45 mm) and Venu Sq 2. Forerunner and vivoactive models are no longer covered
+  by this listing.
 
 ## [0.5.2] - 2026-08-09
 
