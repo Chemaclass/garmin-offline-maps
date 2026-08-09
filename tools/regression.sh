@@ -54,11 +54,12 @@ grep -q "## \[$version\]" CHANGELOG.md \
     || bad "Version.mc $version is not in CHANGELOG.md"
 
 step "Builds, warning-free"
-# A spread rather than all 24: one per screen size and family, which is where
-# per-device resource and layout problems show up. `make package` covers the
-# rest.
+# Read from the manifest rather than hardcoded, or the list drifts the moment
+# the listing's products change and the run fails on devices it no longer
+# builds. Capped at eight so a full run stays a few minutes; `make package`
+# covers every product anyway.
 if command -v monkeyc >/dev/null 2>&1 || [ -n "$(ls -d "$(brew --prefix 2>/dev/null)"/Caskroom/connectiq 2>/dev/null)" ]; then
-    for device in venu3 venu3s venu2 fr165 vivoactive5 venusq2 fr965; do
+    for device in $(grep -o 'iq:product id="[^"]*"' manifest.xml | cut -d'"' -f2 | head -8); do
         count="$(make build DEVICE="$device" 2>&1 | grep -cE 'WARNING|ERROR')"
         [ "$count" = "0" ] && ok "$device" || bad "$device ($count warnings/errors)"
     done
