@@ -20,9 +20,6 @@ module MapMenu {
             Rez.Strings.MenuNight, Rez.Strings.MenuNightSub,
             :night, camera.night, null));
 
-        menu.addItem(new WatchUi.MenuItem(
-            Rez.Strings.MenuCity, Pack.name(), :city, null));
-
         // Pin entries carry the count, so the menu answers "how many have I
         // dropped" without a screen of its own.
         menu.addItem(new WatchUi.MenuItem(
@@ -46,13 +43,11 @@ class MapMenuDelegate extends WatchUi.Menu2InputDelegate {
 
     hidden var _view;
     hidden var _camera;
-    hidden var _onPickCity;
 
-    function initialize(view, camera, onPickCity) {
+    function initialize(view, camera) {
         Menu2InputDelegate.initialize();
         _view = view;
         _camera = camera;
-        _onPickCity = onPickCity;
     }
 
     function onSelect(item) {
@@ -68,15 +63,6 @@ class MapMenuDelegate extends WatchUi.Menu2InputDelegate {
             // The buffer is unpaletted, so a theme change is a repaint: no
             // need to throw the allocation away and take it again.
             _view.redrawFromScratch();
-        } else if (id == :city) {
-            WatchUi.popView(WatchUi.SLIDE_DOWN);
-            // The app owns the downloader and the pack, so it drives this, but
-            // the entry point is handed down rather than reached up for.
-            // `Application.getApp() as OfflineMapsApp` here would name the app
-            // from a menu the app's own delegate opened, closing the cycle
-            // OfflineMapsApp -> MapDelegate -> MapMenuDelegate -> OfflineMapsApp.
-            if (_onPickCity != null) { _onPickCity.invoke(); }
-            return;
         } else if (id == :pin) {
             // The screen centre, not the GPS position: you may be pinning
             // somewhere you are looking at rather than standing in, and with no
