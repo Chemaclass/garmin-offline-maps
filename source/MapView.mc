@@ -293,24 +293,16 @@ class MapView extends WatchUi.View {
     function onUpdate(dc) {
         try {
             drawEverything(dc);
-            // Keep leaving crumbs for as long as a downloaded map is on
-            // screen, and stop only once we are back on the built-in one.
-            //
-            // Not "after the first successful frame": throttled loading means
-            // the first frame *does* succeed, and the watchdog fires whenever a
-            // frame runs long, which is just as easily the third one, mid-pan,
-            // as the map fills in. Disarming early leaves that kill no crumb.
-            //
-            // The cost is one storage write per block actually decoded, and
-            // blocks are only decoded on a cache miss. `onStop` clears the
-            // crumb, so a clean exit leaves none and anything still there was
-            // a kill.
-            if (!Pack.isDownloaded()) { Diag.disarm(); }
+            // Crumbs stay armed for the whole session rather than being
+            // dropped after a good frame. The watchdog fires whenever a frame
+            // runs long, which is as easily the third one mid-pan as the
+            // first, and disarming early leaves that kill no crumb. `onStop`
+            // clears it, so a clean exit leaves none and anything still there
+            // was a kill.
         } catch (ex) {
             Diag.record("render", ex);
             // The pack that failed to draw must not be drawn again, or this
             // repeats every frame.
-            Pack.use(null);
             _store.clear();
             _camera.resetToPack();
             _dirty = true;
