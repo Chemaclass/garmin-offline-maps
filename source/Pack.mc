@@ -198,12 +198,8 @@ module Pack {
     //! end up as the identical MapPack block, which is why `TileReader` needs
     //! no idea where it came from.
     function blockBase64(z, blockX, blockY) {
-        if (!_downloaded) {
-            var resource = MapIndex.blockResource(z, blockX, blockY);
-            return resource == null ? null : Application.loadResource(resource);
-        }
-        var key = blockKey(z, blockX, blockY);
-        return key < 0 ? null : CityStore.blockBase64(key);
+        var resource = MapIndex.blockResource(z, blockX, blockY);
+        return resource == null ? null : Application.loadResource(resource);
     }
 
     //! Is anything packed here? Cheap, and separate from `blockBase64` so the
@@ -219,15 +215,7 @@ module Pack {
     //! app spins without ever yielding, which is what the watchdog kills:
     //! "Code Executed Too Long", every frame quick, the loop endless.
     function hasBlock(z, blockX, blockY) {
-        if (!_downloaded) {
-            return MapIndex.blockResource(z, blockX, blockY) != null;
-        }
-        var key = blockKey(z, blockX, blockY);
-        if (key < 0) { return false; }
-        for (var i = 0; i < _blocks.size(); i += 1) {
-            if (_blocks[i] == key) { return true; }
-        }
-        return false;
+        return MapIndex.blockResource(z, blockX, blockY) != null;
     }
 
     //! (relX << keyShift) | relY, matching what the packer wrote. -1 when the

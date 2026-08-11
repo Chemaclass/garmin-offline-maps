@@ -11,18 +11,14 @@ class MapDelegate extends WatchUi.InputDelegate {
     hidden var _view;
     hidden var _camera;
     hidden var _tracker;
-    //! Passed straight through to the menu. Held rather than resolved there so
-    //! that nothing below the app has to name the app; see `MapMenuDelegate`.
-    hidden var _onPickCity;
     hidden var _startX;
     hidden var _startY;
 
-    function initialize(view, camera, tracker, onPickCity) {
+    function initialize(view, camera, tracker) {
         InputDelegate.initialize();
         _view = view;
         _camera = camera;
         _tracker = tracker;
-        _onPickCity = onPickCity;
         _startX = 0;
         _startY = 0;
     }
@@ -144,7 +140,7 @@ class MapDelegate extends WatchUi.InputDelegate {
 
     hidden function openMenu() {
         WatchUi.pushView(MapMenu.build(_camera),
-                         new MapMenuDelegate(_view, _camera, _onPickCity),
+                         new MapMenuDelegate(_view, _camera),
                          WatchUi.SLIDE_UP);
     }
 }
