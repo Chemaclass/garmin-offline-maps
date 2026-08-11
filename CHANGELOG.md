@@ -9,6 +9,12 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **You can no longer zoom out past the point where the map is useful.** Zoomed
+  right out, a city carries almost nothing but water and a few motorway
+  fragments, which looked like a map with no streets in it. The zoom range now
+  starts where the streets do. The widest view is closer in than before, and
+  everything you can reach has a street network on it.
+
 - **The app covers the Venu family.** A street-level city map is compiled into
   every watch the app supports, and it is far bigger than the demo map, so the
   store's size limit decided the rest: Venu 2, 2S, 2 Plus, 3, 3S, Venu (41 and

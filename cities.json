@@ -30,9 +30,9 @@
       "pack_name": "Berlin",
       "app_id": "ffc1e2d055e342408fba8916d21ac79d",
       "bbox": "13.30,52.47,13.48,52.56",
-      "zooms": "12,14,15,16",
+      "zooms": "14,15,16",
       "simplify": "2.0",
-      "extra": "--max-points-per-tile 200 --cache berlin.osm",
+      "extra": "--max-points-per-tile 200 --min-zoom 14 --cache berlin.osm",
       "note": "Inside the Ringbahn. z15 is carried as its own data zoom rather than scaled from z14: a matched zoom puts more tiles in view, and detail is capped per tile, so matching is what buys detail at walking zoom. Adding z17 as well fits the resource cap but triples the size for a zoom few people walk at.",
       "products": [
         "venu3",
