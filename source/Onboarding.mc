@@ -39,9 +39,7 @@ module Onboarding {
                 _seen = false;
             }
         }
-        // A downloaded city has already answered the question the card asks,
-        // so it stops appearing whether or not it was ever dismissed.
-        return !_seen && !Pack.isDownloaded();
+        return !_seen;
     }
 
     //! Persisted the moment the user acknowledges it rather than batched into
