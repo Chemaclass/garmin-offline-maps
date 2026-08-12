@@ -40,7 +40,7 @@ class TileStore {
     //! taken. On a watch that is a good deal slower than the simulator, and it
     //! is the one part of a frame no check can shorten. Filling a screen takes
     //! a few more frames; the frames themselves stop having a cliff in them.
-    const LOADS_PER_RENDER = 1;
+    const LOADS_PER_RENDER = 4;
 
     //! Five parallel arrays, one cache entry per index. Typed because the hot
     //! paths below subscript them, and the checker will not index an untyped

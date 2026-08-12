@@ -21,11 +21,11 @@ import Toybox.System;
 class MapRenderer {
 
     //! Hard ceiling on primitives per render, to stay clear of the watchdog.
-    const MAX_SEGMENTS = 400;
+    const MAX_SEGMENTS = 2600;
     //! Areas get their own, smaller budget. They are drawn first, and without
     //! a separate allowance a city full of parks and buildings could spend the
     //! whole frame before a single road is drawn.
-    const AREA_SEGMENTS = 150;
+    const AREA_SEGMENTS = 900;
     const MAX_POLYGON_POINTS = 64;
 
     //! Milliseconds a single render may spend before it gives up and draws

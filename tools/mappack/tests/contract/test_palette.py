@@ -102,10 +102,22 @@ class TestPaletteContract(unittest.TestCase):
             source = fh.read()
         cap = int(re.search(r"MAX_SEGMENTS = (\d+)", source).group(1))
         self.assertGreater(cap, 200)
+        # 800 was the right ceiling when a downloaded Berlin was the worst case
+        # and this was the only per-tile bound there was: at 1200 it tripped the
+        # watchdog. Two things changed. The download path is gone, so a block is
+        # a resource read rather than a Storage read plus a base64 decode; and
+        # `TILE_POINT_CAP` now bounds a single tile, which is what the watchdog
+        # was actually counting. Re-measured with a compiled-in street-level
+        # Berlin: 2600 renders 1140 segments over 9 tiles without truncating and
+        # runs 90 s in the simulator with no kill.
+        #
+        # Still a ceiling, not a licence: this is the budget for a whole pass of
+        # a frame, and raising it past what a frame can draw puts the map back
+        # to depending on truncation to get its next frame.
         self.assertLessEqual(
-            cap, 800,
-            "measured on a Venu 3 simulator: a downloaded Berlin renders at 400 "
-            "(223 segments, 68 ms) and trips the watchdog at 1200")
+            cap, 3000,
+            "re-measure before raising this: it was 800 while a downloaded pack "
+            "was the worst case, and TILE_POINT_CAP is what bounds a tile now")
         self.assertIn("_passWork += 1;", source,
                       "every point must count towards the budget, drawn or not")
 
